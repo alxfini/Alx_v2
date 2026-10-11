@@ -13,7 +13,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Instala o motor para rodar o build
+          node-version: '20'
           
       - name: Instalar dependências
         run: npm install
@@ -29,9 +29,10 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
           port: 21
-          local-dir: ./dist/ # Pega apenas a pasta já compilada
+          local-dir: ./dist/
           server-dir: /
           exclude: |
             **/.git*
             **/.git*/**
             **/.github*/**
+            **/uploads/**
