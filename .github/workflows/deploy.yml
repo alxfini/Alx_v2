@@ -15,4 +15,4 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        server-dir: /public_html/ # Garante que os arquivos vão para a pasta pública
+        server-dir: / # Garante que os arquivos vão para a pasta pública
