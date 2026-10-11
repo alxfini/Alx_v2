@@ -10,6 +10,17 @@ jobs:
       - name: Obter o código
         uses: actions/checkout@v4
         
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Instala o motor para rodar o build
+          
+      - name: Instalar dependências
+        run: npm install
+        
+      - name: Fazer o Build do projeto
+        run: npm run build
+        
       - name: Enviar arquivos via FTP para a Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -18,6 +29,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
           port: 21
+          local-dir: ./dist/ # Pega apenas a pasta já compilada
           server-dir: /
           exclude: |
             **/.git*
