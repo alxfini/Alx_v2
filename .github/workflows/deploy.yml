@@ -2,23 +2,24 @@ name: Deploy FTP
 on:
   push:
     branches:
-      - main # Mude para 'master' se a sua branch principal tiver esse nome
+      - main
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Obter o código
-      uses: actions/checkout@v4
-- name: Enviar arquivos via FTP para a Hostinger
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        protocol: ftps
-        port: 21
-        server-dir: /
-        exclude: |
-          **/.git*
-          **/.git*/**
-          **/.github*/**
+      - name: Obter o código
+        uses: actions/checkout@v4
+        
+      - name: Enviar arquivos via FTP para a Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          server-dir: /
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github*/**
