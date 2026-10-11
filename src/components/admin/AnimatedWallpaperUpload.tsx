@@ -87,7 +87,7 @@ export const AnimatedWallpaperUpload: React.FC<AnimatedWallpaperUploadProps> = (
   return (
     <div className="space-y-6">
       {/* 1. Alerta Inteligente de Arquitetura: GitHub Releases vs Servidor */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-neutral-900/40 to-neutral-900 border border-amber-500/30 text-white space-y-2">
+      <div className="p-4 rounded-2xl bg-black border border-amber-500/30 text-white space-y-2">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-[#ebbf01] text-black">
             <Sparkles className="w-4 h-4" />

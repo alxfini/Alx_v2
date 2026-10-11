@@ -251,14 +251,22 @@ export function getPageTitle(
   brandName: string = 'Alx⁺',
   storeData?: TitleStoreData
 ): string {
-  const brand = brandName || 'Alx⁺';
+  let brand = (brandName || 'Alx⁺').trim();
+  if (brand === 'Alx +' || brand === 'Alx + -' || brand === 'Alx' || !brand) {
+    brand = 'Alx⁺';
+  }
+
+  const formatTitle = (subTitle?: string) => {
+    if (!subTitle) return brand;
+    return `${brand} (${subTitle})`;
+  };
 
   switch (page.type) {
     case 'home':
       return brand;
 
     case 'desbloqueio':
-      return `${brand} - Desbloqueio`;
+      return formatTitle('Desbloqueio');
 
     case 'servico-desbloqueio': {
       if (page.idOrSlug && storeData?.unlockServices) {
@@ -267,14 +275,14 @@ export function getPageTitle(
           s => s.id === page.idOrSlug || s.slug === page.idOrSlug || s.id.toLowerCase() === idOrSlugLower || (s.slug && s.slug.toLowerCase() === idOrSlugLower)
         );
         if (item?.title) {
-          return `${brand} - ${item.title}`;
+          return formatTitle(item.title);
         }
       }
-      return `${brand} - Desbloqueio`;
+      return formatTitle('Desbloqueio');
     }
 
     case 'apps':
-      return `${brand} - Apps`;
+      return formatTitle('Apps');
 
     case 'app': {
       if (page.idOrSlug && storeData?.apps) {
@@ -283,14 +291,14 @@ export function getPageTitle(
           a => a.id === page.idOrSlug || a.slug === page.idOrSlug || a.id.toLowerCase() === idOrSlugLower || (a.slug && a.slug.toLowerCase() === idOrSlugLower)
         );
         if (app?.name) {
-          return `${brand} - ${app.name}`;
+          return formatTitle(app.name);
         }
       }
-      return `${brand} - Apps`;
+      return formatTitle('Apps');
     }
 
     case 'wallpapers':
-      return `${brand} - Wallpapers Animados`;
+      return formatTitle('Wallpapers Animados');
 
     case 'wallpaper': {
       if (page.idOrSlug && storeData?.wallpapers) {
@@ -299,14 +307,14 @@ export function getPageTitle(
           item => item.id === page.idOrSlug || item.slug === page.idOrSlug || item.id.toLowerCase() === idOrSlugLower || (item.slug && item.slug.toLowerCase() === idOrSlugLower)
         );
         if (w?.title) {
-          return `${brand} - ${w.title}`;
+          return formatTitle(w.title);
         }
       }
-      return `${brand} - Wallpapers Animados`;
+      return formatTitle('Wallpapers Animados');
     }
 
     case 'radar-ota':
-      return `${brand} - Radar OTA`;
+      return formatTitle('Radar OTA');
 
     case 'ota': {
       if (page.idOrSlug && storeData?.otaUpdates) {
@@ -316,14 +324,14 @@ export function getPageTitle(
         );
         if (ota) {
           const otaName = ota.title || (ota.applicableCars ? `${ota.applicableCars} (${ota.version})` : `OTA ${ota.version}`);
-          return `${brand} - ${otaName}`;
+          return formatTitle(otaName);
         }
       }
-      return `${brand} - Radar OTA`;
+      return formatTitle('Radar OTA');
     }
 
     case 'tutoriais':
-      return `${brand} - Tutoriais`;
+      return formatTitle('Tutoriais');
 
     case 'tutorial': {
       if (page.idOrSlug && storeData?.tutorials) {
@@ -332,20 +340,20 @@ export function getPageTitle(
           t => t.id === page.idOrSlug || t.slug === page.idOrSlug || t.id.toLowerCase() === idOrSlugLower || (t.slug && t.slug.toLowerCase() === idOrSlugLower)
         );
         if (tut?.title) {
-          return `${brand} - ${tut.title}`;
+          return formatTitle(tut.title);
         }
       }
-      return `${brand} - Tutoriais`;
+      return formatTitle('Tutoriais');
     }
 
     case 'iptv':
-      return `${brand} - IPTV`;
+      return formatTitle('IPTV');
 
     case 'youtube':
-      return `${brand} - Vídeos`;
+      return formatTitle('Vídeos');
 
     case 'noticias':
-      return `${brand} - Notícias`;
+      return formatTitle('Notícias');
 
     case 'news': {
       if (page.idOrSlug && storeData?.news) {
@@ -354,18 +362,18 @@ export function getPageTitle(
           article => article.id === page.idOrSlug || article.slug === page.idOrSlug || article.id.toLowerCase() === idOrSlugLower || (article.slug && article.slug.toLowerCase() === idOrSlugLower)
         );
         if (n?.title) {
-          return `${brand} - ${n.title}`;
+          return formatTitle(n.title);
         }
       }
-      return `${brand} - Notícias`;
+      return formatTitle('Notícias');
     }
 
     case 'vip':
-      return `${brand} - Área VIP`;
+      return formatTitle('Área VIP');
 
     case 'produtos':
     case 'shop':
-      return `${brand} - Produtos`;
+      return formatTitle('Produtos');
 
     case 'product': {
       if (page.idOrSlug && storeData?.products) {
@@ -374,36 +382,36 @@ export function getPageTitle(
           prod => prod.id === page.idOrSlug || prod.slug === page.idOrSlug || prod.id.toLowerCase() === idOrSlugLower || (prod.slug && prod.slug.toLowerCase() === idOrSlugLower)
         );
         if (p?.name) {
-          return `${brand} - ${p.name}`;
+          return formatTitle(p.name);
         }
       }
-      return `${brand} - Produtos`;
+      return formatTitle('Produtos');
     }
 
     case 'calculadora':
-      return `${brand} - Calculadora`;
+      return formatTitle('Calculadora');
 
     case 'gerador-imei':
     case 'imei':
-      return `${brand} - Gerador IMEI`;
+      return formatTitle('Gerador IMEI');
 
     case 'sobre':
-      return `${brand} - Sobre`;
+      return formatTitle('Sobre');
 
     case 'termos':
-      return `${brand} - Termos de Uso`;
+      return formatTitle('Termos de Uso');
 
     case 'privacidade':
-      return `${brand} - Política de Privacidade`;
+      return formatTitle('Política de Privacidade');
 
     case 'contato':
-      return `${brand} - Contato`;
+      return formatTitle('Contato');
 
     case 'admin':
-      return `${brand} - Admin`;
+      return formatTitle('Admin');
 
     case 'comunidade':
-      return `${brand} - Comunidade VIP`;
+      return formatTitle('Comunidade VIP');
 
     default:
       return brand;
