@@ -1,0 +1,5 @@
+<svg viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M500 100 L760 720 H610 L500 450 L390 720 H240 L500 100 Z" fill="#FFFFFF" />
+  <polygon points="500,320 560,470 440,470" fill="#0D0D12" />
+  <polygon points="630,770 850,770 930,940 710,940" fill="#FF001E" />
+</svg>

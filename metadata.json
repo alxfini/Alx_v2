@@ -1,0 +1,8 @@
+{
+  "name": "Alx⁺ - Tecnologia Automotiva e Carros Elétricos",
+  "description": "Portal oficial Alx⁺: tecnologia automotiva, carros elétricos, multimídia, aplicativos exclusivos, vídeos e comunidade VIP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,20 @@
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Prévia Dinâmica Oficial para WhatsApp, Facebook, Telegram, Twitter, Discord e Redes Sociais
+  RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|WhatsApp|Twitterbot|TelegramBot|Discordbot|Facebot|LinkedInBot|Slackbot|SkypeUriPreview|meta-externalagent|Applebot|Googlebot|bingbot) [NC]
+  RewriteCond %{REQUEST_URI} !^/(api|uploads|imagens|assets)/ [NC]
+  RewriteCond %{REQUEST_URI} !\.(css|js|jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf|eot|json|map|xml|pdf|apk|zip)$ [NC]
+  RewriteCond %{REQUEST_URI} !^/share\.php$ [NC]
+  RewriteRule ^(.*)$ share.php?path=$1 [L,QSA]
+
+  # 2. SPA Fallback para React Vite
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /index.html [L]
+</IfModule>

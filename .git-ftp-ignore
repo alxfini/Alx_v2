@@ -1,0 +1,12 @@
+site-data*.json
+*/site-data*.json
+**/site-data*.json
+api/site-data*.json
+**/api/site-data*.json
+uploads/
+uploads/*
+uploads/**
+*/uploads/*
+*/uploads/**
+**/uploads/**
+.ftp-deploy-sync-state.json

@@ -1,0 +1,44 @@
+{
+  "apps": [
+    {
+      "id": "app-telemetria-hub",
+      "slug": "alx-telemetria-hub",
+      "name": "ALX Telemetria & Hub",
+      "description": "Monitoramento em tempo real de bateria, células, telemetria OBD2 e métricas de consumo para BYD.",
+      "imageUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
+      "icon": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop"
+    },
+    {
+      "id": "app-waze-auto",
+      "slug": "waze-auto-multimidia",
+      "name": "Waze Otimizado DiLink",
+      "description": "Navegação GPS em tempo real com alertas de radares e trânsito otimizada para telas rotativas.",
+      "imageUrl": "https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=800&auto=format&fit=crop",
+      "icon": "https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=800&auto=format&fit=crop"
+    },
+    {
+      "id": "app-smart-launcher",
+      "slug": "smart-launcher-automotivo",
+      "name": "ALX Launcher Automotivo",
+      "description": "Launcher com visual moderno para tela inicial do DiLink com atalhos rápidos e velocímetro.",
+      "imageUrl": "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?q=80&w=800&auto=format&fit=crop",
+      "icon": "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?q=80&w=800&auto=format&fit=crop"
+    }
+  ],
+  "tutorials": [
+    {
+      "id": "tut-instalar-ota-usb",
+      "slug": "como-atualizar-firmware-ota-via-pendrive-usb",
+      "title": "Como Atualizar Firmware DiLink via Pendrive USB",
+      "summary": "Procedimento técnico detalhado para instalação manual de pacotes de firmware OTA em veículos BYD.",
+      "imageUrl": "https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      "id": "tut-instalar-apk-dilink",
+      "slug": "como-instalar-aplicativos-apk-na-central-dilink",
+      "title": "Como Instalar Aplicativos APK na Central DiLink",
+      "summary": "Passo a passo para habilitar fontes desconhecidas e instalar APKs como Waze, Spotify e YouTube.",
+      "imageUrl": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop"
+    }
+  ]
+}

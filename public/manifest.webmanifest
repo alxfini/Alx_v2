@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "ALX - Tecnologia Automotiva & EV",
+  "short_name": "ALX Auto",
+  "description": "Portal de aplicativos automotivos, atualizações de firmware OTA, simulador de autonomia e comunidade de veículos elétricos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#070709",
+  "theme_color": "#ebbf01",
+  "categories": ["auto", "utilities", "technology"],
+  "icons": [
+    {
+      "src": "/alx-logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo_alx_garage.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

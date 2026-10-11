@@ -1,0 +1,12 @@
+<svg viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Automotive Carbon Dark Rounded Container -->
+  <rect width="1000" height="1000" rx="220" fill="#0A0A0E" />
+  <rect x="20" y="20" width="960" height="960" rx="200" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="20" />
+  
+  <!-- Main Stylized 'A' Lettermark in Official ALX Yellow -->
+  <path d="M500 135 L745 700 H595 L500 450 L405 700 H255 L500 135 Z" fill="#FBC02D" />
+  <polygon points="500,315 560,475 440,475" fill="#0A0A0E" />
+  
+  <!-- Racing Red Slanted Parallelogram Accent Mark -->
+  <polygon points="635,765 855,765 935,935 715,935" fill="#E50914" />
+</svg>
