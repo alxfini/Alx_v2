@@ -107,6 +107,10 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ onSelectArticle, isSta
 
   const handleOpenArticle = (e: React.MouseEvent, article: NewsArticle) => {
     e.stopPropagation();
+    if (isItemVip(article) && !isUserAuthenticated) {
+      openVipModal();
+      return;
+    }
     setActivePage({ type: 'news', idOrSlug: article.slug || article.id });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

@@ -37,6 +37,7 @@ import { initialNotifications, sendBrowserNotification } from '../services/notif
 import { syncAllAutomotiveNews } from '../services/newsService';
 import { syncShopProductsFromStore } from '../services/shopService';
 import { applyPageThemeHex, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../utils/pageColors';
+import { isItemVip } from '../utils/vip';
 
 export interface FullSiteDataPayload {
   brand?: SiteBrandConfig;
@@ -667,10 +668,11 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray(savedData.apps)) {
           const mergedApps = savedData.apps.map((sa: any) => {
             const def = initialApps.find(da => da.id === sa.id || da.slug === sa.slug);
+            const isMem = Boolean(sa.isMembersOnly || sa.isVipExclusive || isItemVip(sa) || (def && isItemVip(def)));
             return {
               ...sa,
-              isVipExclusive: sa.isVipExclusive !== undefined ? sa.isVipExclusive : def?.isVipExclusive,
-              isMembersOnly: sa.isMembersOnly !== undefined ? sa.isMembersOnly : def?.isMembersOnly,
+              isVipExclusive: isMem,
+              isMembersOnly: isMem,
             };
           });
           setApps(mergedApps);
@@ -678,10 +680,11 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray(savedData.news)) {
           const mergedNews = savedData.news.map((sn: any) => {
             const def = initialNews.find(dn => dn.id === sn.id || dn.slug === sn.slug);
+            const isMem = Boolean(sn.isMembersOnly || sn.isVipExclusive || isItemVip(sn) || (def && isItemVip(def)));
             return {
               ...sn,
-              isMembersOnly: sn.isMembersOnly !== undefined ? sn.isMembersOnly : def?.isMembersOnly,
-              isVipExclusive: sn.isVipExclusive !== undefined ? sn.isVipExclusive : def?.isVipExclusive,
+              isMembersOnly: isMem,
+              isVipExclusive: isMem,
             };
           });
           setNews(mergedNews);
@@ -698,10 +701,11 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray(savedData.tutorials)) {
           const mergedTutorials = savedData.tutorials.map((st: any) => {
             const def = initialTutorials.find(it => it.id === st.id || it.slug === st.slug);
+            const isMem = Boolean(st.isMembersOnly || st.isVipExclusive || isItemVip(st) || (def && isItemVip(def)));
             return {
               ...st,
-              isMembersOnly: st.isMembersOnly !== undefined ? st.isMembersOnly : (def?.isMembersOnly ?? true),
-              isVipExclusive: st.isVipExclusive !== undefined ? st.isVipExclusive : (def?.isVipExclusive ?? true),
+              isMembersOnly: isMem,
+              isVipExclusive: isMem,
             };
           });
           setTutorials(mergedTutorials);

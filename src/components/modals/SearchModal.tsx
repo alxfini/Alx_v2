@@ -181,7 +181,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     <div
                       key={art.id}
                       onClick={() => {
-                        setActivePage({ type: 'news', idOrSlug: art.slug || art.id });
+                        if (isArtVIP && !isUserAuthenticated) {
+                          onOpenVip();
+                        } else {
+                          setActivePage({ type: 'news', idOrSlug: art.slug || art.id });
+                        }
                         onClose();
                       }}
                       className="p-3 rounded-2xl bg-[#141419] border border-white/[0.04] hover:border-[#ebbf01]/40 hover:bg-[#1A1A22] flex items-center justify-between cursor-pointer transition-all group"

@@ -1,5 +1,6 @@
 import { NewsArticle } from '../types';
 import { newsArticles as defaultNewsArticles } from '../data/news';
+import { isItemVip } from '../utils/vip';
 
 export interface NewsPortalSource {
   id: string;
@@ -367,22 +368,35 @@ export async function syncAllAutomotiveNews(
         seenTitles.add(cleanTitle);
         const matchedDefault = defaultTitleMap.get(cleanTitle) || defaultMap.get(art.id);
         const matchedExisting = existingNews.find(e => e.id === art.id || e.title.toLowerCase().trim() === cleanTitle);
-        const isMembersOnly = matchedExisting?.isMembersOnly ?? matchedDefault?.isMembersOnly ?? false;
-        const isVipExclusive = matchedExisting?.isVipExclusive ?? matchedDefault?.isVipExclusive ?? false;
+        
+        const isMem = Boolean(
+          art.isMembersOnly || 
+          matchedExisting?.isMembersOnly || 
+          matchedDefault?.isMembersOnly || 
+          isItemVip(art) || 
+          isItemVip(matchedExisting) || 
+          isItemVip(matchedDefault)
+        );
+        const isVip = Boolean(
+          art.isVipExclusive || 
+          matchedExisting?.isVipExclusive || 
+          matchedDefault?.isVipExclusive || 
+          isMem
+        );
 
         if (matchedDefault && matchedDefault.content.length > art.content.length) {
           mergedList.push({
             ...art,
             content: matchedDefault.content,
             summary: matchedDefault.summary,
-            isMembersOnly,
-            isVipExclusive,
+            isMembersOnly: isMem,
+            isVipExclusive: isVip,
           });
         } else {
           mergedList.push({
             ...art,
-            isMembersOnly,
-            isVipExclusive,
+            isMembersOnly: isMem,
+            isVipExclusive: isVip,
           });
         }
       }
@@ -395,10 +409,13 @@ export async function syncAllAutomotiveNews(
       if (!seenTitles.has(cleanTitle)) {
         seenTitles.add(cleanTitle);
         const matchedExisting = existingNews.find(e => e.id === defArt.id || e.title.toLowerCase().trim() === cleanTitle);
+        const isMem = Boolean(defArt.isMembersOnly || matchedExisting?.isMembersOnly || isItemVip(defArt) || isItemVip(matchedExisting));
+        const isVip = Boolean(defArt.isVipExclusive || matchedExisting?.isVipExclusive || isMem);
+
         mergedList.push({
           ...defArt,
-          isMembersOnly: matchedExisting?.isMembersOnly ?? defArt.isMembersOnly,
-          isVipExclusive: matchedExisting?.isVipExclusive ?? defArt.isVipExclusive,
+          isMembersOnly: isMem,
+          isVipExclusive: isVip,
         });
       }
     });
@@ -410,16 +427,23 @@ export async function syncAllAutomotiveNews(
       if (!seenTitles.has(cleanTitle)) {
         seenTitles.add(cleanTitle);
         const matchedDefault = defaultTitleMap.get(cleanTitle) || defaultMap.get(art.id);
+        const isMem = Boolean(art.isMembersOnly || matchedDefault?.isMembersOnly || isItemVip(art) || isItemVip(matchedDefault));
+        const isVip = Boolean(art.isVipExclusive || matchedDefault?.isVipExclusive || isMem);
+
         if (matchedDefault && matchedDefault.content.length > (art.content?.length || 0)) {
           mergedList.push({
             ...art,
             content: matchedDefault.content,
             summary: matchedDefault.summary,
-            isMembersOnly: art.isMembersOnly ?? matchedDefault.isMembersOnly,
-            isVipExclusive: art.isVipExclusive ?? matchedDefault.isVipExclusive,
+            isMembersOnly: isMem,
+            isVipExclusive: isVip,
           });
         } else {
-          mergedList.push(art);
+          mergedList.push({
+            ...art,
+            isMembersOnly: isMem,
+            isVipExclusive: isVip,
+          });
         }
       }
     });
