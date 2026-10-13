@@ -36,6 +36,7 @@ import {
   Crown,
   KeyRound,
   Tv,
+  Handshake,
   Globe,
   BookOpen,
   Bell,
@@ -79,6 +80,7 @@ import { CategorySelect } from './CategorySelect';
 import { VisibilitySelector, VisibilityBadge } from './VisibilitySelector';
 import { GitHubStorageTab } from './GitHubStorageTab';
 import { DatabaseTab } from './DatabaseTab';
+import { PartnersTab } from './PartnersTab';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
 import { EDITABLE_PAGES, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../../utils/pageColors';
 import { ALXApp, NewsArticle, ProductItem, EVModel, OTAUpdate, Tutorial, YouTubeVideo, CustomPageLink, UnlockServiceItem, WallpaperItem, CustomSocialLink, ContactCardItem, VipMember, IptvAppItem, IptvSimpleLink } from '../../types';
@@ -130,6 +132,13 @@ const EXISTING_SITE_PAGES = [
     description: 'Catálogo de aplicativos testados e otimizados para multimídia.',
     icon: 'smartphone',
     category: 'Aplicativos',
+  },
+  {
+    title: 'Parceiros Homologados',
+    url: '/parceiros',
+    description: 'Rede de parceiros credenciados em oficinas, estética e acessórios.',
+    icon: 'handshake',
+    category: 'Parcerias',
   },
   {
     title: 'Cinema YouTube & Vídeos',
@@ -204,7 +213,7 @@ const EXISTING_SITE_PAGES = [
 ];
 
 interface AdminDashboardProps {
-  initialTab?: 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'storage';
+  initialTab?: 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'storage' | 'database' | 'vipMembers';
   onClose?: () => void;
 }
 
@@ -301,6 +310,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     deleteVipMember,
     approveVipMember,
     importVipMembers,
+    partners,
     resetToDefaults,
     exportDataJson,
     importDataJson,
@@ -308,7 +318,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setActivePage,
   } = useSiteData();
 
-  const [activeTab, setActiveTab] = useState<'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers' | 'storage' | 'database'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers' | 'storage' | 'database'>(initialTab);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
@@ -1142,6 +1152,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     'unlock',
     'wallpapers',
     'iptv',
+    'parceiros',
     'pages',
     'vipMembers',
     'backup',
@@ -1281,6 +1292,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'unlock', label: 'Desbloqueios & Serviços', icon: KeyRound, count: (unlockServices || []).length },
     { id: 'wallpapers', label: 'Wallpapers & Wallpapers Animados', icon: Layers, count: (wallpapers || []).length },
     { id: 'iptv', label: 'IPTV & Streaming', icon: Tv, count: (iptvConfig?.apps || []).length },
+    { id: 'parceiros', label: 'Parceiros & Parcerias', icon: Handshake, count: (partners || []).length },
     { id: 'pages', label: 'Páginas & Links do Menu', icon: Globe, count: customPageLinks.length },
     { id: 'vipMembers', label: 'Gestão de Membros VIP', icon: Users, count: (vipMembers || []).length },
     { id: 'backup', label: 'Backup & Dados', icon: FileJson, count: null },
@@ -5263,6 +5275,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
           </div>
+        )}
+
+        {/* TAB: PARCEIROS & PARCERIAS */}
+        {activeTab === 'parceiros' && (
+          <PartnersTab onTriggerSuccess={triggerSuccess} />
         )}
 
         {/* TAB: NOTIFICAÇÕES & SININHO */}

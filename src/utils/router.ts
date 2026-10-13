@@ -6,7 +6,8 @@ import {
   OTAUpdate, 
   Tutorial, 
   UnlockServiceItem, 
-  WallpaperItem 
+  WallpaperItem,
+  PartnerItem 
 } from '../types';
 
 export interface TitleStoreData {
@@ -17,6 +18,7 @@ export interface TitleStoreData {
   tutorials?: Tutorial[];
   unlockServices?: UnlockServiceItem[];
   wallpapers?: WallpaperItem[];
+  partners?: PartnerItem[];
 }
 
 /**
@@ -50,6 +52,8 @@ export function getRoutePath(page: ActivePageView): string {
       return page.idOrSlug ? `/wallpapers/${encodeURIComponent(page.idOrSlug)}` : '/wallpapers';
     case 'iptv':
       return '/iptv';
+    case 'parceiros':
+      return page.idOrSlug ? `/parceiros/${encodeURIComponent(page.idOrSlug)}` : '/parceiros';
     case 'youtube':
       return '/youtube';
     case 'noticias':
@@ -167,6 +171,15 @@ export function getPageFromUrl(pathname: string = window.location.pathname, hash
     case 'iptv-player':
     case 'tv-online':
       return { type: 'iptv' };
+
+    case 'parceiros':
+    case 'parceiro':
+    case 'partners':
+    case 'parcerias':
+      if (subSegment) {
+        return { type: 'parceiros', idOrSlug: subSegment };
+      }
+      return { type: 'parceiros' };
 
     case 'youtube':
     case 'videos':
@@ -348,6 +361,19 @@ export function getPageTitle(
 
     case 'iptv':
       return formatTitle('IPTV');
+
+    case 'parceiros': {
+      if (page.idOrSlug && storeData?.partners) {
+        const idOrSlugLower = decodeURIComponent(page.idOrSlug).toLowerCase();
+        const p = storeData.partners.find(
+          item => item.id === page.idOrSlug || item.slug === page.idOrSlug || item.id.toLowerCase() === idOrSlugLower || (item.slug && item.slug.toLowerCase() === idOrSlugLower)
+        );
+        if (p?.name) {
+          return formatTitle(p.name);
+        }
+      }
+      return formatTitle('Parceiros');
+    }
 
     case 'youtube':
       return formatTitle('Vídeos');

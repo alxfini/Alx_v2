@@ -9,6 +9,7 @@ import { DesbloqueioSection } from './components/DesbloqueioSection';
 import { AppsSection } from './components/AppsSection';
 import { WallpapersSection } from './components/WallpapersSection';
 import { IptvSection } from './components/IptvSection';
+import { ParceirosSection } from './components/ParceirosSection';
 import { YouTubeSection } from './components/YouTubeSection';
 import { NewsSection } from './components/NewsSection';
 import { VipSection } from './components/VipSection';
@@ -280,6 +281,17 @@ const MainAppContent: React.FC = () => {
             description="Confira tutoriais passo a passo e faça download de aplicativos IPTV homologados e testados para multimídia automotiva."
           >
             <IptvSection isStandalone={true} />
+          </SectionPageWrapper>
+        )}
+
+        {/* 3d. Dedicated Page: Parceiros */}
+        {activePage.type === 'parceiros' && (
+          <SectionPageWrapper
+            title="Parceiros Homologados Alx⁺"
+            badge="Rede de Parceiros"
+            description="Oficinas técnicas especializadas, estética automotiva, películas térmicas e serviços de tecnologia para veículos elétricos e multimídias."
+          >
+            <ParceirosSection isStandalone={true} />
           </SectionPageWrapper>
         )}
 

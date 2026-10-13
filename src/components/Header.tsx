@@ -17,7 +17,8 @@ import {
   Sparkles, 
   Layers,
   KeyRound,
-  Tv
+  Tv,
+  Handshake
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { useSiteData } from '../context/SiteDataContext';
@@ -103,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenVipModal, onOpenSearchModa
     setPagesDropdownOpen(false);
 
     const cleanUrl = item.url.replace(/^[#/]+/, '').toLowerCase();
-    if (['calculadora', 'radar-ota', 'ota', 'tutoriais', 'desbloqueio', 'apps', 'wallpapers', 'iptv', 'youtube', 'noticias', 'vip', 'produtos', 'shop', 'home', 'gerador-imei', 'imei', 'sobre', 'termos', 'privacidade'].includes(cleanUrl)) {
+    if (['calculadora', 'radar-ota', 'ota', 'tutoriais', 'desbloqueio', 'apps', 'wallpapers', 'iptv', 'parceiros', 'youtube', 'noticias', 'vip', 'produtos', 'shop', 'home', 'gerador-imei', 'imei', 'sobre', 'termos', 'privacidade'].includes(cleanUrl)) {
       if (cleanUrl === 'imei' || cleanUrl === 'gerador-imei') {
         setActivePage({ type: 'gerador-imei' });
       } else if (cleanUrl === 'ota' || cleanUrl === 'radar-ota') {
@@ -172,6 +173,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenVipModal, onOpenSearchModa
       case 'iptv':
       case 'monitor':
         return <Tv className={cls} />;
+      case 'handshake':
+      case 'parceiros':
+      case 'parceiro':
+      case 'partners':
+        return <Handshake className={cls} />;
       case 'globe':
       default:
         return <Globe className={cls} />;

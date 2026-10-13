@@ -65,6 +65,15 @@ export const DEFAULT_HEADER_ITEMS: HeaderMenuItemConfig[] = [
     icon: 'tv',
   },
   {
+    id: 'parceiros',
+    label: 'Parceiros',
+    pageType: 'parceiros',
+    url: '/parceiros',
+    location: 'main',
+    visible: true,
+    icon: 'handshake',
+  },
+  {
     id: 'youtube',
     label: 'YouTube',
     pageType: 'youtube',

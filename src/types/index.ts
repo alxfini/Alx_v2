@@ -432,6 +432,32 @@ export interface IptvPageConfig {
   links: IptvSimpleLink[];
 }
 
+export interface PartnerItem {
+  id: string;
+  slug?: string;
+  name: string;
+  badge?: string;
+  tagline?: string;
+  imageUrl: string;
+  shortDescription: string;
+  order?: number;
+  active?: boolean;
+
+  // Conteúdo do Banner / Modal informativo da Parceria
+  bannerHeaderTitle?: string;
+  bannerHeaderSubtitle?: string;
+  bannerImageUrl?: string;
+  content?: string;
+  additionalImages?: string[];
+  youtubeUrl?: string;
+  linkedAppIds?: string[];
+  contactTitle?: string;
+  contactSubtitle?: string;
+  contactButtonText?: string;
+  contactUrl?: string;
+  contactType?: 'whatsapp' | 'external' | 'link';
+}
+
 export type ActivePageView =
   | { type: 'home' }
   | { type: 'calculadora' }
@@ -445,6 +471,7 @@ export type ActivePageView =
   | { type: 'wallpapers' }
   | { type: 'wallpaper'; idOrSlug?: string }
   | { type: 'iptv' }
+  | { type: 'parceiros'; idOrSlug?: string }
   | { type: 'youtube' }
   | { type: 'noticias' }
   | { type: 'comunidade' }
@@ -460,6 +487,6 @@ export type ActivePageView =
   | { type: 'app'; idOrSlug: string }
   | { type: 'news'; idOrSlug: string }
   | { type: 'product'; idOrSlug: string }
-  | { type: 'admin'; initialTab?: 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers'; activeTab?: string };
+  | { type: 'admin'; initialTab?: 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers'; activeTab?: string };
 
 

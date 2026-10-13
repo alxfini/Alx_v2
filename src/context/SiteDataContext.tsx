@@ -18,7 +18,8 @@ import {
   WallpaperItem,
   IptvPageConfig,
   IptvAppItem,
-  IptvSimpleLink
+  IptvSimpleLink,
+  PartnerItem
 } from '../types';
 import { alxApps as initialApps } from '../data/apps';
 import { newsArticles as initialNews } from '../data/news';
@@ -28,6 +29,7 @@ import { initialTutorials } from '../data/tutorials';
 import { initialUnlockServices } from '../data/unlockServices';
 import { initialWallpapers } from '../data/wallpapers';
 import { initialIptvConfig } from '../data/iptv';
+import { initialPartners } from '../data/partners';
 import { youtubeVideos as initialVideos } from '../data/videos';
 import { initialCustomPageLinks } from '../data/customPages';
 import { initialVipMembers } from '../data/vip';
@@ -50,6 +52,7 @@ export interface FullSiteDataPayload {
   tutorials?: Tutorial[];
   wallpapers?: WallpaperItem[];
   iptvConfig?: IptvPageConfig;
+  partners?: PartnerItem[];
   notifications?: AppNotification[];
   customPageLinks?: CustomPageLink[];
   unlockServices?: UnlockServiceItem[];
@@ -167,9 +170,17 @@ interface SiteDataContextType {
   unlockServices: UnlockServiceItem[];
   wallpapers: WallpaperItem[];
   iptvConfig: IptvPageConfig;
+  partners: PartnerItem[];
   videos: YouTubeVideo[];
   notifications: AppNotification[];
   customPageLinks: CustomPageLink[];
+
+  // Partners CRUD
+  addPartner: (partner: Omit<PartnerItem, 'id'> | PartnerItem) => PartnerItem;
+  updatePartner: (id: string, data: Partial<PartnerItem>) => void;
+  deletePartner: (id: string) => void;
+  duplicatePartner: (id: string) => PartnerItem | null;
+  reorderPartners: (partnerIds: string[]) => void;
 
   // IPTV CRUD
   updateIptvConfig: (data: Partial<IptvPageConfig>) => void;
@@ -340,6 +351,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [unlockServices, setUnlockServices] = useState<UnlockServiceItem[]>(initialUnlockServices);
   const [wallpapers, setWallpapers] = useState<WallpaperItem[]>(initialWallpapers);
   const [iptvConfig, setIptvConfig] = useState<IptvPageConfig>(initialIptvConfig);
+  const [partners, setPartners] = useState<PartnerItem[]>(initialPartners);
   const [videos, setVideos] = useState<YouTubeVideo[]>(initialVideos);
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
   const [customPageLinks, setCustomPageLinks] = useState<CustomPageLink[]>(initialCustomPageLinks);
@@ -733,6 +745,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray(savedData.unlockServices)) setUnlockServices(savedData.unlockServices);
         if (Array.isArray(savedData.wallpapers)) setWallpapers(savedData.wallpapers);
         if (savedData.iptvConfig) setIptvConfig(savedData.iptvConfig);
+        if (Array.isArray(savedData.partners)) setPartners(savedData.partners);
         if (Array.isArray(savedData.customPageLinks)) setCustomPageLinks(savedData.customPageLinks);
         if (Array.isArray(savedData.contactMessages)) setContactMessages(savedData.contactMessages);
         if (Array.isArray(savedData.vipMembers)) setVipMembers(savedData.vipMembers);
@@ -813,6 +826,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (Array.isArray(remoteData.unlockServices)) setUnlockServices(remoteData.unlockServices);
       if (Array.isArray(remoteData.wallpapers)) setWallpapers(remoteData.wallpapers);
       if (remoteData.iptvConfig) setIptvConfig(remoteData.iptvConfig);
+      if (Array.isArray(remoteData.partners)) setPartners(remoteData.partners);
       if (Array.isArray(remoteData.customPageLinks)) setCustomPageLinks(remoteData.customPageLinks);
       if (Array.isArray(remoteData.vipMembers)) setVipMembers(remoteData.vipMembers);
       if (Array.isArray(remoteData.contactMessages)) setContactMessages(remoteData.contactMessages);
@@ -980,6 +994,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       vipMembers,
       wallpapers,
       iptvConfig,
+      partners,
     };
   }, [
     brand,
@@ -997,6 +1012,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     vipMembers,
     wallpapers,
     iptvConfig,
+    partners,
   ]);
 
   // Sync state to localStorage, Hostinger Server & Banco de Dados MySQL
@@ -1081,6 +1097,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         unlockServices: overrides.unlockServices !== undefined ? overrides.unlockServices : cur.unlockServices,
         wallpapers: overrides.wallpapers !== undefined ? overrides.wallpapers : cur.wallpapers,
         iptvConfig: overrides.iptvConfig !== undefined ? overrides.iptvConfig : cur.iptvConfig,
+        partners: overrides.partners !== undefined ? overrides.partners : cur.partners,
         notifications: overrides.notifications !== undefined ? overrides.notifications : cur.notifications,
         customPageLinks: overrides.customPageLinks !== undefined ? overrides.customPageLinks : cur.customPageLinks,
         contactMessages: overrides.contactMessages !== undefined ? overrides.contactMessages : cur.contactMessages,
@@ -1280,6 +1297,67 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const updated = { ...iptvConfig, links: updatedLinks };
     setIptvConfig(updated);
     saveToStorage({ iptvConfig: updated });
+  };
+
+  // Partners CRUD Handlers
+  const addPartner = (data: Omit<PartnerItem, 'id'> | PartnerItem): PartnerItem => {
+    const id = (data as any).id || `partner-${Date.now()}`;
+    const newPartner: PartnerItem = {
+      ...(data as any),
+      id,
+      slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+      active: data.active !== undefined ? data.active : true,
+      order: data.order !== undefined ? data.order : (partners.length + 1),
+    };
+    const updated = [newPartner, ...partners];
+    setPartners(updated);
+    saveToStorage({ partners: updated });
+    return newPartner;
+  };
+
+  const updatePartner = (id: string, data: Partial<PartnerItem>) => {
+    const updated = partners.map((p) => (p.id === id ? { ...p, ...data } : p));
+    setPartners(updated);
+    saveToStorage({ partners: updated });
+  };
+
+  const deletePartner = (id: string) => {
+    const updated = partners.filter((p) => p.id !== id);
+    setPartners(updated);
+    saveToStorage({ partners: updated });
+  };
+
+  const duplicatePartner = (id: string): PartnerItem | null => {
+    const original = partners.find((p) => p.id === id);
+    if (!original) return null;
+    const cloned: PartnerItem = {
+      ...original,
+      id: `partner-${Date.now()}`,
+      slug: `${original.slug || 'parceiro'}-copia-${Date.now().toString().slice(-4)}`,
+      name: `${original.name} (Cópia)`,
+      order: (original.order || 0) + 1,
+    };
+    const updated = [cloned, ...partners];
+    setPartners(updated);
+    saveToStorage({ partners: updated });
+    return cloned;
+  };
+
+  const reorderPartners = (partnerIds: string[]) => {
+    const map = new Map<string, PartnerItem>(partners.map((p) => [p.id, p]));
+    const updated: PartnerItem[] = [];
+    partnerIds.forEach((id, index) => {
+      const p = map.get(id);
+      if (p) {
+        updated.push({ ...p, order: index + 1 });
+        map.delete(id);
+      }
+    });
+    map.forEach((p) => {
+      if (p) updated.push(p);
+    });
+    setPartners(updated);
+    saveToStorage({ partners: updated });
   };
 
   // Contact Messages Handlers
@@ -2016,6 +2094,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setWallpapers(initialWallpapers);
     setCustomPageLinks(initialCustomPageLinks);
     setIptvConfig(initialIptvConfig);
+    setPartners(initialPartners);
 
     saveToStorage({
       brand: initialBrandConfig,
@@ -2030,6 +2109,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       wallpapers: initialWallpapers,
       customPageLinks: initialCustomPageLinks,
       iptvConfig: initialIptvConfig,
+      partners: initialPartners,
     });
   };
 
@@ -2048,6 +2128,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       unlockServices,
       wallpapers,
       iptvConfig,
+      partners,
       videos,
       customPageLinks,
       vipMembers,
@@ -2070,6 +2151,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (Array.isArray(parsed.unlockServices)) setUnlockServices(parsed.unlockServices);
       if (Array.isArray(parsed.wallpapers)) setWallpapers(parsed.wallpapers);
       if (parsed.iptvConfig) setIptvConfig(parsed.iptvConfig);
+      if (Array.isArray(parsed.partners)) setPartners(parsed.partners);
       if (Array.isArray(parsed.videos)) setVideos(parsed.videos);
       if (Array.isArray(parsed.customPageLinks)) setCustomPageLinks(parsed.customPageLinks);
       if (Array.isArray(parsed.vipMembers)) setVipMembers(parsed.vipMembers);
@@ -2086,6 +2168,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         unlockServices: parsed.unlockServices || unlockServices,
         wallpapers: parsed.wallpapers || wallpapers,
         iptvConfig: parsed.iptvConfig || iptvConfig,
+        partners: parsed.partners || partners,
         videos: parsed.videos || videos,
         customPageLinks: parsed.customPageLinks || customPageLinks,
         vipMembers: parsed.vipMembers || vipMembers,
@@ -2361,6 +2444,12 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addIptvLink,
         updateIptvLink,
         deleteIptvLink,
+        partners,
+        addPartner,
+        updatePartner,
+        deletePartner,
+        duplicatePartner,
+        reorderPartners,
         addNotification,
         markNotificationAsRead,
         markAllNotificationsAsRead,
