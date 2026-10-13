@@ -31,6 +31,8 @@ export interface YouTubeVideo {
   isVipExclusive?: boolean;
 }
 
+export type ItemVisibility = 'public' | 'unlisted' | 'link_only' | 'members_and_link';
+
 export interface ALXApp {
   id: string;
   slug: string;
@@ -59,6 +61,7 @@ export interface ALXApp {
   badgeColor?: string;
   isVipExclusive?: boolean;
   isMembersOnly?: boolean;
+  visibility?: ItemVisibility;
   showInIptv?: boolean;
   category?: string;
   downloadsCount?: number;
@@ -303,6 +306,7 @@ export interface Tutorial {
   docNumber?: string;
   isMembersOnly?: boolean;
   isVipExclusive?: boolean;
+  visibility?: ItemVisibility;
 }
 
 export interface VipUser {

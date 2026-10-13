@@ -668,9 +668,10 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray(savedData.apps)) {
           const mergedApps = savedData.apps.map((sa: any) => {
             const def = initialApps.find(da => da.id === sa.id || da.slug === sa.slug);
-            const isMem = Boolean(sa.isMembersOnly || sa.isVipExclusive || isItemVip(sa) || (def && isItemVip(def)));
+            const isMem = sa.visibility === 'link_only' ? false : (sa.visibility === 'members_and_link' ? true : Boolean(sa.isMembersOnly || sa.isVipExclusive || isItemVip(sa) || (def && isItemVip(def))));
             return {
               ...sa,
+              visibility: sa.visibility || (def as any)?.visibility || 'public',
               isVipExclusive: isMem,
               isMembersOnly: isMem,
             };
@@ -701,9 +702,10 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray(savedData.tutorials)) {
           const mergedTutorials = savedData.tutorials.map((st: any) => {
             const def = initialTutorials.find(it => it.id === st.id || it.slug === st.slug);
-            const isMem = Boolean(st.isMembersOnly || st.isVipExclusive || isItemVip(st) || (def && isItemVip(def)));
+            const isMem = st.visibility === 'link_only' ? false : (st.visibility === 'members_and_link' ? true : Boolean(st.isMembersOnly || st.isVipExclusive || isItemVip(st) || (def && isItemVip(def))));
             return {
               ...st,
+              visibility: st.visibility || (def as any)?.visibility || 'public',
               isMembersOnly: isMem,
               isVipExclusive: isMem,
             };

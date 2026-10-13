@@ -31,6 +31,7 @@ import { newsArticles as defaultNewsArticles } from '../../data/news';
 import { getPageThemeHex } from '../../utils/pageColors';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
 import { isItemVip } from '../../utils/vip';
+import { doesLinkGrantDirectAccess } from '../../utils/visibility';
 
 interface CardDetailPageProps {
   type: 'app' | 'news' | 'product';
@@ -235,7 +236,8 @@ export const CardDetailPage: React.FC<CardDetailPageProps> = ({
 
   const handleDownloadApp = (app: ALXApp) => {
     const isVIP = isItemVip(app);
-    if (isVIP && !isUserAuthenticated) {
+    const allowsLink = doesLinkGrantDirectAccess(app);
+    if (!allowsLink && isVIP && !isUserAuthenticated) {
       if (onOpenVipModal) onOpenVipModal();
       return;
     }
@@ -339,7 +341,7 @@ export const CardDetailPage: React.FC<CardDetailPageProps> = ({
 
               {/* Main Action Button */}
               <div>
-                {isItemVip(app) && !isUserAuthenticated ? (
+                {!doesLinkGrantDirectAccess(app) && isItemVip(app) && !isUserAuthenticated ? (
                   <div className="space-y-3">
                     <div className="p-3 rounded-2xl bg-amber-500/10 border border-[#ebbf01]/30 flex items-center gap-2.5">
                       <Lock className="w-4 h-4 text-[#ebbf01] shrink-0" />

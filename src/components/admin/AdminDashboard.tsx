@@ -76,6 +76,7 @@ import { ImageUploadField } from './ImageUploadField';
 import { FileUploadField } from './FileUploadField';
 import { AnimatedWallpaperUpload } from './AnimatedWallpaperUpload';
 import { CategorySelect } from './CategorySelect';
+import { VisibilitySelector, VisibilityBadge } from './VisibilitySelector';
 import { GitHubStorageTab } from './GitHubStorageTab';
 import { DatabaseTab } from './DatabaseTab';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
@@ -351,7 +352,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isCreatingApp, setIsCreatingApp] = useState(false);
   const [adminAppSearchTerm, setAdminAppSearchTerm] = useState('');
   const [adminAppCategoryFilter, setAdminAppCategoryFilter] = useState('all');
-  const [adminAppStatusFilter, setAdminAppStatusFilter] = useState<'all' | 'free' | 'vip' | 'iptv'>('all');
+  const [adminAppStatusFilter, setAdminAppStatusFilter] = useState<'all' | 'free' | 'vip' | 'iptv' | 'hidden'>('all');
 
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
   const [isCreatingNews, setIsCreatingNews] = useState(false);
@@ -3033,6 +3034,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   >
                     IPTV On ({apps.filter(a => !!a.showInIptv || a.category?.toLowerCase().includes('iptv')).length})
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdminAppStatusFilter('hidden')}
+                    className={`px-3 py-1.5 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer ${
+                      adminAppStatusFilter === 'hidden'
+                        ? 'bg-sky-600 text-white shadow-xs'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    Ocultos / Link ({apps.filter(a => a.visibility === 'unlisted' || a.visibility === 'link_only' || a.visibility === 'members_and_link').length})
+                  </button>
                 </div>
               </div>
 
@@ -3075,6 +3087,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 if (adminAppStatusFilter === 'free' && (!app.isFree && app.priceText !== 'Gratuito')) return false;
                 if (adminAppStatusFilter === 'vip' && (!app.isVipExclusive && !(app as any).isMembersOnly)) return false;
                 if (adminAppStatusFilter === 'iptv' && (!app.showInIptv && !app.category?.toLowerCase().includes('iptv'))) return false;
+                if (adminAppStatusFilter === 'hidden' && (app.visibility !== 'unlisted' && app.visibility !== 'link_only' && app.visibility !== 'members_and_link')) return false;
 
                 // Category Filter
                 if (adminAppCategoryFilter !== 'all' && app.category !== adminAppCategoryFilter) return false;
@@ -3132,15 +3145,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           (e.target as HTMLImageElement).src = '/imagens/apps/byd-cockpit.jpg';
                         }}
                       />
-                      <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-black/80 text-[#ebbf01] border border-white/10 uppercase">
-                          #{idx + 1}
-                        </span>
-                        {app.category && (
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-black/80 text-white border border-white/10 uppercase">
-                            {app.category}
+                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1.5 pointer-events-none">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-black/80 text-[#ebbf01] border border-white/10 uppercase">
+                            #{idx + 1}
                           </span>
-                        )}
+                          {app.category && (
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-black/80 text-white border border-white/10 uppercase">
+                              {app.category}
+                            </span>
+                          )}
+                        </div>
+                        <div className="pointer-events-auto">
+                          <VisibilityBadge visibility={app.visibility} />
+                        </div>
                       </div>
                     </div>
 
@@ -3208,13 +3226,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
 
                     <div className="flex items-center justify-between pt-1 border-t border-neutral-200/60">
-                      <button
-                        onClick={() => setActivePage({ type: 'app', idOrSlug: app.slug || app.id })}
-                        className="text-xs text-neutral-600 font-bold hover:text-black flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Ver Card</span>
-                      </button>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          onClick={() => setActivePage({ type: 'app', idOrSlug: app.slug || app.id })}
+                          className="text-xs text-neutral-600 font-bold hover:text-black flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Ver Card</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const directUrl = `${window.location.origin}/apps/${app.slug || app.id}`;
+                            navigator.clipboard.writeText(directUrl);
+                            triggerSuccess('Link direto copiado!');
+                          }}
+                          className="text-xs text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1 cursor-pointer"
+                          title="Copiar link direto para compartilhar"
+                        >
+                          <LinkIcon className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Copiar Link</span>
+                        </button>
+                      </div>
 
                       <div className="flex items-center gap-2">
                         <button
@@ -4306,16 +4339,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         alt={tut.title}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                        <span className="px-2.5 py-0.5 rounded bg-black/80 text-[#ebbf01] font-mono text-[10px] font-bold border border-white/10">
-                          {tut.category}
-                        </span>
-                        {(tut.isMembersOnly || tut.isVipExclusive) && (
-                          <span className="px-2 py-0.5 rounded bg-[#ebbf01] text-black font-mono text-[10px] font-black flex items-center gap-1 shadow-sm">
-                            <Crown className="w-3 h-3 fill-black" />
-                            <span>Membros</span>
+                      <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1.5 pointer-events-none">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded bg-black/80 text-[#ebbf01] font-mono text-[10px] font-bold border border-white/10">
+                            {tut.category}
                           </span>
-                        )}
+                          {(tut.isMembersOnly || tut.isVipExclusive) && (
+                            <span className="px-2 py-0.5 rounded bg-[#ebbf01] text-black font-mono text-[10px] font-black flex items-center gap-1 shadow-sm">
+                              <Crown className="w-3 h-3 fill-black" />
+                              <span>Membros</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="pointer-events-auto">
+                          <VisibilityBadge visibility={tut.visibility} />
+                        </div>
                       </div>
                     </div>
 
@@ -7317,6 +7355,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
 
+                {/* Visibilidade e Acesso do App */}
+                <div className="sm:col-span-2">
+                  <VisibilitySelector
+                    value={editingApp.visibility}
+                    onChange={(val) => {
+                      setEditingApp({
+                        ...editingApp,
+                        visibility: val,
+                        ...(val === 'members_and_link' ? { isVipExclusive: true, isMembersOnly: true, isFree: false, priceText: 'Exclusivo VIP' } : {}),
+                        ...(val === 'link_only' ? { isVipExclusive: false, isMembersOnly: false } : {}),
+                      });
+                    }}
+                    directUrl={`${window.location.origin}/apps/${editingApp.slug || editingApp.id}`}
+                    itemTypeLabel="aplicativo"
+                  />
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider">Nome do Aplicativo</label>
                   <input
@@ -8853,31 +8908,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     />
                   </div>
 
-                  {/* Exclusivo para Membros VIP Toggle */}
-                  <div className="sm:col-span-2 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-4">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2 text-xs font-mono font-bold text-neutral-900 uppercase">
-                        <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
-                        <span>Exclusivo para Membros (Área VIP)</span>
-                      </div>
-                      <p className="text-xs text-neutral-600 font-medium">
-                        Quando ativado, apenas membros com login ativo na Área VIP poderão acessar este tutorial completo.
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(editingTutorial.isMembersOnly || editingTutorial.isVipExclusive)}
-                        onChange={(e) => setEditingTutorial({
+                  {/* Visibilidade e Controle de Acesso do Tutorial */}
+                  <div className="sm:col-span-2">
+                    <VisibilitySelector
+                      value={editingTutorial.visibility}
+                      onChange={(val) => {
+                        setEditingTutorial({
                           ...editingTutorial,
-                          isMembersOnly: e.target.checked,
-                          isVipExclusive: e.target.checked
-                        })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ebbf01]"></div>
-                    </label>
+                          visibility: val,
+                          ...(val === 'members_and_link' ? { isMembersOnly: true, isVipExclusive: true } : {}),
+                          ...(val === 'link_only' ? { isMembersOnly: false, isVipExclusive: false } : {}),
+                        });
+                      }}
+                      directUrl={`${window.location.origin}/tutoriais/${editingTutorial.slug || editingTutorial.id}`}
+                      itemTypeLabel="tutorial"
+                    />
                   </div>
+
+                  {/* Exclusivo para Membros VIP Toggle (quando público no site) */}
+                  {(!editingTutorial.visibility || editingTutorial.visibility === 'public') && (
+                    <div className="sm:col-span-2 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-4">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2 text-xs font-mono font-bold text-neutral-900 uppercase">
+                          <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
+                          <span>Exclusivo para Membros (Área VIP)</span>
+                        </div>
+                        <p className="text-xs text-neutral-600 font-medium">
+                          Quando ativado, apenas membros com login ativo na Área VIP poderão acessar este tutorial completo.
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(editingTutorial.isMembersOnly || editingTutorial.isVipExclusive)}
+                          onChange={(e) => setEditingTutorial({
+                            ...editingTutorial,
+                            isMembersOnly: e.target.checked,
+                            isVipExclusive: e.target.checked
+                          })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ebbf01]"></div>
+                      </label>
+                    </div>
+                  )}
 
                   <div className="sm:col-span-2 space-y-1.5">
                     <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider">Resumo / Subtítulo do Manual</label>

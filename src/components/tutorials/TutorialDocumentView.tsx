@@ -28,6 +28,7 @@ import {
 import { Tutorial } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
 import { isItemVip } from '../../utils/vip';
+import { doesLinkGrantDirectAccess } from '../../utils/visibility';
 
 interface TutorialDocumentViewProps {
   tutorial: Tutorial;
@@ -85,7 +86,8 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
   // VIP / Member restriction logic
   const isMember = isVipLoggedIn || isAdminAuthenticated;
   const isMembersOnly = isItemVip(tutorial);
-  const isLocked = isMembersOnly && !isMember;
+  const allowsLinkAccess = doesLinkGrantDirectAccess(tutorial);
+  const isLocked = !allowsLinkAccess && isMembersOnly && !isMember;
 
   // Compute direct permalink for this tutorial
   const tutorialSlug = tutorial.slug || tutorial.id;

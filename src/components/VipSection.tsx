@@ -7,6 +7,7 @@ import { SocialIcon } from './common/SocialIcon';
 import { getPageThemeHex } from '../utils/pageColors';
 import { VipPlansSection } from './vip/VipPlansSection';
 import { getMediaPreviewUrl } from '../utils/mediaUrl';
+import { isItemVisibleInVipSection } from '../utils/visibility';
 
 function parseDateToTimestamp(dateStr?: string): number {
   if (!dateStr) return 0;
@@ -210,7 +211,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
 
   // Mapeia dinamicamente aplicativos, tutoriais e vídeos do Painel ADM marcados como VIP
   const dynamicVipApps: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (apps || [])
-    .filter((a) => a.isVipExclusive || (a as any).isMembersOnly)
+    .filter(isItemVisibleInVipSection)
     .map((a) => ({
       id: `dyn-app-${a.id}`,
       title: a.name || a.title,
@@ -228,7 +229,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
     }));
 
   const dynamicVipTutorials: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (tutorials || [])
-    .filter((t) => t.isMembersOnly || (t as any).isVipExclusive)
+    .filter(isItemVisibleInVipSection)
     .map((t) => ({
       id: `dyn-tut-${t.id}`,
       title: t.title,

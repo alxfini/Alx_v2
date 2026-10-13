@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppWindow, CheckCircle2, Download, ShoppingBag, Eye, Search, ChevronDown, Sparkles, ArrowRight, Crown, Lock } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { isItemVip } from '../utils/vip';
+import { isItemVisibleOnSite } from '../utils/visibility';
 import { ALXApp } from '../types';
 import { getMediaPreviewUrl } from '../utils/mediaUrl';
 
@@ -56,15 +57,17 @@ export const AppsSection: React.FC<AppsSectionProps> = ({ onSelectApp, onOpenVip
     setDisplayLimit(isMobile ? 3 : 12);
   }, [searchTerm, selectedCategory, selectedSort]);
 
+  const publicApps = apps.filter(isItemVisibleOnSite);
+
   const categories = Array.from(
     new Set(
-      apps
+      publicApps
         .map((a) => a.category)
         .filter((c): c is string => Boolean(c && c.trim().length > 0))
     )
   );
 
-  const filteredApps = apps
+  const filteredApps = publicApps
     .filter((app) => {
       // 1. Search term filter
       const search = searchTerm.toLowerCase().trim();

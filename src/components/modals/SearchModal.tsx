@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, AppWindow, Youtube, FileText, ShoppingBag, ArrowRight, Crown } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
 import { isItemVip } from '../../utils/vip';
+import { isItemVisibleOnSite } from '../../utils/visibility';
 import { youtubeVideos } from '../../data/videos';
 import { ALXApp, YouTubeVideo, NewsArticle, ProductItem } from '../../types';
 
@@ -44,9 +45,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
   if (!isOpen) return null;
 
+  const publicApps = apps.filter(isItemVisibleOnSite);
   const filteredApps = query.trim()
-    ? apps.filter(a => a.name.toLowerCase().includes(query.toLowerCase()) || a.description.toLowerCase().includes(query.toLowerCase()))
-    : apps.slice(0, 3);
+    ? publicApps.filter(a => a.name.toLowerCase().includes(query.toLowerCase()) || a.description.toLowerCase().includes(query.toLowerCase()))
+    : publicApps.slice(0, 3);
 
   const filteredVideos = query.trim()
     ? youtubeVideos.filter(v => v.title.toLowerCase().includes(query.toLowerCase()) || v.description.toLowerCase().includes(query.toLowerCase()))

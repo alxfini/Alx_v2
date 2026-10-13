@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSiteData } from '../context/SiteDataContext';
 import { isItemVip } from '../utils/vip';
+import { isItemVisibleOnSite } from '../utils/visibility';
 import { getMediaPreviewUrl } from '../utils/mediaUrl';
 import { Tutorial } from '../types';
 import { BookOpen, Search, ArrowRight, ArrowLeft, Share2, Check, Crown, Lock, ChevronDown } from 'lucide-react';
@@ -40,17 +41,20 @@ export const TutorialsSection: React.FC<TutorialsSectionProps> = ({ isStandalone
       );
       if (found) {
         setActiveTutorial(found);
-      } else if (tutorials.length > 0) {
-        setActiveTutorial(tutorials[0]);
+      } else {
+        const firstPublic = tutorials.find(isItemVisibleOnSite);
+        if (firstPublic) setActiveTutorial(firstPublic);
       }
     } else if (activePage.type === 'tutoriais') {
       setActiveTutorial(null);
     }
   }, [activePage, tutorials]);
 
-  const categories = ['Todos', ...Array.from(new Set(tutorials.map(t => t.category)))];
+  const publicTutorials = tutorials.filter(isItemVisibleOnSite);
 
-  const filteredTutorials = tutorials.filter(t => {
+  const categories = ['Todos', ...Array.from(new Set(publicTutorials.map(t => t.category)))];
+
+  const filteredTutorials = publicTutorials.filter(t => {
     const matchesCategory = selectedCategory === 'Todos' || t.category === selectedCategory;
     const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           t.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||

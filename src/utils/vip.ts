@@ -5,6 +5,12 @@
 export const isItemVip = (item: any): boolean => {
   if (!item || typeof item !== 'object') return false;
 
+  // Items configured as 'link_only' are hidden from both public site and members,
+  // allowing anyone with the direct link to access them directly.
+  if (item.visibility === 'link_only') return false;
+
+  if (item.visibility === 'members_and_link') return true;
+
   if (item.isMembersOnly || item.isVipExclusive || item.isVipOnly || item.isVipRestricted || item.isVip) return true;
 
   if (typeof item.category === 'string') {
