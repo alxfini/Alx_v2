@@ -3085,7 +3085,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               const filteredCatalogApps = apps.filter((app) => {
                 // Status Filter
                 if (adminAppStatusFilter === 'free' && (!app.isFree && app.priceText !== 'Gratuito')) return false;
-                if (adminAppStatusFilter === 'vip' && (!app.isVipExclusive && !(app as any).isMembersOnly)) return false;
+                if (adminAppStatusFilter === 'vip' && (!app.isVipExclusive && !(app as any).isMembersOnly && app.visibility !== 'public_vip' && app.visibility !== 'members_and_link')) return false;
                 if (adminAppStatusFilter === 'iptv' && (!app.showInIptv && !app.category?.toLowerCase().includes('iptv'))) return false;
                 if (adminAppStatusFilter === 'hidden' && (app.visibility !== 'unlisted' && app.visibility !== 'link_only' && app.visibility !== 'members_and_link')) return false;
 
@@ -7363,8 +7363,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       setEditingApp({
                         ...editingApp,
                         visibility: val,
+                        ...(val === 'public' ? { isVipExclusive: false, isMembersOnly: false, isFree: true } : {}),
+                        ...(val === 'public_vip' ? { isVipExclusive: true, isMembersOnly: true, isFree: false, priceText: 'Exclusivo VIP' } : {}),
+                        ...(val === 'unlisted' || val === 'link_only' ? { isVipExclusive: false, isMembersOnly: false } : {}),
                         ...(val === 'members_and_link' ? { isVipExclusive: true, isMembersOnly: true, isFree: false, priceText: 'Exclusivo VIP' } : {}),
-                        ...(val === 'link_only' ? { isVipExclusive: false, isMembersOnly: false } : {}),
                       });
                     }}
                     directUrl={`${window.location.origin}/apps/${editingApp.slug || editingApp.id}`}
@@ -8916,8 +8918,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         setEditingTutorial({
                           ...editingTutorial,
                           visibility: val,
+                          ...(val === 'public' ? { isMembersOnly: false, isVipExclusive: false } : {}),
+                          ...(val === 'public_vip' ? { isMembersOnly: true, isVipExclusive: true } : {}),
+                          ...(val === 'unlisted' || val === 'link_only' ? { isMembersOnly: false, isVipExclusive: false } : {}),
                           ...(val === 'members_and_link' ? { isMembersOnly: true, isVipExclusive: true } : {}),
-                          ...(val === 'link_only' ? { isMembersOnly: false, isVipExclusive: false } : {}),
                         });
                       }}
                       directUrl={`${window.location.origin}/tutoriais/${editingTutorial.slug || editingTutorial.id}`}

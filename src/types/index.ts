@@ -31,7 +31,7 @@ export interface YouTubeVideo {
   isVipExclusive?: boolean;
 }
 
-export type ItemVisibility = 'public' | 'unlisted' | 'link_only' | 'members_and_link';
+export type ItemVisibility = 'public' | 'public_vip' | 'unlisted' | 'link_only' | 'members_and_link';
 
 export interface ALXApp {
   id: string;

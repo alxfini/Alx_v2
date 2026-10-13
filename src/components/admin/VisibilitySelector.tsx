@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, Link as LinkIcon, Lock, Crown, Copy, Check, Info, EyeOff } from 'lucide-react';
+import { Globe, Link as LinkIcon, Lock, Crown, Copy, Check, EyeOff, ShieldAlert } from 'lucide-react';
 import { ItemVisibility, VISIBILITY_OPTIONS, getItemVisibility } from '../../utils/visibility';
 
 interface VisibilitySelectorProps {
@@ -34,10 +34,10 @@ export const VisibilitySelector: React.FC<VisibilitySelectorProps> = ({
         <div className="space-y-0.5">
           <label className="text-xs font-mono font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
             <Globe className="w-3.5 h-3.5 text-[#ebbf01]" />
-            <span>Visibilidade no Site e Acesso</span>
+            <span>Visibilidade e Controle de Acesso</span>
           </label>
           <p className="text-[11px] text-neutral-500 font-medium">
-            Defina se este {itemTypeLabel} aparecerá nas páginas do site, na Área VIP ou apenas via link direto.
+            Selecione uma das 4 opções de publicação para este {itemTypeLabel}:
           </p>
         </div>
 
@@ -62,157 +62,155 @@ export const VisibilitySelector: React.FC<VisibilitySelectorProps> = ({
         )}
       </div>
 
-      {/* Grid of 4 options */}
+      {/* Grid of the 4 requested options */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {/* 1. PUBLIC */}
+        {/* 1. Publico normal pra todos */}
         <button
           type="button"
           onClick={() => onChange('public')}
           className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
             currentVisibility === 'public'
-              ? 'bg-emerald-50/80 border-emerald-500 shadow-sm ring-1 ring-emerald-500/30'
+              ? 'bg-emerald-50/90 border-emerald-500 shadow-sm ring-1 ring-emerald-500/40'
               : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/60'
           }`}
         >
           <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 font-mono font-bold text-xs ${
               currentVisibility === 'public'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-neutral-100 text-neutral-600'
             }`}
           >
-            <Globe className="w-4 h-4" />
+            1
           </div>
           <div className="space-y-0.5 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-bold text-neutral-900">Público no Site</span>
+              <span className="text-xs font-bold text-neutral-900">Público normal pra todos</span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold uppercase">
-                Normal
+                Aberto
               </span>
             </div>
             <p className="text-[11px] text-neutral-500 leading-snug">
-              Visível no catálogo geral, buscas e para todos os visitantes do site.
+              Visível no catálogo e buscas. Acesso e download 100% liberados para qualquer pessoa.
             </p>
           </div>
         </button>
 
-        {/* 2. UNLISTED (Oculto no site, visível por link) */}
+        {/* 2. Visivel porem acesso somente VIP */}
+        <button
+          type="button"
+          onClick={() => onChange('public_vip')}
+          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+            currentVisibility === 'public_vip'
+              ? 'bg-amber-50/90 border-amber-500 shadow-sm ring-1 ring-amber-500/40'
+              : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/60'
+          }`}
+        >
+          <div
+            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 font-mono font-bold text-xs ${
+              currentVisibility === 'public_vip'
+                ? 'bg-amber-500 text-black'
+                : 'bg-neutral-100 text-neutral-600'
+            }`}
+          >
+            2
+          </div>
+          <div className="space-y-0.5 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-bold text-neutral-900">Visível no site • Acesso somente VIP</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-bold uppercase">
+                VIP
+              </span>
+            </div>
+            <p className="text-[11px] text-neutral-500 leading-snug">
+              Aparece no site com selo VIP. Membro liberado; quem não for membro cai para logar.
+            </p>
+          </div>
+        </button>
+
+        {/* 3. Acesso direto somente com link, pra todos */}
         <button
           type="button"
           onClick={() => onChange('unlisted')}
           className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
-            currentVisibility === 'unlisted'
-              ? 'bg-sky-50/80 border-sky-500 shadow-sm ring-1 ring-sky-500/30'
+            currentVisibility === 'unlisted' || currentVisibility === 'link_only'
+              ? 'bg-sky-50/90 border-sky-500 shadow-sm ring-1 ring-sky-500/40'
               : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/60'
           }`}
         >
           <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-              currentVisibility === 'unlisted'
+            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 font-mono font-bold text-xs ${
+              currentVisibility === 'unlisted' || currentVisibility === 'link_only'
                 ? 'bg-sky-600 text-white'
                 : 'bg-neutral-100 text-neutral-600'
             }`}
           >
-            <LinkIcon className="w-4 h-4" />
+            3
           </div>
           <div className="space-y-0.5 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-bold text-neutral-900">Oculto no Site</span>
+              <span className="text-xs font-bold text-neutral-900">Acesso com link • Pra todos</span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-sky-100 text-sky-800 font-bold uppercase">
-                Por Link
+                Link Livre
               </span>
             </div>
             <p className="text-[11px] text-neutral-500 leading-snug">
-              Não aparece nas listas públicas do site. Acessível por quem tiver o link.
+              Oculto no site. Quem tiver o link direto acessa livremente, sem precisar ser membro.
             </p>
           </div>
         </button>
 
-        {/* 3. LINK_ONLY (Oculto no site e para membros) */}
-        <button
-          type="button"
-          onClick={() => onChange('link_only')}
-          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
-            currentVisibility === 'link_only'
-              ? 'bg-purple-50/80 border-purple-500 shadow-sm ring-1 ring-purple-500/30'
-              : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/60'
-          }`}
-        >
-          <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-              currentVisibility === 'link_only'
-                ? 'bg-purple-600 text-white'
-                : 'bg-neutral-100 text-neutral-600'
-            }`}
-          >
-            <Lock className="w-4 h-4" />
-          </div>
-          <div className="space-y-0.5 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-bold text-neutral-900">Oculto Site + Membros</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 font-bold uppercase">
-                Apenas Link
-              </span>
-            </div>
-            <p className="text-[11px] text-neutral-500 leading-snug">
-              Oculto no catálogo público e também na Área VIP. Acesso 100% via link direto.
-            </p>
-          </div>
-        </button>
-
-        {/* 4. MEMBERS_AND_LINK (Oculto no site, visível para membros e link) */}
+        {/* 4. Acesso direto com link para quem for membro, qm não for membro cai pra logar */}
         <button
           type="button"
           onClick={() => onChange('members_and_link')}
           className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
             currentVisibility === 'members_and_link'
-              ? 'bg-amber-50/80 border-[#ebbf01] shadow-sm ring-1 ring-amber-500/30'
+              ? 'bg-purple-50/90 border-purple-500 shadow-sm ring-1 ring-purple-500/40'
               : 'bg-white border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/60'
           }`}
         >
           <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 font-mono font-bold text-xs ${
               currentVisibility === 'members_and_link'
-                ? 'bg-[#ebbf01] text-black'
+                ? 'bg-purple-600 text-white'
                 : 'bg-neutral-100 text-neutral-600'
             }`}
           >
-            <Crown className="w-4 h-4 fill-current" />
+            4
           </div>
           <div className="space-y-0.5 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-bold text-neutral-900">Oculto no Site</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-bold uppercase">
-                Membros + Link
+              <span className="text-xs font-bold text-neutral-900">Acesso com link • Só Membros</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 font-bold uppercase">
+                Link VIP
               </span>
             </div>
             <p className="text-[11px] text-neutral-500 leading-snug">
-              Oculto no site público, visível na Área VIP para membros e via link direto.
+              Oculto no site público. Com link direto: se for membro libera, quem não for cai pra logar.
             </p>
           </div>
         </button>
       </div>
 
-      {/* Explanatory Box when Hidden */}
-      {currentVisibility !== 'public' && (
-        <div className="p-3.5 rounded-xl bg-white border border-neutral-200 space-y-2 text-xs">
-          <div className="flex items-center gap-2 text-neutral-800 font-bold">
-            <EyeOff className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>Como este {itemTypeLabel} se comporta na prática:</span>
-          </div>
-          <p className="text-neutral-600 leading-relaxed text-[11px]">
-            {VISIBILITY_OPTIONS[currentVisibility].fullDesc}
-          </p>
-          {directUrl && (
-            <div className="pt-1 flex items-center gap-2">
-              <span className="text-[10px] font-mono text-neutral-500">Link direto para enviar:</span>
-              <code className="text-[11px] font-mono bg-neutral-100 px-2 py-0.5 rounded text-neutral-900 border border-neutral-200 truncate select-all">
-                {directUrl}
-              </code>
-            </div>
-          )}
+      {/* Explanatory Box of active selection */}
+      <div className="p-3.5 rounded-xl bg-white border border-neutral-200 space-y-2 text-xs">
+        <div className="flex items-center gap-2 text-neutral-800 font-bold">
+          <EyeOff className="w-4 h-4 text-[#ebbf01] shrink-0" />
+          <span>Comportamento prático da Opção {VISIBILITY_OPTIONS[currentVisibility].number}:</span>
         </div>
-      )}
+        <p className="text-neutral-600 leading-relaxed text-[11px]">
+          {VISIBILITY_OPTIONS[currentVisibility].fullDesc}
+        </p>
+        {directUrl && (
+          <div className="pt-1 flex items-center gap-2">
+            <span className="text-[10px] font-mono text-neutral-500">Link direto deste {itemTypeLabel}:</span>
+            <code className="text-[11px] font-mono bg-neutral-100 px-2 py-0.5 rounded text-neutral-900 border border-neutral-200 truncate select-all">
+              {directUrl}
+            </code>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -222,51 +220,50 @@ export const VisibilityBadge: React.FC<{ visibility?: ItemVisibility; className?
   className = '',
 }) => {
   const current = getItemVisibility({ visibility });
-  const opt = VISIBILITY_OPTIONS[current];
 
   if (current === 'public') {
     return (
       <span
         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 ${className}`}
-        title={opt.fullDesc}
+        title="1 - Público normal pra todos"
       >
         <Globe className="w-2.5 h-2.5" />
-        <span>Público</span>
+        <span>1. Público</span>
       </span>
     );
   }
 
-  if (current === 'unlisted') {
+  if (current === 'public_vip') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-900/60 text-[#ebbf01] border border-amber-500/40 ${className}`}
+        title="2 - Visível porém acesso somente VIP"
+      >
+        <Crown className="w-2.5 h-2.5 fill-current" />
+        <span>2. Visível VIP</span>
+      </span>
+    );
+  }
+
+  if (current === 'unlisted' || current === 'link_only') {
     return (
       <span
         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-sky-900/60 text-sky-300 border border-sky-500/30 ${className}`}
-        title={opt.fullDesc}
+        title="3 - Acesso direto somente com link, pra todos"
       >
         <LinkIcon className="w-2.5 h-2.5" />
-        <span>Oculto (Link)</span>
-      </span>
-    );
-  }
-
-  if (current === 'link_only') {
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-purple-900/60 text-purple-300 border border-purple-500/30 ${className}`}
-        title={opt.fullDesc}
-      >
-        <Lock className="w-2.5 h-2.5" />
-        <span>Oculto Site + Membros</span>
+        <span>3. Link (Todos)</span>
       </span>
     );
   }
 
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-900/60 text-[#ebbf01] border border-amber-500/40 ${className}`}
-      title={opt.fullDesc}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-purple-900/60 text-purple-300 border border-purple-500/40 ${className}`}
+      title="4 - Acesso direto somente com link para quem for membro"
     >
-      <Crown className="w-2.5 h-2.5 fill-current" />
-      <span>Membros + Link</span>
+      <Lock className="w-2.5 h-2.5" />
+      <span>4. Link (Membros)</span>
     </span>
   );
 };

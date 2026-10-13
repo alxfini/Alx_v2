@@ -668,10 +668,19 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray(savedData.apps)) {
           const mergedApps = savedData.apps.map((sa: any) => {
             const def = initialApps.find(da => da.id === sa.id || da.slug === sa.slug);
-            const isMem = sa.visibility === 'link_only' ? false : (sa.visibility === 'members_and_link' ? true : Boolean(sa.isMembersOnly || sa.isVipExclusive || isItemVip(sa) || (def && isItemVip(def))));
+            let isMem: boolean;
+            if (sa.visibility === 'public_vip' || sa.visibility === 'members_and_link') {
+              isMem = true;
+            } else if (sa.visibility === 'unlisted' || sa.visibility === 'link_only') {
+              isMem = false;
+            } else if (sa.visibility === 'public' && sa.isMembersOnly === false) {
+              isMem = false;
+            } else {
+              isMem = Boolean(sa.isMembersOnly || sa.isVipExclusive || isItemVip(sa) || (def && isItemVip(def)));
+            }
             return {
               ...sa,
-              visibility: sa.visibility || (def as any)?.visibility || 'public',
+              visibility: sa.visibility || (def as any)?.visibility || (isMem ? 'public_vip' : 'public'),
               isVipExclusive: isMem,
               isMembersOnly: isMem,
             };
@@ -702,10 +711,19 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (Array.isArray(savedData.tutorials)) {
           const mergedTutorials = savedData.tutorials.map((st: any) => {
             const def = initialTutorials.find(it => it.id === st.id || it.slug === st.slug);
-            const isMem = st.visibility === 'link_only' ? false : (st.visibility === 'members_and_link' ? true : Boolean(st.isMembersOnly || st.isVipExclusive || isItemVip(st) || (def && isItemVip(def))));
+            let isMem: boolean;
+            if (st.visibility === 'public_vip' || st.visibility === 'members_and_link') {
+              isMem = true;
+            } else if (st.visibility === 'unlisted' || st.visibility === 'link_only') {
+              isMem = false;
+            } else if (st.visibility === 'public' && st.isMembersOnly === false) {
+              isMem = false;
+            } else {
+              isMem = Boolean(st.isMembersOnly || st.isVipExclusive || isItemVip(st) || (def && isItemVip(def)));
+            }
             return {
               ...st,
-              visibility: st.visibility || (def as any)?.visibility || 'public',
+              visibility: st.visibility || (def as any)?.visibility || (isMem ? 'public_vip' : 'public'),
               isMembersOnly: isMem,
               isVipExclusive: isMem,
             };

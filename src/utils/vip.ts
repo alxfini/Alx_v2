@@ -5,11 +5,14 @@
 export const isItemVip = (item: any): boolean => {
   if (!item || typeof item !== 'object') return false;
 
-  // Items configured as 'link_only' are hidden from both public site and members,
-  // allowing anyone with the direct link to access them directly.
-  if (item.visibility === 'link_only') return false;
+  // Opção 3: 'unlisted' e 'link_only' têm acesso direto liberado para todos via link
+  if (item.visibility === 'link_only' || item.visibility === 'unlisted') return false;
 
-  if (item.visibility === 'members_and_link') return true;
+  // Opção 2 e 4: 'public_vip' e 'members_and_link' são restritos a Membros VIP
+  if (item.visibility === 'public_vip' || item.visibility === 'members_and_link') return true;
+
+  // Opção 1: 'public' sem marcação VIP é aberto para todos
+  if (item.visibility === 'public' && !item.isMembersOnly && !item.isVipExclusive && !item.isVip) return false;
 
   if (item.isMembersOnly || item.isVipExclusive || item.isVipOnly || item.isVipRestricted || item.isVip) return true;
 
