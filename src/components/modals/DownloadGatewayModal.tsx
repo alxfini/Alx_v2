@@ -75,12 +75,17 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
       link.href = rawUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      // If it is an APK or Wallpaper, suggest filename
+      // If it is an APK or Wallpaper, suggest filename for direct downloads
       if (item.category === 'app') {
-        link.download = `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.apk`;
+        if (!rawUrl.includes('github.com')) {
+          link.download = `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.apk`;
+        }
       } else if (item.category === 'wallpaper') {
-        const isVideo = item.rawDownloadUrl?.match(/\.(mp4|webm|mov)(\?.*)?$/i) || item.fileSize?.toLowerCase().includes('vídeo');
-        link.download = isVideo ? 'wallpaper-animado.mp4' : 'wallpaper.jpg';
+        const isVideo = item.rawDownloadUrl?.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i) || item.fileSize?.toLowerCase().includes('vídeo');
+        // Para links do GitHub Releases, o header Content-Disposition cuida do nome e extensão originais
+        if (!rawUrl.includes('github.com')) {
+          link.download = isVideo ? `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.mp4` : `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.jpg`;
+        }
       }
       document.body.appendChild(link);
       link.click();

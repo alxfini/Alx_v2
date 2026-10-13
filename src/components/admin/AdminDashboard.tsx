@@ -9620,7 +9620,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   value={editingWallpaper.type}
                   onChange={(e) => {
                     const newType = e.target.value as 'image' | 'video';
-                    setEditingWallpaper({ ...editingWallpaper, type: newType });
+                    setEditingWallpaper((prev) => {
+                      if (!prev) return null;
+                      if (newType === 'video') {
+                        return {
+                          ...prev,
+                          type: 'video',
+                          // Se tinha imagem placeholder do Unsplash, limpa para não misturar com o vídeo
+                          previewUrl: prev.previewUrl?.includes('unsplash') ? '' : prev.previewUrl,
+                          downloadUrl: prev.downloadUrl?.includes('unsplash') ? '' : prev.downloadUrl,
+                          videoUrl: prev.videoUrl || '',
+                          resolution: prev.resolution || '1080p 60fps Live MP4',
+                          category: prev.category === 'BYD & Elétricos' ? 'Animações & Vídeos' : prev.category,
+                        };
+                      }
+                      return { ...prev, type: newType };
+                    });
                   }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-bold text-neutral-900 focus:outline-none bg-neutral-50"
                 >
@@ -9636,20 +9651,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   downloadUrl={editingWallpaper.downloadUrl || editingWallpaper.videoUrl || ''}
                   videoUrl={editingWallpaper.videoUrl}
                   onChangePreview={(newPreview) => {
-                    setEditingWallpaper({ 
-                      ...editingWallpaper, 
+                    // Atualiza APENAS a capa / preview visual, nunca sobrescreve o arquivo de download
+                    setEditingWallpaper((prev) => prev ? { 
+                      ...prev, 
                       previewUrl: newPreview,
-                      downloadUrl: editingWallpaper.downloadUrl || newPreview,
-                      videoUrl: editingWallpaper.videoUrl || newPreview
-                    });
+                    } : null);
                   }}
                   onChangeDownload={(newDownload, meta) => {
-                    setEditingWallpaper({ 
-                      ...editingWallpaper, 
+                    // Atualiza o arquivo de download completo (GitHub Releases) e a prévia leve se gerada
+                    setEditingWallpaper((prev) => prev ? { 
+                      ...prev, 
                       downloadUrl: newDownload,
                       videoUrl: newDownload,
-                      previewUrl: meta?.previewUrl || editingWallpaper.previewUrl || newDownload
-                    });
+                      previewUrl: meta?.previewUrl || prev.previewUrl || ''
+                    } : null);
                   }}
                 />
               ) : (
@@ -9657,7 +9672,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <ImageUploadField
                     label="Upload da Foto do Wallpaper (Compactada em formato JPG)"
                     value={editingWallpaper.previewUrl || editingWallpaper.downloadUrl || ''}
-                    onChange={(url) => setEditingWallpaper({ ...editingWallpaper, previewUrl: url, downloadUrl: url, videoUrl: '' })}
+                    onChange={(url) => setEditingWallpaper((prev) => prev ? { 
+                      ...prev, 
+                      previewUrl: url, 
+                      downloadUrl: url, 
+                      videoUrl: '' 
+                    } : null)}
                     helperText="Faça upload da imagem do wallpaper. Ela será compactada e otimizada automaticamente em formato JPG."
                     aspectRatio="video"
                     compressAsJpg={true}
@@ -9705,19 +9725,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  const mediaUrl = editingWallpaper.type === 'video' ? (editingWallpaper.downloadUrl || editingWallpaper.videoUrl || editingWallpaper.previewUrl) : (editingWallpaper.previewUrl || editingWallpaper.downloadUrl);
+                  const mediaUrl = editingWallpaper.type === 'video' 
+                    ? (editingWallpaper.downloadUrl || editingWallpaper.videoUrl || editingWallpaper.previewUrl) 
+                    : (editingWallpaper.previewUrl || editingWallpaper.downloadUrl);
+
                   if (!mediaUrl) {
                     alert('Por favor, faça o upload ou cole o link da mídia (wallpaper ou vídeo).');
                     return;
                   }
+
+                  // Para vídeo animado, downloadUrl DEVE ser o link do arquivo completo (GitHub Releases / MP4)
+                  // e previewUrl deve ser a animação WebM leve
+                  let finalDownloadUrl = editingWallpaper.type === 'video'
+                    ? (editingWallpaper.downloadUrl || editingWallpaper.videoUrl || editingWallpaper.previewUrl)
+                    : (editingWallpaper.downloadUrl || mediaUrl || editingWallpaper.previewUrl);
+
+                  // Se downloadUrl tiver preview_ mas videoUrl for o link do GitHub, use videoUrl
+                  if (editingWallpaper.type === 'video' && finalDownloadUrl.includes('preview_') && editingWallpaper.videoUrl && !editingWallpaper.videoUrl.includes('preview_')) {
+                    finalDownloadUrl = editingWallpaper.videoUrl;
+                  }
+
+                  const finalPreviewUrl = editingWallpaper.previewUrl || finalDownloadUrl;
+
                   const finalItem = {
                     ...editingWallpaper,
-                    title: 'Wallpaper',
-                    category: 'Geral',
-                    resolution: '4K Ultra HD',
-                    previewUrl: editingWallpaper.type === 'video' ? (editingWallpaper.previewUrl || mediaUrl) : (editingWallpaper.previewUrl || mediaUrl),
-                    downloadUrl: editingWallpaper.type === 'video' ? (editingWallpaper.downloadUrl || editingWallpaper.videoUrl || editingWallpaper.previewUrl) : (editingWallpaper.downloadUrl || mediaUrl || editingWallpaper.previewUrl),
-                    videoUrl: editingWallpaper.type === 'video' ? (editingWallpaper.downloadUrl || editingWallpaper.videoUrl || editingWallpaper.previewUrl) : '',
+                    title: editingWallpaper.title && editingWallpaper.title !== 'Novo Wallpaper 4K'
+                      ? editingWallpaper.title
+                      : (editingWallpaper.type === 'video' ? 'Wallpaper Animado' : 'Wallpaper'),
+                    category: editingWallpaper.category || (editingWallpaper.type === 'video' ? 'Animações & Vídeos' : 'Geral'),
+                    resolution: editingWallpaper.resolution || (editingWallpaper.type === 'video' ? '1080p 60fps Live MP4' : '4K Ultra HD'),
+                    previewUrl: finalPreviewUrl,
+                    downloadUrl: finalDownloadUrl,
+                    videoUrl: editingWallpaper.type === 'video' ? finalDownloadUrl : '',
                     isMembersOnly: Boolean(editingWallpaper.isMembersOnly || (editingWallpaper as any).isVipExclusive),
                     isVipExclusive: Boolean(editingWallpaper.isMembersOnly || (editingWallpaper as any).isVipExclusive),
                   };

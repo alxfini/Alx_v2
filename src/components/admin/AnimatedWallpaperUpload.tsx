@@ -126,26 +126,41 @@ export const AnimatedWallpaperUpload: React.FC<AnimatedWallpaperUploadProps> = (
           </span>
         </div>
 
-        <FileUploadField
-          label=""
-          value={downloadUrl || videoUrl || ''}
-          onChange={(newUrl, meta) => {
-            onChangeDownload(newUrl, meta);
-            // Se gerou prévia animada durante o upload do vídeo, aplica automaticamente
-            if (meta?.previewUrl) {
-              onChangePreview(meta.previewUrl);
-              setGenerateSuccess('Prévia animada WebM gerada automaticamente do vídeo!');
-              setTimeout(() => setGenerateSuccess(null), 4000);
-            }
-          }}
-          onPreviewGenerated={(newPreview) => {
-            onChangePreview(newPreview);
-            setGenerateSuccess('Prévia animada WebM gerada automaticamente do vídeo!');
-            setTimeout(() => setGenerateSuccess(null), 4000);
-          }}
-          helperText="Envie o arquivo de vídeo completo para o GitHub Releases. Ao enviar, uma prévia animada WebM será gerada na hora para a capa!"
-          accept=".webm,.mp4,.gif,.mov,.mkv,.avi"
-        />
+        {(() => {
+          // Garante que o campo de download exiba o arquivo de vídeo original (GitHub / MP4) e não a prévia animada WebM
+          const cleanVideoDownloadValue = 
+            (downloadUrl && !downloadUrl.includes('preview_') && downloadUrl !== previewUrl)
+              ? downloadUrl
+              : (videoUrl && !videoUrl.includes('preview_') && videoUrl !== previewUrl)
+              ? videoUrl
+              : (downloadUrl?.includes('github.com') ? downloadUrl : '');
+
+          return (
+            <FileUploadField
+              label=""
+              value={cleanVideoDownloadValue}
+              onChange={(newUrl, meta) => {
+                // Atualiza o arquivo de download do GitHub e a prévia leve simultaneamente
+                onChangeDownload(newUrl, meta);
+                if (meta?.previewUrl) {
+                  setGenerateSuccess('Vídeo original enviado para o GitHub Releases e prévia animada WebM gerada!');
+                  setTimeout(() => setGenerateSuccess(null), 5000);
+                } else {
+                  setGenerateSuccess('Arquivo de vídeo completo atualizado para download!');
+                  setTimeout(() => setGenerateSuccess(null), 4000);
+                }
+              }}
+              onPreviewGenerated={(newPreview) => {
+                // Apenas atualiza a capa/preview, nunca o arquivo de download original
+                onChangePreview(newPreview);
+                setGenerateSuccess('Prévia animada WebM gerada automaticamente do vídeo!');
+                setTimeout(() => setGenerateSuccess(null), 4000);
+              }}
+              helperText="Envie o arquivo de vídeo completo para o GitHub Releases. Esse será o arquivo que os usuários vão baixar ao clicar em Baixar Wallpaper Animado!"
+              accept=".webm,.mp4,.gif,.mov,.mkv,.avi"
+            />
+          );
+        })()}
       </div>
 
       {/* 3. Campo 2: Capa e Prévia Animada WebM (Ultraleve para o site) */}

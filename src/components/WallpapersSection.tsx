@@ -20,19 +20,30 @@ import {
 import { useSiteData } from '../context/SiteDataContext';
 import { WallpaperItem } from '../types';
 import { getMediaPreviewUrl, isVideoMediaUrl } from '../utils/mediaUrl';
+import { resolveWallpaperDownloadUrl } from '../utils/wallpaperUrl';
 
 interface WallpapersSectionProps {
   isStandalone?: boolean;
 }
 
 export const WallpapersSection: React.FC<WallpapersSectionProps> = ({ isStandalone = false }) => {
-  const { wallpapers = [], openDownloadGateway, isVipLoggedIn, isAdminAuthenticated, openVipModal } = useSiteData();
+  const { wallpapers = [], openDownloadGateway, isVipLoggedIn, isAdminAuthenticated, openVipModal, brand, activePage } = useSiteData();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [selectedType, setSelectedType] = useState<'all' | 'image' | 'video'>('all');
   const [activePreview, setActivePreview] = useState<WallpaperItem | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Auto-abre preview de wallpaper específico se acessado por rota direta (/wallpapers/:slug)
+  useEffect(() => {
+    if (activePage?.type === 'wallpaper' && activePage.idOrSlug) {
+      const found = wallpapers.find(w => w.id === activePage.idOrSlug || w.slug === activePage.idOrSlug);
+      if (found) {
+        setActivePreview(found);
+      }
+    }
+  }, [activePage, wallpapers]);
 
   // Responsive Pagination State
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
@@ -51,6 +62,10 @@ export const WallpapersSection: React.FC<WallpapersSectionProps> = ({ isStandalo
   useEffect(() => {
     setVisibleLimit(isMobile ? 5 : 15);
   }, [searchQuery, selectedCategory, selectedType, isMobile]);
+
+  const getWallpaperDownloadUrl = (item: WallpaperItem): string => {
+    return resolveWallpaperDownloadUrl(item, brand?.githubStorage);
+  };
 
   // Extract categories dynamically
   const categories = useMemo(() => {
@@ -110,12 +125,14 @@ export const WallpapersSection: React.FC<WallpapersSectionProps> = ({ isStandalo
       return;
     }
 
+    const realDownloadUrl = getWallpaperDownloadUrl(item);
+
     openDownloadGateway({
       id: item.id,
       title: item.title,
       category: 'wallpaper',
       version: item.resolution || item.badge || 'HD 4K',
-      rawDownloadUrl: item.downloadUrl || item.videoUrl || item.previewUrl,
+      rawDownloadUrl: realDownloadUrl,
       applicableCars: item.category,
       modelTarget: item.aspectRatio || 'Centrais & Telas',
       fileSize: item.type === 'video' ? 'Vídeo MP4 Animado' : 'Wallpaper High-Res',

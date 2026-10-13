@@ -40,6 +40,7 @@ import { syncAllAutomotiveNews } from '../services/newsService';
 import { syncShopProductsFromStore } from '../services/shopService';
 import { applyPageThemeHex, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../utils/pageColors';
 import { isItemVip } from '../utils/vip';
+import { normalizeWallpapersList } from '../utils/wallpaperUrl';
 
 export interface FullSiteDataPayload {
   brand?: SiteBrandConfig;
@@ -743,7 +744,10 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setTutorials(mergedTutorials);
         }
         if (Array.isArray(savedData.unlockServices)) setUnlockServices(savedData.unlockServices);
-        if (Array.isArray(savedData.wallpapers)) setWallpapers(savedData.wallpapers);
+        if (Array.isArray(savedData.wallpapers)) {
+          const ghConf = savedData.brand?.githubStorage || initialBrandConfig.githubStorage;
+          setWallpapers(normalizeWallpapersList(savedData.wallpapers, ghConf));
+        }
         if (savedData.iptvConfig) setIptvConfig(savedData.iptvConfig);
         if (Array.isArray(savedData.partners)) setPartners(savedData.partners);
         if (Array.isArray(savedData.customPageLinks)) setCustomPageLinks(savedData.customPageLinks);
@@ -824,7 +828,10 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       if (Array.isArray(remoteData.tutorials)) setTutorials(remoteData.tutorials);
       if (Array.isArray(remoteData.unlockServices)) setUnlockServices(remoteData.unlockServices);
-      if (Array.isArray(remoteData.wallpapers)) setWallpapers(remoteData.wallpapers);
+      if (Array.isArray(remoteData.wallpapers)) {
+        const ghConf = remoteData.brand?.githubStorage || brand.githubStorage;
+        setWallpapers(normalizeWallpapersList(remoteData.wallpapers, ghConf));
+      }
       if (remoteData.iptvConfig) setIptvConfig(remoteData.iptvConfig);
       if (Array.isArray(remoteData.partners)) setPartners(remoteData.partners);
       if (Array.isArray(remoteData.customPageLinks)) setCustomPageLinks(remoteData.customPageLinks);
