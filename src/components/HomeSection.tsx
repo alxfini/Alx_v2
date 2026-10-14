@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -7,25 +7,31 @@ import {
 } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { YouTubeVideo, ProductItem, ALXApp, NewsArticle } from '../types';
+import { getMediaPreviewUrl } from '../utils/mediaUrl';
+import { isItemVisibleOnSite } from '../utils/visibility';
 
 interface HomeSectionProps {
   onPlayVideo?: (video: YouTubeVideo) => void;
   onSelectProduct?: (product: ProductItem) => void;
 }
 
-// Helper to parse dates/timestamps for news
-const parseNewsDate = (dateStr?: string, id?: string): number => {
-  if (id) {
-    const matchId = id.match(/\d{10,}/);
-    if (matchId) {
-      return parseInt(matchId[0], 10);
-    }
-  }
+export interface CarouselSlide {
+  id: string;
+  badge: string;
+  highlightBadge?: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  onClick: () => void;
+}
+
+// Helper to parse dates/timestamps for news (matching NewsSection logic)
+const parseArticleDate = (dateStr?: string): number => {
   if (!dateStr) return 0;
 
-  const directParse = Date.parse(dateStr);
-  if (!isNaN(directParse) && directParse > 0) {
-    return directParse;
+  const parsed = Date.parse(dateStr);
+  if (!isNaN(parsed) && parsed > 0) {
+    return parsed;
   }
 
   const ptMonths: Record<string, number> = {
@@ -45,80 +51,22 @@ const parseNewsDate = (dateStr?: string, id?: string): number => {
 
   const slashMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (slashMatch) {
-    return new Date(parseInt(slashMatch[3], 10), parseInt(slashMatch[2], 10) - 1, parseInt(slashMatch[1], 10)).getTime();
+    const day = parseInt(slashMatch[1], 10);
+    const month = parseInt(slashMatch[2], 10) - 1;
+    const year = parseInt(slashMatch[3], 10);
+    return new Date(year, month, day).getTime();
   }
 
   const match = dateStr.toLowerCase().match(/(\d{1,2})\s+(?:de\s+)?([a-zçãõ]+)[,\s]+(?:de\s+)?(\d{4})/);
   if (match) {
     const day = parseInt(match[1], 10);
-    const month = ptMonths[match[2].trim()] ?? 0;
+    const monthName = match[2].trim();
     const year = parseInt(match[3], 10);
+    const month = ptMonths[monthName] !== undefined ? ptMonths[monthName] : 0;
     return new Date(year, month, day).getTime();
   }
 
   return 0;
-};
-
-// Helper to get the absolute newest app
-const getLatestApp = (appsList?: ALXApp[]): ALXApp | null => {
-  if (!appsList || appsList.length === 0) return null;
-  const copy = [...appsList];
-  copy.sort((a, b) => {
-    // 1. Compare numeric timestamp from ID if registered via admin (e.g., app-1760412345678)
-    const matchA = a.id.match(/\d{10,}/);
-    const matchB = b.id.match(/\d{10,}/);
-    const timeA = matchA ? parseInt(matchA[0], 10) : 0;
-    const timeB = matchB ? parseInt(matchB[0], 10) : 0;
-
-    if (timeA && timeB) return timeB - timeA;
-    if (timeA) return -1;
-    if (timeB) return 1;
-
-    // 2. Check if explicitly marked isNew or isUpdated
-    if ((a.isNew || a.isUpdated) && !(b.isNew || b.isUpdated)) return -1;
-    if (!(a.isNew || a.isUpdated) && (b.isNew || b.isUpdated)) return 1;
-
-    return 0;
-  });
-  return copy[0] || appsList[0];
-};
-
-// Helper to get the top N newest news articles (unique)
-const getLatestNewsArticles = (newsList?: NewsArticle[], count: number = 3): NewsArticle[] => {
-  if (!newsList || newsList.length === 0) return [];
-
-  // Deduplicate by title or ID
-  const uniqueArticles: NewsArticle[] = [];
-  const seenTitles = new Set<string>();
-
-  for (const article of newsList) {
-    const key = (article.title || article.id || article.slug).toLowerCase().trim();
-    if (!seenTitles.has(key)) {
-      seenTitles.add(key);
-      uniqueArticles.push(article);
-    }
-  }
-
-  uniqueArticles.sort((a, b) => {
-    // 1. Compare numeric timestamp from ID if registered via admin (e.g., news-1760412345678)
-    const matchA = a.id.match(/\d{10,}/);
-    const matchB = b.id.match(/\d{10,}/);
-    const timeA = matchA ? parseInt(matchA[0], 10) : 0;
-    const timeB = matchB ? parseInt(matchB[0], 10) : 0;
-
-    if (timeA && timeB) return timeB - timeA;
-    if (timeA) return -1;
-    if (timeB) return 1;
-
-    // 2. Compare parsed date
-    const dateA = parseNewsDate(a.date, a.id);
-    const dateB = parseNewsDate(b.date, b.id);
-
-    if (dateA && dateB) return dateB - dateA;
-    return 0;
-  });
-
-  return uniqueArticles.slice(0, count);
 };
 
 export const HomeSection: React.FC<HomeSectionProps> = ({
@@ -134,102 +82,259 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
     news,
     videos,
     products,
+    syncNewsArticles,
   } = useSiteData();
 
-  // ----------------------------------------------------
-  // 1. CAROUSEL DATA SETUP (Notícias alternadas entre as outras seções)
-  // ----------------------------------------------------
-  const appItem = getLatestApp(apps);
-  const latestNewsList = getLatestNewsArticles(news, 3);
-  const otaItem = otaUpdates && otaUpdates.length > 0 ? otaUpdates[0] : null;
-  const unlockItem = unlockServices && unlockServices.length > 0 ? unlockServices[0] : null;
-  const tutorialItem = tutorials && tutorials.length > 0 ? tutorials[0] : null;
+  // Garante sincronização de notícias caso ainda não estejam no estado
+  useEffect(() => {
+    if (!news || news.length === 0) {
+      syncNewsArticles();
+    }
+  }, [news, syncNewsArticles]);
 
-  const news1 = latestNewsList[0];
-  const news2 = latestNewsList[1];
-  const news3 = latestNewsList[2];
+  // -------------------------------------------------------------------------
+  // 1. CAROUSEL DATA SETUP (100% DADOS REAIS EXTRAÍDOS DAS PÁGINAS DO SITE)
+  // -------------------------------------------------------------------------
 
-  const slideNews1 = news1 ? {
-    id: `slide-noticia-1-${news1.id}`,
-    badge: 'NOTÍCIAS',
-    title: news1.title,
-    description: news1.summary || news1.content || 'Cobertura completa sobre lançamentos, atualizações de tecnologia e infraestrutura para carros elétricos.',
-    imageUrl: news1.imageUrl || '/imagens/og-padrao.jpg',
-    onClick: () => setActivePage({ type: 'noticia', idOrSlug: news1.slug || news1.id }),
-  } : null;
+  // Helper para extrair a descrição real cadastrada no app sem exibir texto genérico de placeholder
+  const getCleanAppDescription = (app: ALXApp): string => {
+    const genericPlaceholders = [
+      'descrição completa',
+      'descrição detalhada',
+      'descrição curta',
+      'detalhes de instalação',
+      'para a página do app',
+    ];
 
-  const slideNews2 = news2 ? {
-    id: `slide-noticia-2-${news2.id}`,
-    badge: 'NOTÍCIAS',
-    title: news2.title,
-    description: news2.summary || news2.content || 'Cobertura completa sobre lançamentos, atualizações de tecnologia e infraestrutura para carros elétricos.',
-    imageUrl: news2.imageUrl || '/imagens/og-padrao.jpg',
-    onClick: () => setActivePage({ type: 'noticia', idOrSlug: news2.slug || news2.id }),
-  } : null;
+    const isValidRealText = (text?: string): boolean => {
+      if (!text || !text.trim()) return false;
+      const lower = text.toLowerCase().trim();
+      return !genericPlaceholders.some((p) => lower.includes(p));
+    };
 
-  const slideNews3 = news3 ? {
-    id: `slide-noticia-3-${news3.id}`,
-    badge: 'NOTÍCIAS',
-    title: news3.title,
-    description: news3.summary || news3.content || 'Cobertura completa sobre lançamentos, atualizações de tecnologia e infraestrutura para carros elétricos.',
-    imageUrl: news3.imageUrl || '/imagens/og-padrao.jpg',
-    onClick: () => setActivePage({ type: 'noticia', idOrSlug: news3.slug || news3.id }),
-  } : null;
+    // 1. Prioriza a descrição principal do catálogo (app.description)
+    if (isValidRealText(app.description)) {
+      return app.description.trim();
+    }
 
-  const slides = [
-    // 1. APLICATIVOS (Primeiro slide - nome limpo, descrição e foto do último app)
-    {
-      id: 'slide-apps',
-      badge: 'APLICATIVOS ALX',
-      title: appItem?.name || 'Catálogo de Aplicativos Homologados Automotivos',
-      description: appItem?.description || appItem?.fullDescription || appItem?.tagline || 'Aplicativos testados e otimizados para centrais multimídia automotivas (DiLink, Android Auto e mais).',
-      imageUrl: appItem?.coverImage || '/imagens/og-padrao.jpg',
-      onClick: () => appItem ? setActivePage({ type: 'app', idOrSlug: appItem.slug || appItem.id }) : setActivePage({ type: 'apps' }),
-    },
+    // 2. Se a descrição for placeholder, tenta a tagline/subtítulo (app.tagline)
+    if (isValidRealText(app.tagline)) {
+      return app.tagline.trim();
+    }
 
-    // 2. PRIMEIRA NOTÍCIA (Alternada)
-    ...(slideNews1 ? [slideNews1] : []),
+    // 3. Tenta a descrição detalhada (app.fullDescription)
+    if (isValidRealText(app.fullDescription)) {
+      return app.fullDescription.trim();
+    }
 
-    // 3. ATUALIZAÇÕES OTA
-    {
-      id: 'slide-ota',
-      badge: 'ATUALIZAÇÕES OTA',
-      title: otaItem?.title || 'Guia Definitivo: Como Instalar Atualização OTA via Pendrive USB nos Carros BYD',
-      description: otaItem?.changelog || otaItem?.notes || 'Aprenda o passo a passo seguro para formatar seu pendrive, baixar a ROM oficial OTA e realizar o update na multimídia DiLink.',
-      imageUrl: otaItem?.imageUrl || '/imagens/fundo-calculadora.jpg',
-      onClick: () => setActivePage({ type: 'radar-ota' }),
-    },
+    // Se todos forem placeholders, retorna o melhor texto disponível
+    return (
+      app.description ||
+      app.tagline ||
+      app.fullDescription ||
+      'Aplicativo homologado e otimizado para centrais multimídia automotivas.'
+    );
+  };
 
-    // 4. SEGUNDA NOTÍCIA (Alternada - Não sequencial)
-    ...(slideNews2 ? [slideNews2] : []),
+  // 1a. SLIDE DE APPS: Sorteio aleatório a cada F5 / carregamento do componente
+  const [appRandomSeed] = useState(() => Math.random());
+  const randomApp = useMemo<ALXApp | null>(() => {
+    if (!apps || apps.length === 0) return null;
+    const visiblePool = apps.filter(isItemVisibleOnSite);
+    const pool = visiblePool.length > 0 ? visiblePool : apps;
+    const randomIndex = Math.floor(appRandomSeed * pool.length);
+    return pool[randomIndex] || pool[0];
+  }, [apps, appRandomSeed]);
 
-    // 5. DESBLOQUEIOS
-    {
-      id: 'slide-desbloqueio',
-      badge: 'DESBLOQUEIOS',
-      title: unlockItem?.title || 'Serviços Especializados de Desbloqueio DiLink',
-      description: unlockItem?.description || 'Liberte todo o potencial da central multimídia com instalação de aplicativos, GPS online e personalização avançada.',
-      imageUrl: unlockItem?.imageUrl || '/imagens/og-desbloqueio.jpg',
-      onClick: () => setActivePage({ type: 'desbloqueio' }),
-    },
+  // 1b. SLIDES DE NOTÍCIAS: Deduplicadas, ordenadas pelas mais novas e alternadas sem repetição
+  const [newsShuffleSeed] = useState(() => Math.random());
+  const randomizedNews = useMemo<NewsArticle[]>(() => {
+    if (!news || news.length === 0) return [];
 
-    // 6. TERCEIRA NOTÍCIA (Alternada - Não sequencial)
-    ...(slideNews3 ? [slideNews3] : []),
+    // Deduplica notícias reais por ID ou Título
+    const uniqueMap = new Map<string, NewsArticle>();
+    for (const article of news) {
+      const key = (article.id || article.slug || article.title).toLowerCase().trim();
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, article);
+      }
+    }
 
-    // 7. TUTORIAIS
-    {
-      id: 'slide-tutoriais',
-      badge: 'TUTORIAIS',
-      title: tutorialItem?.title || 'Central de Tutoriais e Guias Práticos em Vídeo',
-      description: tutorialItem?.description || 'Aprenda como atualizar o sistema, configurar aplicativos e solucionar dúvidas técnicas do seu veículo.',
-      imageUrl: tutorialItem?.imageUrl || '/imagens/og-tutoriais.jpg',
-      onClick: () => setActivePage({ type: 'tutoriais' }),
-    },
-  ];
+    const uniqueArticles = Array.from(uniqueMap.values());
+
+    // Ordena do mais recente para o mais antigo com base na data real / timestamp do ID
+    uniqueArticles.sort((a, b) => {
+      const matchA = a.id?.match(/\d{10,}/);
+      const matchB = b.id?.match(/\d{10,}/);
+      const timeA = matchA ? parseInt(matchA[0], 10) : 0;
+      const timeB = matchB ? parseInt(matchB[0], 10) : 0;
+
+      if (timeA && timeB) return timeB - timeA;
+      if (timeA) return -1;
+      if (timeB) return 1;
+
+      const dateA = parseArticleDate(a.date);
+      const dateB = parseArticleDate(b.date);
+      if (dateA && dateB) return dateB - dateA;
+      return 0;
+    });
+
+    // Pega o conjunto das notícias mais recentes (até 8) e varia entre elas a cada F5
+    const recentPool = uniqueArticles.slice(0, Math.min(8, uniqueArticles.length));
+    const shuffled = [...recentPool].sort((a, b) => {
+      const hashA = (a.id + newsShuffleSeed).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      const hashB = (b.id + newsShuffleSeed).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      return (hashA % 100) - (hashB % 100);
+    });
+
+    // Retorna até 3 notícias distintas para intercalar no carrossel
+    return shuffled.slice(0, Math.min(3, shuffled.length));
+  }, [news, newsShuffleSeed]);
+
+  // 1c. SLIDE DE ATUALIZAÇÃO OTA: Sempre a mais nova cadastrada
+  const latestOta = useMemo(() => {
+    if (!otaUpdates || otaUpdates.length === 0) return null;
+    return otaUpdates[0];
+  }, [otaUpdates]);
+
+  // 1d. SLIDE DE DESBLOQUEIO: Mais recente cadastrado
+  const latestUnlock = useMemo(() => {
+    if (!unlockServices || unlockServices.length === 0) return null;
+    return unlockServices[0];
+  }, [unlockServices]);
+
+  // 1e. SLIDE DE TUTORIAIS: Sempre o mais novo cadastrado (índice 0)
+  const latestTutorial = useMemo(() => {
+    if (!tutorials || tutorials.length === 0) return null;
+    const visibleTuts = tutorials.filter(isItemVisibleOnSite);
+    const pool = visibleTuts.length > 0 ? visibleTuts : tutorials;
+    return pool[0] || null;
+  }, [tutorials]);
+
+  // Montagem da lista final de slides do carrossel (Ordem: Apps -> Notícias -> OTA -> Notícias -> Desbloqueios -> Notícias -> Tutoriais)
+  const slides: CarouselSlide[] = useMemo(() => {
+    const result: CarouselSlide[] = [];
+
+    // 1. APP (Sorteio aleatório a cada F5, sem 'ALX Store', com título, descrição e foto reais)
+    if (randomApp) {
+      const appDesc = getCleanAppDescription(randomApp);
+
+      result.push({
+        id: `slide-app-${randomApp.id}`,
+        badge: 'APLICATIVOS ALX',
+        title: randomApp.name,
+        description: appDesc,
+        imageUrl: getMediaPreviewUrl(randomApp.coverImage) || randomApp.coverImage || '/imagens/apps/byd-cockpit.jpg',
+        onClick: () => setActivePage({ type: 'app', idOrSlug: randomApp.slug || randomApp.id }),
+      });
+    }
+
+    // 2. PRIMEIRA NOTÍCIA REAL (Sorteada entre as mais recentes, sem duplicidade)
+    if (randomizedNews[0]) {
+      const art = randomizedNews[0];
+      result.push({
+        id: `slide-noticia-1-${art.id}`,
+        badge: 'NOTÍCIAS',
+        title: art.title,
+        description: art.summary || art.content || '',
+        imageUrl: getMediaPreviewUrl(art.imageUrl) || art.imageUrl || '/imagens/noticias/noticia-1.jpg',
+        onClick: () => setActivePage({ type: 'news', idOrSlug: art.slug || art.id }),
+      });
+    }
+
+    // 3. ATUALIZAÇÕES OTA (Mais recente + Destaque da atualização)
+    if (latestOta) {
+      const otaDescription = (Array.isArray(latestOta.changelog) && latestOta.changelog.length > 0)
+        ? latestOta.changelog.join(' • ')
+        : (typeof latestOta.changelog === 'string' ? latestOta.changelog : '') ||
+          latestOta.installationGuide ||
+          latestOta.applicableCars ||
+          `Firmware oficial ${latestOta.version} com melhorias e otimizações de sistema.`;
+
+      result.push({
+        id: `slide-ota-${latestOta.id}`,
+        badge: 'ATUALIZAÇÕES OTA',
+        highlightBadge: '⚡ ÚLTIMA ATUALIZAÇÃO',
+        title: latestOta.title || `Atualização Oficial DiLink ${latestOta.version}`,
+        description: otaDescription,
+        imageUrl: getMediaPreviewUrl(latestOta.imageUrl) || latestOta.imageUrl || '/imagens/fundo-calculadora.jpg',
+        onClick: () => setActivePage({ type: 'ota', idOrSlug: latestOta.slug || latestOta.id }),
+      });
+    }
+
+    // 4. SEGUNDA NOTÍCIA REAL (Intercalada, sem repetição)
+    if (randomizedNews[1]) {
+      const art = randomizedNews[1];
+      result.push({
+        id: `slide-noticia-2-${art.id}`,
+        badge: 'NOTÍCIAS',
+        title: art.title,
+        description: art.summary || art.content || '',
+        imageUrl: getMediaPreviewUrl(art.imageUrl) || art.imageUrl || '/imagens/noticias/noticia-1.jpg',
+        onClick: () => setActivePage({ type: 'news', idOrSlug: art.slug || art.id }),
+      });
+    }
+
+    // 5. DESBLOQUEIOS (Mais recente cadastrado)
+    if (latestUnlock) {
+      result.push({
+        id: `slide-desbloqueio-${latestUnlock.id}`,
+        badge: 'DESBLOQUEIOS',
+        title: latestUnlock.title,
+        description: latestUnlock.summary || latestUnlock.content || 'Serviço profissional de desbloqueio para centrais multimídia BYD.',
+        imageUrl: getMediaPreviewUrl(latestUnlock.imageUrl) || latestUnlock.imageUrl || '/imagens/og-desbloqueio.jpg',
+        onClick: () => setActivePage({ type: 'servico-desbloqueio', idOrSlug: latestUnlock.slug || latestUnlock.id }),
+      });
+    }
+
+    // 6. TERCEIRA NOTÍCIA REAL (Intercalada, sem repetição)
+    if (randomizedNews[2]) {
+      const art = randomizedNews[2];
+      result.push({
+        id: `slide-noticia-3-${art.id}`,
+        badge: 'NOTÍCIAS',
+        title: art.title,
+        description: art.summary || art.content || '',
+        imageUrl: getMediaPreviewUrl(art.imageUrl) || art.imageUrl || '/imagens/noticias/noticia-1.jpg',
+        onClick: () => setActivePage({ type: 'news', idOrSlug: art.slug || art.id }),
+      });
+    }
+
+    // 7. TUTORIAIS (Sempre o mais novo cadastrado)
+    if (latestTutorial) {
+      result.push({
+        id: `slide-tutorial-${latestTutorial.id}`,
+        badge: 'TUTORIAIS',
+        title: latestTutorial.title,
+        description: latestTutorial.summary || latestTutorial.content || 'Guias passo a passo para sua central multimídia e veículo elétrico.',
+        imageUrl: getMediaPreviewUrl(latestTutorial.imageUrl) || latestTutorial.imageUrl || '/imagens/og-tutoriais.jpg',
+        onClick: () => setActivePage({ type: 'tutorial', idOrSlug: latestTutorial.slug || latestTutorial.id }),
+      });
+    }
+
+    return result;
+  }, [randomApp, randomizedNews, latestOta, latestUnlock, latestTutorial, setActivePage]);
+
+  // Fallback seguro se não houver dados carregados
+  const fallbackSlide: CarouselSlide = {
+    id: 'slide-fallback',
+    badge: 'ALX⁺',
+    title: 'Portal Oficial ALX⁺',
+    description: 'Central multimídia, aplicativos homologados, atualizações de firmware e tutoriais automotivos.',
+    imageUrl: '/imagens/fundo-calculadora.jpg',
+    onClick: () => setActivePage({ type: 'home' }),
+  };
 
   // Carousel State & Auto-Play Timer (13 Seconds / 13000ms)
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Garante que o índice não fique fora dos limites caso a quantidade de slides mude
+  useEffect(() => {
+    if (slides.length > 0 && currentSlideIndex >= slides.length) {
+      setCurrentSlideIndex(0);
+    }
+  }, [slides.length, currentSlideIndex]);
 
   useEffect(() => {
     if (isPaused || slides.length === 0) return;
@@ -256,7 +361,9 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
     setIsPaused((prev) => !prev);
   };
 
-  const activeSlide = slides[currentSlideIndex] || slides[0];
+  const activeSlide = (slides.length > 0 && slides[currentSlideIndex])
+    ? slides[currentSlideIndex]
+    : (slides[0] || fallbackSlide);
 
   // ----------------------------------------------------
   // 2. YOUTUBE RECENT VIDEOS (Pegar sempre os 2 últimos vídeos)
@@ -378,6 +485,18 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
 
           {/* Bottom Left: Title, Description & Action Button */}
           <div className="relative z-10 p-5 sm:p-8 lg:p-10 max-w-2xl space-y-3 sm:space-y-4">
+            {activeSlide.highlightBadge && (
+              <div>
+                <span 
+                  className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider text-black shadow-md"
+                  style={{
+                    background: 'linear-gradient(90deg, #ffe600 0%, #c6f50b 100%)'
+                  }}
+                >
+                  {activeSlide.highlightBadge}
+                </span>
+              </div>
+            )}
             <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold text-white leading-tight drop-shadow-md tracking-tight">
               {activeSlide.title}
             </h1>
