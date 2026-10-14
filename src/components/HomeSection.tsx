@@ -449,7 +449,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
         
         {/* COLUNA DA ESQUERDA (73% - CARROSSEL PRINCIPAL 13s) */}
         <div 
-          className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#05070b] border border-white/10 shadow-2xl min-h-[380px] sm:min-h-[440px] lg:min-h-[460px] flex flex-col justify-end group cursor-pointer transition-all duration-300"
+          className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#05070b] border border-white/10 shadow-2xl min-h-[300px] sm:min-h-[440px] lg:min-h-[460px] flex flex-col justify-end group cursor-pointer transition-all duration-300"
           onClick={activeSlide.onClick}
         >
           {/* Background Image - Clean & Visually Sharp */}
@@ -472,9 +472,9 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
           </div>
 
           {/* Top Left: Category Badge Pill */}
-          <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-10">
+          <div className="absolute top-3.5 sm:top-6 left-3.5 sm:left-6 z-10">
             <span 
-              className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider text-[#061410] shadow-lg"
+              className="inline-flex items-center px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-[#061410] shadow-lg"
               style={{
                 background: 'linear-gradient(90deg, #00e5a3 0%, #00c4b4 100%)'
               }}
@@ -484,11 +484,11 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
           </div>
 
           {/* Bottom Left: Title, Description & Action Button */}
-          <div className="relative z-10 p-5 sm:p-8 lg:p-10 max-w-2xl space-y-3 sm:space-y-4">
+          <div className="relative z-10 p-4 sm:p-8 lg:p-10 max-w-2xl space-y-2 sm:space-y-4 pr-16 sm:pr-8">
             {activeSlide.highlightBadge && (
               <div>
                 <span 
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider text-black shadow-md"
+                  className="inline-flex items-center px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-black shadow-md"
                   style={{
                     background: 'linear-gradient(90deg, #ffe600 0%, #c6f50b 100%)'
                   }}
@@ -497,13 +497,13 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                 </span>
               </div>
             )}
-            <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold text-white leading-tight drop-shadow-md tracking-tight">
+            <h1 className="text-lg sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold text-white leading-tight drop-shadow-md tracking-tight">
               {activeSlide.title}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 sm:line-clamp-3 leading-relaxed drop-shadow">
               {activeSlide.description}
             </p>
-            <div className="pt-2 relative inline-block group/btn">
+            <div className="pt-1 sm:pt-2 relative inline-block group/btn">
               {/* Vibrant Glowing Light Aura on Hover */}
               <div 
                 className="absolute -inset-1 rounded-full opacity-0 group-hover/btn:opacity-100 transition-all duration-500 blur-md pointer-events-none"
@@ -517,7 +517,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                   e.stopPropagation();
                   activeSlide.onClick();
                 }}
-                className="relative inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-bold text-white shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+                className="relative inline-flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-bold text-white shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
                 style={{
                   background: 'linear-gradient(180deg, #1d8cd8 0%, #1064a3 100%)',
                   boxShadow: '0 4px 18px rgba(16, 100, 163, 0.45)'
@@ -528,9 +528,9 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
             </div>
           </div>
 
-          {/* Bottom Right: Translucent Pill Controls */}
+          {/* Bottom Right: Slide Controls (On mobile: ONLY prev/next arrows to avoid overlapping button; on desktop: full pill with indicators & pause) */}
           <div 
-            className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 z-20 flex items-center gap-2 sm:gap-2.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white shadow-xl"
+            className="absolute bottom-3.5 sm:bottom-6 right-3.5 sm:right-6 z-20 flex items-center gap-1 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button 
@@ -542,8 +542,8 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            {/* Slide Indicators */}
-            <div className="flex items-center gap-1.5 px-1">
+            {/* Slide Indicators - Hidden on mobile */}
+            <div className="hidden sm:flex items-center gap-1.5 px-1">
               {slides.map((_, idx) => (
                 <button
                   key={idx}
@@ -559,10 +559,11 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
               ))}
             </div>
 
+            {/* Play/Pause toggle - Hidden on mobile */}
             <button 
               type="button"
               onClick={handleTogglePause}
-              className="p-1 hover:text-[#00e5a3] transition-colors focus:outline-none"
+              className="hidden sm:block p-1 hover:text-[#00e5a3] transition-colors focus:outline-none"
               title={isPaused ? 'Continuar' : 'Pausar'}
             >
               {isPaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5 fill-current" />}
@@ -661,7 +662,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                   </div>
                   <div>
                     <h3 className="text-xs sm:text-sm font-bold text-white group-hover/item:text-[#34d399] transition-colors">
-                      Calculadora EV BYD
+                      Calculadora EV
                     </h3>
                     <p className="text-[11px] text-slate-300 line-clamp-2 leading-tight mt-0.5">
                       Simule autonomia real, tempo de recarga e custo por km na hora.
@@ -690,11 +691,13 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {recentVideos.map((video) => (
+            {recentVideos.map((video, idx) => (
               <div
                 key={video.id}
-                onClick={() => onPlayVideo ? onPlayVideo(video) : setActivePage({ type: 'youtube' })}
-                className="relative h-[230px] rounded-2xl p-[1px] bg-gradient-to-l from-red-800/80 via-red-950/30 to-transparent group cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                onClick={() => setActivePage({ type: 'youtube' })}
+                className={`relative h-[230px] rounded-2xl p-[1px] bg-gradient-to-l from-red-800/80 via-red-950/30 to-transparent group cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.02] ${
+                  idx > 0 ? 'hidden sm:block' : 'block'
+                }`}
               >
                 <div className="relative w-full h-full rounded-[15px] overflow-hidden bg-[#0a0f18]">
                   {/* Real YouTube Video Thumbnail Image */}
@@ -734,13 +737,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
           </div>
 
           <div
-            onClick={() => {
-              if (currentProduct && onSelectProduct) {
-                onSelectProduct(currentProduct);
-              } else {
-                setActivePage({ type: 'shop' });
-              }
-            }}
+            onClick={() => setActivePage({ type: 'shop' })}
             className="relative h-[230px] rounded-2xl overflow-hidden bg-[#09101d] border border-white/10 group cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-[#38bdf8]/50"
           >
             {/* Background Image / Product Image */}

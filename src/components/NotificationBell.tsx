@@ -75,12 +75,20 @@ export const NotificationBell: React.FC = () => {
         )}
       </button>
 
+      {/* Mobile Backdrop Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 sm:hidden" 
+          onClick={() => setIsOpen(false)} 
+        />
+      )}
+
       {/* Notifications Popover Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 sm:-right-8 top-12 w-[340px] sm:w-[400px] max-w-[92vw] bg-[#0E0E13]/98 border border-white/[0.14] rounded-3xl shadow-2xl backdrop-blur-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="fixed inset-x-3 top-[68px] sm:inset-x-auto sm:absolute sm:right-0 sm:top-12 sm:w-[400px] max-h-[82vh] sm:max-h-[520px] flex flex-col bg-[#0E0E13]/98 border border-white/[0.14] rounded-3xl shadow-2xl backdrop-blur-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           
           {/* Header */}
-          <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-[#13131A]">
+          <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-[#13131A] shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-xl bg-[#FFDD00]/10 border border-[#FFDD00]/30 flex items-center justify-center text-[#FFDD00]">
                 <Bell className="w-3.5 h-3.5" />
@@ -95,18 +103,29 @@ export const NotificationBell: React.FC = () => {
               </div>
             </div>
 
-            {unreadCount > 0 && (
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllNotificationsAsRead}
+                  className="text-[10px] text-[#FFDD00] hover:underline font-bold cursor-pointer"
+                >
+                  Marcar lidas
+                </button>
+              )}
               <button
-                onClick={markAllNotificationsAsRead}
-                className="text-[10px] text-[#FFDD00] hover:underline font-bold cursor-pointer"
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                title="Fechar"
+                aria-label="Fechar"
               >
-                Marcar lidas
+                <X className="w-4 h-4" />
               </button>
-            )}
+            </div>
           </div>
 
           {/* Quick Actions (Android Notifications + PWA Install) */}
-          <div className="p-2.5 bg-[#171722] border-b border-white/[0.06] space-y-1.5">
+          <div className="p-2.5 bg-[#171722] border-b border-white/[0.06] space-y-1.5 shrink-0">
             {!hasPermission && (
               <button
                 onClick={handleEnableNotifications}
@@ -141,7 +160,7 @@ export const NotificationBell: React.FC = () => {
           </div>
 
           {/* Notifications List */}
-          <div className="max-h-[340px] overflow-y-auto divide-y divide-white/[0.04]">
+          <div className="flex-1 overflow-y-auto divide-y divide-white/[0.04] max-h-[50vh] sm:max-h-[340px]">
             {notifications.length === 0 ? (
               <div className="p-8 text-center space-y-2">
                 <ShieldCheck className="w-8 h-8 text-neutral-500 mx-auto" />
@@ -197,7 +216,7 @@ export const NotificationBell: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="p-3 bg-[#111117] border-t border-white/[0.06] text-center text-[10px] text-neutral-400 flex items-center justify-between">
+          <div className="p-3 bg-[#111117] border-t border-white/[0.06] text-center text-[10px] text-neutral-400 flex items-center justify-between shrink-0">
             <span>ALX Notification System</span>
             <span className="text-[10px] font-mono text-[#FFDD00]">PWA Ready</span>
           </div>
