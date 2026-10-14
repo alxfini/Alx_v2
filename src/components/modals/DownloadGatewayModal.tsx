@@ -58,7 +58,7 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
 
   if (!item) return null;
 
-  const triggerRealDownload = () => {
+  const triggerRealDownload = async () => {
     if (isLocked) return;
     setIsDownloading(true);
     setDownloadStarted(true);
@@ -70,26 +70,56 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
 
     const rawUrl = item.rawDownloadUrl || '';
     if (rawUrl) {
-      // Create a temporary hidden anchor to trigger download safely without showing raw url in status bar
-      const link = document.createElement('a');
-      link.href = rawUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      // If it is an APK or Wallpaper, suggest filename for direct downloads
-      if (item.category === 'app') {
-        if (!rawUrl.includes('github.com')) {
-          link.download = `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.apk`;
-        }
-      } else if (item.category === 'wallpaper') {
-        const isVideo = item.rawDownloadUrl?.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i) || item.fileSize?.toLowerCase().includes('vídeo');
-        // Para links do GitHub Releases, o header Content-Disposition cuida do nome e extensão originais
-        if (!rawUrl.includes('github.com')) {
-          link.download = isVideo ? `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.mp4` : `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.jpg`;
+      const isVideo = Boolean(
+        rawUrl.match(/\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i) || 
+        item.fileSize?.toLowerCase().includes('vídeo') ||
+        item.fileSize?.toLowerCase().includes('video')
+      );
+
+      const targetFileName = `${(item.title || 'download').toLowerCase().replace(/[^a-z0-9]/g, '-')}.${isVideo ? 'mp4' : 'jpg'}`;
+
+      // Se for um arquivo no mesmo servidor/domínio ou local, tenta baixar via Blob para forçar a caixa de diálogo de salvamento do navegador
+      let handledViaBlob = false;
+      if (typeof window !== 'undefined' && (!rawUrl.includes('github.com') || rawUrl.startsWith('/'))) {
+        try {
+          const res = await fetch(rawUrl, { method: 'GET' });
+          if (res.ok) {
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = targetFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+            handledViaBlob = true;
+          }
+        } catch (fetchErr) {
+          console.warn('Download direto por Blob falhou, utilizando redirecionamento seguro de link:', fetchErr);
         }
       }
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      if (!handledViaBlob) {
+        // Fallback: Link direto do navegador
+        const link = document.createElement('a');
+        link.href = rawUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+
+        if (item.category === 'app') {
+          if (!rawUrl.includes('github.com')) {
+            link.download = `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.apk`;
+          }
+        } else if (item.category === 'wallpaper') {
+          if (!rawUrl.includes('github.com')) {
+            link.download = targetFileName;
+          }
+        }
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     }
 
     setTimeout(() => {

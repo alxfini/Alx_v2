@@ -40,7 +40,7 @@ import { syncAllAutomotiveNews } from '../services/newsService';
 import { syncShopProductsFromStore } from '../services/shopService';
 import { applyPageThemeHex, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../utils/pageColors';
 import { isItemVip } from '../utils/vip';
-import { normalizeWallpapersList } from '../utils/wallpaperUrl';
+import { normalizeWallpapersList, resolveWallpaperDownloadUrl } from '../utils/wallpaperUrl';
 
 export interface FullSiteDataPayload {
   brand?: SiteBrandConfig;
@@ -1993,18 +1993,34 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Wallpapers CRUD
   const updateWallpaper = (id: string, data: Partial<WallpaperItem>) => {
-    const updated = wallpapers.map(w => (w.id === id ? { ...w, ...data } : w));
+    const ghConf = brand?.githubStorage;
+    const updated = wallpapers.map(w => {
+      if (w.id !== id) return w;
+      const merged = { ...w, ...data };
+      if (merged.type === 'video') {
+        const realDownload = resolveWallpaperDownloadUrl(merged, ghConf);
+        merged.downloadUrl = realDownload || merged.downloadUrl;
+        merged.videoUrl = realDownload || merged.videoUrl || merged.downloadUrl;
+      }
+      return merged;
+    });
     setWallpapers(updated);
     saveToStorage({ wallpapers: updated });
   };
 
   const addWallpaper = (wpData: Omit<WallpaperItem, 'id'>): WallpaperItem => {
+    const ghConf = brand?.githubStorage;
     const newWp: WallpaperItem = {
       ...wpData,
       id: `wp-${Date.now()}`,
       slug: wpData.slug || `wallpaper-${Date.now()}`,
       downloadCount: wpData.downloadCount || 0
     };
+    if (newWp.type === 'video') {
+      const realDownload = resolveWallpaperDownloadUrl(newWp, ghConf);
+      newWp.downloadUrl = realDownload || newWp.downloadUrl;
+      newWp.videoUrl = realDownload || newWp.videoUrl || newWp.downloadUrl;
+    }
     const updated = [newWp, ...wallpapers];
     setWallpapers(updated);
     saveToStorage({ wallpapers: updated });

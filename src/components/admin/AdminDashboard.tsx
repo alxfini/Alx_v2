@@ -82,6 +82,7 @@ import { GitHubStorageTab } from './GitHubStorageTab';
 import { DatabaseTab } from './DatabaseTab';
 import { PartnersTab } from './PartnersTab';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
+import { resolveWallpaperDownloadUrl } from '../../utils/wallpaperUrl';
 import { EDITABLE_PAGES, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../../utils/pageColors';
 import { ALXApp, NewsArticle, ProductItem, EVModel, OTAUpdate, Tutorial, YouTubeVideo, CustomPageLink, UnlockServiceItem, WallpaperItem, CustomSocialLink, ContactCardItem, VipMember, IptvAppItem, IptvSimpleLink } from '../../types';
 import { SocialIcon } from '../common/SocialIcon';
@@ -9737,12 +9738,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   // Para vídeo animado, downloadUrl DEVE ser o link do arquivo completo (GitHub Releases / MP4)
                   // e previewUrl deve ser a animação WebM leve
                   let finalDownloadUrl = editingWallpaper.type === 'video'
-                    ? (editingWallpaper.downloadUrl || editingWallpaper.videoUrl || editingWallpaper.previewUrl)
+                    ? resolveWallpaperDownloadUrl(editingWallpaper, brand?.githubStorage)
                     : (editingWallpaper.downloadUrl || mediaUrl || editingWallpaper.previewUrl);
 
-                  // Se downloadUrl tiver preview_ mas videoUrl for o link do GitHub, use videoUrl
-                  if (editingWallpaper.type === 'video' && finalDownloadUrl.includes('preview_') && editingWallpaper.videoUrl && !editingWallpaper.videoUrl.includes('preview_')) {
-                    finalDownloadUrl = editingWallpaper.videoUrl;
+                  if (!finalDownloadUrl || (editingWallpaper.type === 'video' && finalDownloadUrl.includes('preview_'))) {
+                    if (editingWallpaper.videoUrl && !editingWallpaper.videoUrl.includes('preview_')) {
+                      finalDownloadUrl = editingWallpaper.videoUrl;
+                    }
                   }
 
                   const finalPreviewUrl = editingWallpaper.previewUrl || finalDownloadUrl;

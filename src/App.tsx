@@ -16,6 +16,7 @@ import { VipSection } from './components/VipSection';
 import { ProductsSection } from './components/ProductsSection';
 import { ShopSection } from './components/ShopSection';
 import { TelegramSection } from './components/TelegramSection';
+import { HomeSection } from './components/HomeSection';
 import { Footer } from './components/Footer';
 
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -377,9 +378,12 @@ const MainAppContent: React.FC = () => {
           </div>
         )}
 
-        {/* Home Page: Blank for now */}
+        {/* Home Page */}
         {activePage.type === 'home' && (
-          <div className="pt-[72px] sm:pt-20 pb-4" />
+          <HomeSection
+            onPlayVideo={(video) => setSelectedVideo(video)}
+            onSelectProduct={(product) => setSelectedProduct(product)}
+          />
         )}
       </main>
 
