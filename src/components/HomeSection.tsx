@@ -1,14 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
   Pause, 
-  Play, 
-  Handshake, 
-  Zap, 
-  PlayCircle, 
-  ShoppingBag,
-  ExternalLink
+  Play
 } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { YouTubeVideo, ProductItem } from '../types';
@@ -29,7 +24,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
     otaUpdates,
     tutorials,
     news,
-    youtubeVideos,
+    videos,
     products,
   } = useSiteData();
 
@@ -45,7 +40,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
   const slides = [
     {
       id: 'slide-ota',
-      badge: 'RADAR OTA FIRMWARE',
+      badge: 'ATUALIZAÇÕES OTA',
       title: otaItem?.title || 'Guia Definitivo: Como Instalar Atualização OTA via Pendrive USB nos Carros BYD',
       description: otaItem?.changelog || otaItem?.notes || 'Aprenda o passo a passo seguro para formatar seu pendrive, baixar a ROM oficial OTA e realizar o update na multimídia DiLink.',
       imageUrl: otaItem?.imageUrl || '/imagens/fundo-calculadora.jpg',
@@ -53,7 +48,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
     },
     {
       id: 'slide-desbloqueio',
-      badge: 'DESBLOQUEIO MULTIMÍDIA',
+      badge: 'DESBLOQUEIOS',
       title: unlockItem?.title || 'Serviços Especializados de Desbloqueio DiLink',
       description: unlockItem?.description || 'Liberte todo o potencial da central multimídia com instalação de aplicativos, GPS online e personalização avançada.',
       imageUrl: unlockItem?.imageUrl || '/imagens/og-desbloqueio.jpg',
@@ -61,7 +56,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
     },
     {
       id: 'slide-apps',
-      badge: 'ALX STORE • APLICATIVOS',
+      badge: 'APLICATIVOS ALX',
       title: appItem?.name ? `ALX Store: ${appItem.name}` : 'Catálogo de Aplicativos Homologados Automotivos',
       description: appItem?.description || 'Aplicativos testados e otimizados para centrais multimídia automotivas (DiLink, Android Auto e mais).',
       imageUrl: appItem?.imageUrl || appItem?.bannerUrl || '/imagens/og-padrao.jpg',
@@ -69,7 +64,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
     },
     {
       id: 'slide-tutoriais',
-      badge: 'TUTORIAIS & GUIAS',
+      badge: 'TUTORIAIS',
       title: tutorialItem?.title || 'Central de Tutoriais e Guias Práticos em Vídeo',
       description: tutorialItem?.description || 'Aprenda como atualizar o sistema, configurar aplicativos e solucionar dúvidas técnicas do seu veículo.',
       imageUrl: tutorialItem?.imageUrl || '/imagens/og-tutoriais.jpg',
@@ -77,7 +72,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
     },
     {
       id: 'slide-noticias',
-      badge: 'NOTÍCIAS & TENDÊNCIAS EV',
+      badge: 'NOTÍCIAS',
       title: newsItem?.title || 'Radar de Notícias e Inovações em Mobilidade Elétrica',
       description: newsItem?.summary || newsItem?.excerpt || 'Cobertura completa sobre lançamentos, atualizações de tecnologia e infraestrutura para carros elétricos.',
       imageUrl: newsItem?.imageUrl || '/imagens/og-padrao.jpg',
@@ -117,15 +112,63 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
   const activeSlide = slides[currentSlideIndex] || slides[0];
 
   // ----------------------------------------------------
-  // 2. YOUTUBE RECENT VIDEOS (Col 1 & 2)
+  // 2. YOUTUBE RECENT VIDEOS (Pegar sempre os 2 últimos vídeos)
   // ----------------------------------------------------
-  const recentVideos = (youtubeVideos && youtubeVideos.length > 0
-    ? youtubeVideos.slice(0, 2)
-    : []
-  );
+  const getVideoThumbnail = (video: YouTubeVideo): string => {
+    if (video.thumbnailUrl && video.thumbnailUrl.startsWith('http')) {
+      return video.thumbnailUrl;
+    }
+    if (video.youtubeId) {
+      return `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`;
+    }
+    return 'https://img.youtube.com/vi/AERBcFtpJz8/hqdefault.jpg';
+  };
+
+  const rawVideos = (videos && videos.length > 0)
+    ? videos.filter((v) => !v.isVipExclusive && !v.isMembersOnly)
+    : [];
+
+  const recentVideos = rawVideos.length >= 2
+    ? rawVideos.slice(0, 2)
+    : rawVideos.length === 1
+    ? [
+        rawVideos[0],
+        {
+          id: 'vid-alx-1',
+          youtubeId: 'AERBcFtpJz8',
+          title: 'YouTube Perfeito para Multimídias Automotivas: Configuração & Dicas',
+          description: '',
+          date: '',
+          duration: '',
+          category: 'Multimídia',
+          thumbnailUrl: 'https://img.youtube.com/vi/AERBcFtpJz8/hqdefault.jpg',
+        }
+      ]
+    : [
+        {
+          id: 'vid-alx-1',
+          youtubeId: 'AERBcFtpJz8',
+          title: 'YouTube Perfeito para Multimídias Automotivas: Configuração & Dicas',
+          description: '',
+          date: '',
+          duration: '',
+          category: 'Multimídia',
+          thumbnailUrl: 'https://img.youtube.com/vi/AERBcFtpJz8/hqdefault.jpg',
+        },
+        {
+          id: 'vid-alx-2',
+          youtubeId: 'EDZ6lEtqIOg',
+          title: '🔓 NOVO DESBLOQUEIO BYD | Funciona em Todas as Versões',
+          description: '',
+          date: '',
+          duration: '',
+          category: 'Tutoriais',
+          thumbnailUrl: 'https://img.youtube.com/vi/EDZ6lEtqIOg/hqdefault.jpg',
+        },
+      ];
 
   // ----------------------------------------------------
-  // 3. SHOP PRODUCT LOOP (20 Seconds / 20000ms)
+  // 3. SHOP PRODUCT LOOP (23 Seconds / 23000ms)
   // ----------------------------------------------------
   const [shopIndex, setShopIndex] = useState(0);
   const activeProducts = products && products.length > 0 ? products : [];
@@ -135,7 +178,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
 
     const timer = setInterval(() => {
       setShopIndex((prev) => (prev + 1) % activeProducts.length);
-    }, 20000);
+    }, 23000);
 
     return () => clearInterval(timer);
   }, [activeProducts.length]);
@@ -152,10 +195,10 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
         
         {/* COLUNA DA ESQUERDA (73% - CARROSSEL PRINCIPAL 13s) */}
         <div 
-          className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#060c16] border border-white/10 shadow-2xl min-h-[380px] sm:min-h-[440px] lg:min-h-[460px] flex flex-col justify-end group cursor-pointer transition-all duration-300"
+          className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#05070b] border border-white/10 shadow-2xl min-h-[380px] sm:min-h-[440px] lg:min-h-[460px] flex flex-col justify-end group cursor-pointer transition-all duration-300"
           onClick={activeSlide.onClick}
         >
-          {/* Background Image with Fallback */}
+          {/* Background Image - Clean & Visually Sharp */}
           <div className="absolute inset-0 z-0">
             <img 
               src={activeSlide.imageUrl} 
@@ -165,20 +208,19 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                 (e.target as HTMLImageElement).src = '/imagens/fundo-calculadora.jpg';
               }}
             />
-            {/* Midnight Blue Glow Overlay */}
+            {/* Smooth Neutral Gradient Overlay (Only on left & bottom for text readability) */}
             <div 
-              className="absolute inset-0 pointer-events-none"
+              className="absolute inset-0 pointer-events-none z-[1]"
               style={{
-                background: 'radial-gradient(circle at 12% 25%, rgba(16, 54, 88, 0.55) 0%, transparent 50%), linear-gradient(90deg, #060c16 0%, rgba(6, 12, 22, 0.88) 45%, rgba(6, 12, 22, 0.35) 100%)'
+                background: 'linear-gradient(90deg, rgba(5,7,11,0.88) 0%, rgba(5,7,11,0.45) 45%, transparent 100%), linear-gradient(0deg, rgba(5,7,11,0.85) 0%, rgba(5,7,11,0.2) 40%, transparent 80%)'
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#060c16] via-transparent to-transparent opacity-90" />
           </div>
 
           {/* Top Left: Category Badge Pill */}
           <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-10">
             <span 
-              className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs sm:text-xs font-extrabold uppercase tracking-wider text-[#061410] shadow-lg"
+              className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider text-[#061410] shadow-lg"
               style={{
                 background: 'linear-gradient(90deg, #00e5a3 0%, #00c4b4 100%)'
               }}
@@ -195,16 +237,24 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
             <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 sm:line-clamp-3 leading-relaxed drop-shadow">
               {activeSlide.description}
             </p>
-            <div className="pt-2">
+            <div className="pt-2 relative inline-block group/btn">
+              {/* Vibrant Glowing Light Aura on Hover */}
+              <div 
+                className="absolute -inset-1 rounded-full opacity-0 group-hover/btn:opacity-100 transition-all duration-500 blur-md pointer-events-none"
+                style={{
+                  background: 'linear-gradient(90deg, #00e5a3 0%, #1d8cd8 50%, #00c4b4 100%)'
+                }}
+              />
               <button 
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   activeSlide.onClick();
                 }}
-                className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-bold text-white shadow-lg transition-all duration-300 hover:brightness-110 hover:scale-[1.02] active:scale-95"
+                className="relative inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-bold text-white shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
                 style={{
-                  background: 'linear-gradient(180deg, #1d8cd8 0%, #1064a3 100%)'
+                  background: 'linear-gradient(180deg, #1d8cd8 0%, #1064a3 100%)',
+                  boxShadow: '0 4px 18px rgba(16, 100, 163, 0.45)'
                 }}
               >
                 Ver detalhes →
@@ -329,7 +379,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                       Parceiros Credenciados
                     </h3>
                     <p className="text-[11px] text-slate-300 line-clamp-2 leading-tight mt-0.5">
-                      Experiências práticas, oficinas especializadas e estética transparente.
+                      Parceiros Alx⁺, Empresas e serviços qualificados com exclusividade.
                     </p>
                   </div>
                 </button>
@@ -365,7 +415,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
       {/* ======================================================== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 pt-2">
         
-        {/* COLUNAS 1 & 2 (DESTAQUES DO CANAL - 2 VÍDEOS YOUTUBE) */}
+        {/* COLUNAS 1 & 2 (DESTAQUES DO CANAL - 2 VÍDEOS YOUTUBE REAL THUMBNAIL, SEM ÍCONE PLAY) */}
         <div className="md:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-extrabold uppercase tracking-widest text-[#38bdf8]">
@@ -374,76 +424,38 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {recentVideos.length > 0 ? (
-              recentVideos.map((video) => (
-                <div
-                  key={video.id}
-                  onClick={() => onPlayVideo ? onPlayVideo(video) : setActivePage({ type: 'youtube' })}
-                  className="relative h-[230px] rounded-2xl overflow-hidden bg-[#0a0f18] group cursor-pointer shadow-xl transition-transform duration-300 hover:scale-[1.02]"
-                  style={{
-                    border: '1px solid transparent',
-                    borderImage: 'linear-gradient(270deg, rgba(127,29,29,0.85) 0%, rgba(127,29,29,0) 100%) 1'
-                  }}
-                >
-                  {/* Thumbnail Image */}
+            {recentVideos.map((video) => (
+              <div
+                key={video.id}
+                onClick={() => onPlayVideo ? onPlayVideo(video) : setActivePage({ type: 'youtube' })}
+                className="relative h-[230px] rounded-2xl p-[1px] bg-gradient-to-l from-red-800/80 via-red-950/30 to-transparent group cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.02]"
+              >
+                <div className="relative w-full h-full rounded-[15px] overflow-hidden bg-[#0a0f18]">
+                  {/* Real YouTube Video Thumbnail Image */}
                   <img
-                    src={video.thumbnailUrl || `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`}
+                    src={getVideoThumbnail(video)}
                     alt={video.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/imagens/fundo-calculadora.jpg';
+                      const fallbackUrl = video.youtubeId 
+                        ? `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`
+                        : 'https://img.youtube.com/vi/AERBcFtpJz8/hqdefault.jpg';
+                      (e.target as HTMLImageElement).src = fallbackUrl;
                     }}
                   />
 
-                  {/* Dark Vignette Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/10" />
+                  {/* Dark Vignette Overlay for Title Contrast */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent" />
 
-                  {/* Center Play Icon */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-[#1d8cd8]/90 text-white flex items-center justify-center shadow-2xl transition-transform duration-300 group-hover:scale-110">
-                      <PlayCircle className="w-8 h-8 fill-white/20 stroke-white" />
-                    </div>
-                  </div>
-
-                  {/* Bottom Title */}
+                  {/* Bottom Title in White (Matching Alx Shop Card style) */}
                   <div className="absolute bottom-0 inset-x-0 p-4 z-10">
                     <h3 className="text-sm font-bold text-white line-clamp-2 leading-snug drop-shadow-md">
                       {video.title}
                     </h3>
                   </div>
                 </div>
-              ))
-            ) : (
-              // Fallback placeholder cards if youtubeVideos array is empty
-              [1, 2].map((num) => (
-                <div
-                  key={num}
-                  onClick={() => setActivePage({ type: 'youtube' })}
-                  className="relative h-[230px] rounded-2xl overflow-hidden bg-[#0a0f18] group cursor-pointer shadow-xl"
-                  style={{
-                    border: '1px solid transparent',
-                    borderImage: 'linear-gradient(270deg, rgba(127,29,29,0.85) 0%, rgba(127,29,29,0) 100%) 1'
-                  }}
-                >
-                  <img
-                    src="/imagens/fundo-calculadora.jpg"
-                    alt="Canal Alx⁺"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/10" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-[#1d8cd8]/90 text-white flex items-center justify-center shadow-2xl">
-                      <PlayCircle className="w-8 h-8 fill-white/20 stroke-white" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-0 inset-x-0 p-4 z-10">
-                    <h3 className="text-sm font-bold text-white line-clamp-2 leading-snug">
-                      {num === 1 ? 'Análises Técnicas e Tutoriais Automotivos Alx⁺' : 'Conheça as Soluções e Atualizações DiLink em Vídeo'}
-                    </h3>
-                  </div>
-                </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         </div>
 
