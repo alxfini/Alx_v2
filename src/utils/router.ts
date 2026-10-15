@@ -51,7 +51,7 @@ export function getRoutePath(page: ActivePageView): string {
     case 'wallpaper':
       return page.idOrSlug ? `/wallpapers/${encodeURIComponent(page.idOrSlug)}` : '/wallpapers';
     case 'iptv':
-      return '/iptv';
+      return '/';
     case 'parceiros':
       return page.idOrSlug ? `/parceiros/${encodeURIComponent(page.idOrSlug)}` : '/parceiros';
     case 'youtube':
@@ -170,7 +170,7 @@ export function getPageFromUrl(pathname: string = window.location.pathname, hash
     case 'iptv':
     case 'iptv-player':
     case 'tv-online':
-      return { type: 'iptv' };
+      return { type: 'home' };
 
     case 'parceiros':
     case 'parceiro':

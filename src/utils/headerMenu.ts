@@ -56,15 +56,6 @@ export const DEFAULT_HEADER_ITEMS: HeaderMenuItemConfig[] = [
     icon: 'layers',
   },
   {
-    id: 'iptv',
-    label: 'IPTV',
-    pageType: 'iptv',
-    url: '/iptv',
-    location: 'dropdown',
-    visible: true,
-    icon: 'tv',
-  },
-  {
     id: 'parceiros',
     label: 'Parceiros',
     pageType: 'parceiros',
@@ -207,8 +198,16 @@ export function getResolvedHeaderMenu(
     finalItems = combinedDefaults;
   }
 
-  // Ensure comunidade is excluded even if present in legacy savedList
-  finalItems = finalItems.filter((i) => i.id !== 'comunidade' && i.url !== '/comunidade' && (i as any).pageType !== 'comunidade');
+  // Ensure comunidade and iptv are excluded even if present in legacy savedList
+  finalItems = finalItems.filter(
+    (i) =>
+      i.id !== 'comunidade' &&
+      i.url !== '/comunidade' &&
+      (i as any).pageType !== 'comunidade' &&
+      i.id !== 'iptv' &&
+      i.url !== '/iptv' &&
+      (i as any).pageType !== 'iptv'
+  );
 
   const mainNavItems = finalItems.filter((i) => i.location === 'main' && i.visible !== false);
   const dropdownItems = finalItems.filter((i) => i.location === 'dropdown' && i.visible !== false);

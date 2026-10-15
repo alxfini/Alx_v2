@@ -8,7 +8,6 @@ import { TutorialsSection } from './components/TutorialsSection';
 import { DesbloqueioSection } from './components/DesbloqueioSection';
 import { AppsSection } from './components/AppsSection';
 import { WallpapersSection } from './components/WallpapersSection';
-import { IptvSection } from './components/IptvSection';
 import { ParceirosSection } from './components/ParceirosSection';
 import { YouTubeSection } from './components/YouTubeSection';
 import { NewsSection } from './components/NewsSection';
@@ -271,17 +270,6 @@ const MainAppContent: React.FC = () => {
             description="Baixe papéis de parede estáticos em 4K e wallpapers animados para personalizar a central multimídia do seu veículo elétrico."
           >
             <WallpapersSection isStandalone={true} />
-          </SectionPageWrapper>
-        )}
-
-        {/* 3c. Dedicated Page: IPTV Guide & Apps */}
-        {activePage.type === 'iptv' && (
-          <SectionPageWrapper
-            title="Guia & Aplicativos IPTV Automotivo"
-            badge="Streaming"
-            description="Confira tutoriais passo a passo e faça download de aplicativos IPTV homologados e testados para multimídia automotiva."
-          >
-            <IptvSection isStandalone={true} />
           </SectionPageWrapper>
         )}
 
