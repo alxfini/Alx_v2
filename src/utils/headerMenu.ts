@@ -56,15 +56,6 @@ export const DEFAULT_HEADER_ITEMS: HeaderMenuItemConfig[] = [
     icon: 'layers',
   },
   {
-    id: 'parceiros',
-    label: 'Parceiros',
-    pageType: 'parceiros',
-    url: '/parceiros',
-    location: 'main',
-    visible: true,
-    icon: 'handshake',
-  },
-  {
     id: 'youtube',
     label: 'YouTube',
     pageType: 'youtube',
@@ -135,6 +126,15 @@ export const DEFAULT_HEADER_ITEMS: HeaderMenuItemConfig[] = [
     location: 'dropdown',
     visible: true,
     icon: 'shieldcheck',
+  },
+  {
+    id: 'parceiros',
+    label: 'Parceiros',
+    pageType: 'parceiros',
+    url: '/parceiros',
+    location: 'dropdown',
+    visible: true,
+    icon: 'handshake',
   },
   {
     id: 'contato',
@@ -208,6 +208,22 @@ export function getResolvedHeaderMenu(
       i.url !== '/iptv' &&
       (i as any).pageType !== 'iptv'
   );
+
+  // Reordena 'parceiros' obrigatoriamente para a posição imediatamente anterior a 'contato'
+  const parceirosIdx = finalItems.findIndex(
+    (i) => i.id === 'parceiros' || i.url === '/parceiros' || (i as any).pageType === 'parceiros'
+  );
+  if (parceirosIdx !== -1) {
+    const [parceirosItem] = finalItems.splice(parceirosIdx, 1);
+    const contatoIdx = finalItems.findIndex(
+      (i) => i.id === 'contato' || i.url === '/contato' || (i as any).pageType === 'contato'
+    );
+    if (contatoIdx !== -1) {
+      finalItems.splice(contatoIdx, 0, { ...parceirosItem, location: 'dropdown' });
+    } else {
+      finalItems.push({ ...parceirosItem, location: 'dropdown' });
+    }
+  }
 
   const mainNavItems = finalItems.filter((i) => i.location === 'main' && i.visible !== false);
   const dropdownItems = finalItems.filter((i) => i.location === 'dropdown' && i.visible !== false);
