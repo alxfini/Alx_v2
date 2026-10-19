@@ -113,7 +113,7 @@ export const ParceirosSection: React.FC<ParceirosSectionProps> = ({ isStandalone
       {/* Iluminação ambiente sutil na cor da marca (como no IPTV) */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[var(--color-brand)]/4 blur-[160px] pointer-events-none rounded-full" />
 
-      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10 space-y-10">
+      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 relative z-10 space-y-10">
         
         {/* Cabeçalho da Página: Estilo idêntico ao card de cabeçalho do IPTV (leve borda e degradê na cor da página) */}
         <div className="bg-gradient-to-b from-[#111116] via-[#0c0c10] to-[#060608] border border-white/[0.08] hover:border-[var(--color-brand)]/30 p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden text-center sm:text-left space-y-4 transition-all duration-300">
@@ -131,8 +131,8 @@ export const ParceirosSection: React.FC<ParceirosSectionProps> = ({ isStandalone
           </p>
         </div>
 
-        {/* Lista de Parceiros: Cards no modo UI/UX com leve borda, degradê na cor da página e glow ambiente (exemplo IPTV) */}
-        <div className="space-y-8 sm:space-y-10">
+        {/* Lista de Parceiros: Grid de 2 Colunas (2 cards lado a lado) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           {activePartners.length > 0 ? (
             activePartners.map((partner) => {
               const cardImage = partner.imageUrl || partner.bannerImageUrl || '/imagens/modelos/seal-awd.jpg';
@@ -141,13 +141,13 @@ export const ParceirosSection: React.FC<ParceirosSectionProps> = ({ isStandalone
                 <div
                   key={partner.id}
                   onClick={() => handleOpenPartnerModal(partner)}
-                  className="group relative bg-gradient-to-b from-[#111116] via-[#0c0c10] to-[#060608] border border-white/[0.08] hover:border-[var(--color-brand)]/40 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-black/70 hover:-translate-y-1 transition-all duration-300 flex flex-col w-full cursor-pointer"
+                  className="group relative bg-gradient-to-b from-[#111116] via-[#0c0c10] to-[#060608] border border-white/[0.08] hover:border-[var(--color-brand)]/40 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl hover:shadow-black/70 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between w-full h-full cursor-pointer"
                 >
                   {/* Glow ambiente sutil no canto superior direito igual ao IPTV */}
                   <div className="absolute -right-12 -top-12 w-48 h-48 bg-[var(--color-brand)]/10 rounded-full blur-2xl group-hover:bg-[var(--color-brand)]/15 transition-all pointer-events-none" />
 
-                  {/* Foto em destaque (largura total) com transição em degradê na cor da página */}
-                  <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] overflow-hidden bg-[#16161D]">
+                  {/* Foto em destaque com proporção 16/10 ideal para 2 colunas */}
+                  <div className="relative w-full aspect-[16/10] overflow-hidden bg-[#16161D]">
                     <img
                       src={getMediaPreviewUrl(cardImage)}
                       alt={partner.name}
@@ -158,8 +158,8 @@ export const ParceirosSection: React.FC<ParceirosSectionProps> = ({ isStandalone
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c10] via-transparent to-black/30 pointer-events-none" />
                   </div>
 
-                  {/* Dizeres abaixo da foto */}
-                  <div className="p-6 sm:p-8 space-y-4 relative z-10">
+                  {/* Dizeres abaixo da foto com flex-1 e justify-between para cards alinhados */}
+                  <div className="p-6 sm:p-7 space-y-4 relative z-10 flex flex-col flex-1 justify-between">
                     {/* Badge e Título */}
                     <div className="space-y-2">
                       {partner.badge && (
@@ -182,13 +182,13 @@ export const ParceirosSection: React.FC<ParceirosSectionProps> = ({ isStandalone
                       )}
                     </div>
 
-                    {/* Breve resumo */}
-                    <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-4xl whitespace-pre-line">
+                    {/* Breve resumo com limitador para manter altura uniforme */}
+                    <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed line-clamp-3">
                       {partner.shortDescription}
                     </p>
 
-                    {/* Linha de Ações: Compartilhar e Saiba Mais Lado a Lado no Mobile */}
-                    <div className="pt-4 flex items-center justify-end gap-2 sm:gap-3 border-t border-white/[0.08] relative z-10 w-full">
+                    {/* Linha de Ações: Compartilhar e Saiba Mais alinhados no fundo */}
+                    <div className="pt-4 flex items-center justify-end gap-2 sm:gap-3 border-t border-white/[0.08] relative z-10 w-full mt-auto">
                       <button
                         type="button"
                         onClick={(e) => handleShare(e, partner)}

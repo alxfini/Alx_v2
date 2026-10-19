@@ -25,7 +25,7 @@ export const CalculatorSection: React.FC<CalculatorSectionProps> = ({ isStandalo
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[#ebbf01]/6 blur-[160px] rounded-full" />
       </div>
 
-      <div className="w-full max-w-[96%] sm:max-w-[92%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10">
+      <div className="w-full max-w-[96%] sm:max-w-[92%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 relative z-10">
         <RangeCalculator />
       </div>
     </section>

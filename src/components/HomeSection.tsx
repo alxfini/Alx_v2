@@ -440,16 +440,16 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
   const currentProduct = activeProducts[shopIndex] || null;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-20 sm:pt-24 pb-12 sm:pb-16 space-y-8 sm:space-y-10">
+    <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 pt-[72px] sm:pt-20 pb-12 sm:pb-16 space-y-8 sm:space-y-10">
       
       {/* ======================================================== */}
-      {/* 1. HERO SECTION (Desktop Grid: 73% Left / 27% Right)     */}
+      {/* 1. HERO SECTION (Desktop Grid: 70% Left / 30% Right)     */}
       {/* ======================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-[73%_27%] gap-4 lg:gap-5 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-4 lg:gap-5 items-stretch">
         
-        {/* COLUNA DA ESQUERDA (73% - CARROSSEL PRINCIPAL 13s) */}
+        {/* COLUNA DA ESQUERDA (70% - CARROSSEL PRINCIPAL 13s) */}
         <div 
-          className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#05070b] border border-white/10 shadow-2xl min-h-[300px] sm:min-h-[440px] lg:min-h-[460px] flex flex-col justify-end group cursor-pointer transition-all duration-300"
+          className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#05070b] border border-white/10 shadow-2xl min-h-[300px] sm:min-h-[420px] lg:min-h-[440px] flex flex-col justify-end group cursor-pointer transition-all duration-300"
           onClick={activeSlide.onClick}
         >
           {/* Background Image - Clean & Visually Sharp */}
@@ -695,7 +695,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
               <div
                 key={video.id}
                 onClick={() => setActivePage({ type: 'youtube' })}
-                className={`relative h-[230px] rounded-2xl p-[1px] bg-gradient-to-l from-red-800/80 via-red-950/30 to-transparent group cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.02] ${
+                className={`relative h-[210px] sm:h-[220px] rounded-2xl p-[1px] bg-gradient-to-l from-red-800/80 via-red-950/30 to-transparent group cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.02] ${
                   idx > 0 ? 'hidden sm:block' : 'block'
                 }`}
               >
@@ -738,7 +738,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
 
           <div
             onClick={() => setActivePage({ type: 'shop' })}
-            className="relative h-[230px] rounded-2xl overflow-hidden bg-[#09101d] border border-white/10 group cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-[#38bdf8]/50"
+            className="relative h-[210px] sm:h-[220px] rounded-2xl overflow-hidden bg-[#09101d] border border-white/10 group cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-[#38bdf8]/50"
           >
             {/* Background Image / Product Image */}
             <div className="absolute inset-0 flex items-center justify-center bg-[#070d18]">

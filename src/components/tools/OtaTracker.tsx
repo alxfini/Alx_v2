@@ -462,7 +462,7 @@ export const OtaTracker: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
             {filteredUpdates.map((ota, index) => {
               const displayImage = ota.imageUrl || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop';
               const displayCars = ota.applicableCars || ota.modelTarget || 'Modelos BYD DiLink';
@@ -485,39 +485,38 @@ export const OtaTracker: React.FC = () => {
               return (
                 <div
                   key={ota.id}
-                  className={`bg-[#0a0a0e] border border-white/10 hover:border-[#ebbf01]/40 rounded-3xl overflow-hidden flex-col justify-between transition-all duration-300 shadow-2xl group ${visibilityClass}`}
+                  className={`bg-[#111115] border border-white/[0.08] hover:border-[#ebbf01]/40 rounded-3xl overflow-hidden flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-2xl group ${visibilityClass}`}
                 >
                   <div>
-                    {/* Photo / Image Header with rounded corners */}
-                    <div className="p-4 sm:p-5 pb-0">
-                      <div 
-                        onClick={() => handleOpenOta(ota)}
-                        className="relative aspect-[16/9] bg-[#121218] overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 hover:border-[#ebbf01]/40 cursor-pointer shadow-lg"
-                      >
-                        <img
-                          src={displayImage}
-                          alt={ota.title || `OTA ${ota.version}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0e]/60 via-transparent to-black/20" />
-                      </div>
+                    {/* Top Preview Image Container (Edge-to-edge 16/10 matching App cards) */}
+                    <div 
+                      onClick={() => handleOpenOta(ota)}
+                      className="relative aspect-[16/10] overflow-hidden bg-[#16161D] cursor-pointer"
+                    >
+                      <img
+                        src={displayImage}
+                        alt={ota.title || `OTA ${ota.version}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#111115] via-transparent to-black/30" />
                     </div>
 
                     {/* Card Main Information */}
-                    <div className="p-6 space-y-4">
+                    <div className="p-5 sm:p-6 space-y-3.5">
                       {/* Title */}
                       <div 
                         onClick={() => handleOpenOta(ota)}
                         className="cursor-pointer"
                       >
-                        <h4 className="text-xl font-extrabold text-white font-heading leading-tight">
+                        <h4 className="text-lg sm:text-xl font-extrabold text-white font-heading leading-tight line-clamp-2">
                           {ota.title || `Pacote OTA ${ota.version}`}
                         </h4>
                       </div>
 
                       {/* Versão & MCU Badges (Firmware & Versão) */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
                           <span className="text-[10px] uppercase font-mono font-bold text-neutral-400 block">Firmware</span>
                           <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
                             <Layers className="w-3.5 h-3.5 text-[#ebbf01] shrink-0" />
@@ -525,7 +524,7 @@ export const OtaTracker: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
                           <span className="text-[10px] uppercase font-mono font-bold text-neutral-400 block">Versão</span>
                           <div className="text-xs font-mono font-bold text-cyan-300 flex items-center gap-1.5">
                             <Cpu className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
@@ -535,12 +534,12 @@ export const OtaTracker: React.FC = () => {
                       </div>
 
                       {/* Carros que usarão o arquivo */}
-                      <div className="p-3.5 rounded-2xl bg-[#121218] border border-white/10 space-y-1.5">
+                      <div className="p-3 sm:p-3.5 rounded-2xl bg-[#121218] border border-white/10 space-y-1">
                         <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#ebbf01]">
                           <Car className="w-4 h-4 shrink-0" />
                           <span>Carros Compatíveis:</span>
                         </div>
-                        <p className="text-xs text-neutral-200 font-sans leading-relaxed pl-6">
+                        <p className="text-xs text-neutral-200 font-sans leading-relaxed pl-6 line-clamp-2">
                           {displayCars}
                         </p>
                       </div>
@@ -548,13 +547,13 @@ export const OtaTracker: React.FC = () => {
                   </div>
 
                   {/* Card Action Footer */}
-                  <div className="p-6 pt-0">
+                  <div className="p-5 sm:p-6 pt-0">
                     {/* Botão Baixar que leva diretamente à página individual de cada OTA */}
                     <button
                       onClick={() => handleOpenOta(ota)}
-                      className="w-full py-3.5 px-4 rounded-xl bg-[#ebbf01] hover:bg-[#f5cc14] text-black font-extrabold text-xs tracking-wider uppercase font-mono flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-[#ebbf01]/20 cursor-pointer"
+                      className="w-full py-3 sm:py-3.5 px-4 rounded-xl bg-[#ebbf01] hover:bg-[#f5cc14] text-black font-extrabold text-xs tracking-wider uppercase font-mono flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-[#ebbf01]/20 cursor-pointer"
                     >
-                      <Download className="w-4.5 h-4.5" />
+                      <Download className="w-4 h-4" />
                       <span>Baixar Atualização</span>
                     </button>
                   </div>

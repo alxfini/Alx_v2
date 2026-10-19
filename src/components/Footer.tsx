@@ -11,7 +11,11 @@ import { useSiteData } from '../context/SiteDataContext';
 import { SocialIcon } from './common/SocialIcon';
 import { getResolvedFooterIcons } from '../utils/footerIcons';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  isHome?: boolean;
+}
+
+export const Footer: React.FC<FooterProps> = ({ isHome = false }) => {
   const { brand, openAdminTab, setActivePage, isSpotifyPlayerOpen, setIsSpotifyPlayerOpen } = useSiteData();
 
   const handleSpotifyClick = (e: React.MouseEvent) => {
@@ -24,8 +28,10 @@ export const Footer: React.FC = () => {
   const resolvedIcons = getResolvedFooterIcons(brand);
 
   return (
-    <footer className="bg-[#050507] border-t border-white/[0.08] text-neutral-500 text-xs relative">
-      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 py-6 space-y-5 text-center">
+    <footer className="bg-[#050507] border-t border-white/[0.08] text-neutral-500 text-xs relative shrink-0">
+      <div className={`w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 ${
+        isHome ? 'py-1.5 sm:py-2 lg:py-2 space-y-1.5 sm:space-y-2' : 'py-6 space-y-5'
+      } text-center`}>
         
         {/* Main Footer Row: Redes Sociais & Utilidades na ordem personalizada */}
         <div className="flex flex-wrap items-center justify-center gap-2.5">
@@ -155,7 +161,7 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Linha Inferior de Copyright & Links Institucionais (Centralizada) */}
-        <div className="pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-2 text-[11px] text-neutral-500 text-center">
+        <div className={`${isHome ? 'pt-1.5' : 'pt-4'} border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-center gap-x-6 gap-y-1 text-[11px] text-neutral-500 text-center`}>
           <p className="m-0 leading-none">© 2026 Alx⁺. Todos os direitos reservados.</p>
           
           <div className="flex items-center gap-4 text-neutral-500 font-normal">

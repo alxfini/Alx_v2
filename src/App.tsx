@@ -342,7 +342,7 @@ const MainAppContent: React.FC = () => {
         {/* 9. Dedicated Page: Gerador Senha IMEI */}
         {(activePage.type === 'gerador-imei' || activePage.type === 'imei') && (
           <div className="pt-[72px] sm:pt-20 pb-6 sm:pb-8">
-            <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4">
+            <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4">
               <ImeiGeneratorPage />
             </div>
           </div>
@@ -351,7 +351,7 @@ const MainAppContent: React.FC = () => {
         {/* 10. Institutional Pages: Sobre, Termos, Privacidade */}
         {(activePage.type === 'sobre' || activePage.type === 'termos' || activePage.type === 'privacidade') && (
           <div className="pt-[72px] sm:pt-20 pb-6 sm:pb-8">
-            <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4">
+            <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4">
               <InstitutionalPages type={activePage.type} />
             </div>
           </div>
@@ -360,7 +360,7 @@ const MainAppContent: React.FC = () => {
         {/* 11. Contact Page: Fale Conosco (/contato) */}
         {activePage.type === 'contato' && (
           <div className="pt-[72px] sm:pt-20 pb-6 sm:pb-8">
-            <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4">
+            <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4">
               <ContactPage />
             </div>
           </div>
@@ -376,7 +376,7 @@ const MainAppContent: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer isHome={activePage.type === 'home'} />
 
       {/* Interactive Global Search Modal (Cmd+K) */}
       <SearchModal
