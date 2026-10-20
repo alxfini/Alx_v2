@@ -287,7 +287,7 @@ export const CardDetailPage: React.FC<CardDetailPageProps> = ({
 
     return (
       <div className="bg-[#070709] text-white pt-[72px] sm:pt-20 pb-8 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto space-y-8 animate-in fade-in duration-300">
+        <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto space-y-8 animate-in fade-in duration-300">
           
           {/* Hero Header Section */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -469,7 +469,7 @@ export const CardDetailPage: React.FC<CardDetailPageProps> = ({
 
     return (
       <div className="bg-[#070709] text-white pt-[72px] sm:pt-20 pb-8 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto space-y-8 animate-in fade-in duration-300">
+        <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto space-y-8 animate-in fade-in duration-300">
 
           {/* Article Header */}
           <div className="space-y-4">

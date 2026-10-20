@@ -133,7 +133,7 @@ export const AppsSection: React.FC<AppsSectionProps> = ({ onSelectApp, onOpenVip
       {/* Yellow laser ambient lighting */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[#ebbf01]/4 blur-[160px] pointer-events-none rounded-full" />
 
-      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 relative z-10 space-y-8">
+      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10 space-y-8">
         
         {/* Controls Bar Card - Estilo OTA: 1. Procura | 2. Categorias | 3. Classificação de Download */}
         <div className="bg-[#111116] border border-white/[0.08] p-4 sm:p-5 rounded-3xl shadow-xl flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-between text-center lg:text-left gap-4">

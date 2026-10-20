@@ -440,7 +440,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
   const currentProduct = activeProducts[shopIndex] || null;
 
   return (
-    <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 pt-[72px] sm:pt-20 pb-12 sm:pb-16 space-y-8 sm:space-y-10">
+    <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 pt-[72px] sm:pt-20 pb-12 sm:pb-16 space-y-8 sm:space-y-10">
       
       {/* ======================================================== */}
       {/* 1. HERO SECTION (Desktop Grid: 70% Left / 30% Right)     */}

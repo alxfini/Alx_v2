@@ -113,7 +113,7 @@ export const ParceirosSection: React.FC<ParceirosSectionProps> = ({ isStandalone
       {/* Iluminação ambiente sutil na cor da marca (como no IPTV) */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[var(--color-brand)]/4 blur-[160px] pointer-events-none rounded-full" />
 
-      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 relative z-10 space-y-10">
+      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10 space-y-10">
         
         {/* Cabeçalho da Página: Estilo idêntico ao card de cabeçalho do IPTV (leve borda e degradê na cor da página) */}
         <div className="bg-gradient-to-b from-[#111116] via-[#0c0c10] to-[#060608] border border-white/[0.08] hover:border-[var(--color-brand)]/30 p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden text-center sm:text-left space-y-4 transition-all duration-300">

@@ -29,7 +29,7 @@ export const Footer: React.FC<FooterProps> = ({ isHome = false }) => {
 
   return (
     <footer className="bg-[#050507] border-t border-white/[0.08] text-neutral-500 text-xs relative shrink-0">
-      <div className={`w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 ${
+      <div className={`w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 ${
         isHome ? 'py-1.5 sm:py-2 lg:py-2 space-y-1.5 sm:space-y-2' : 'py-6 space-y-5'
       } text-center`}>
         

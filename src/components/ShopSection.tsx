@@ -100,7 +100,7 @@ export const ShopSection: React.FC<ShopSectionProps> = ({ isStandalone = false }
 
   return (
     <section id="shop" className={`${isStandalone ? 'pt-0 pb-8 sm:pb-10' : 'py-10 sm:py-14'} bg-[#070709] border-t border-white/[0.06] relative`}>
-      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 relative z-10 space-y-6">
+      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10 space-y-6">
         
         {/* Sync Feedback Toast */}
         {syncFeedback && (

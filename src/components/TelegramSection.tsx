@@ -9,7 +9,7 @@ interface TelegramSectionProps {
 export const TelegramSection: React.FC<TelegramSectionProps> = ({ isStandalone = false }) => {
   return (
     <section id="telegram" className={`${isStandalone ? 'pt-0 pb-8 sm:pb-10' : 'py-10 sm:py-14'} bg-[#09090C] border-t border-white/[0.06] relative`}>
-      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 relative z-10">
+      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10">
         
         {/* Modern Bento Community Card */}
         <div className="bg-gradient-to-b from-[#15151B] to-[#0E0E12] border border-white/[0.08] hover:border-[var(--color-brand)]/40 rounded-3xl p-8 sm:p-12 lg:p-16 relative overflow-hidden shadow-2xl transition-all duration-300 group">

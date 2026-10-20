@@ -400,7 +400,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
         className="absolute top-1/4 right-1/4 w-[600px] h-[350px] blur-[150px] pointer-events-none rounded-full" 
       />
 
-      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[75%] lg:max-w-[75vw] mx-auto px-2 sm:px-4 relative z-10 space-y-12">
+      <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10 space-y-12">
         
         {/* Controls Bar (Apenas exibido para visitantes não autenticados) */}
         {!isLoggedIn && (
