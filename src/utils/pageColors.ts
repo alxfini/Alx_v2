@@ -11,7 +11,7 @@ export const DEFAULT_PAGE_COLORS: Record<string, string> = {
   app: '#06F980',
   'radar-ota': '#06E8F9',
   ota: '#06E8F9',
-  youtube: '#FFDD00',
+  youtube: '#F91010',
   tutoriais: '#1EFF00',
   tutorial: '#1EFF00',
   noticias: '#a4fcff',
@@ -46,7 +46,7 @@ export const EDITABLE_PAGES: PageColorDefinition[] = [
   { key: 'desbloqueio', name: 'Desbloqueio Multimídia', description: 'Serviços e soluções de multimídia', defaultHex: '#D4F906' },
   { key: 'apps', name: 'Apps Automotivos', description: 'Catálogo de APKs e instaladores', defaultHex: '#06F980' },
   { key: 'radar-ota', name: 'Radar OTA (Atualizações)', description: 'Atualizações de sistema BYD/GWM', defaultHex: '#06E8F9' },
-  { key: 'youtube', name: 'Canal YouTube', description: 'Vídeos e tutoriais da garagem', defaultHex: '#FFDD00' },
+  { key: 'youtube', name: 'Canal YouTube', description: 'Vídeos e tutoriais da garagem', defaultHex: '#F91010' },
   { key: 'tutoriais', name: 'Tutoriais & Guias', description: 'Passo a passo técnico ilustrado', defaultHex: '#1EFF00' },
   { key: 'noticias', name: 'Notícias Automotivas', description: 'Feed de notícias do setor automotivo', defaultHex: '#a4fcff' },
   { key: 'shop', name: 'Loja / ALX Shop', description: 'Acessórios e produtos à venda', defaultHex: '#f6f6f6' },
@@ -126,6 +126,11 @@ export function getPageThemeHex(pageType: string, customColors?: Record<string, 
   // Se for a página Tutoriais e estiver com o cinza antigo (#D2D2D2) ou amarelo antigo, substitui pelo verde neon (#1EFF00)
   if ((pageType === 'tutoriais' || pageType === 'tutorial') && (finalHex.toUpperCase() === '#D2D2D2' || finalHex.toUpperCase() === '#E5AD06' || finalHex.toUpperCase() === '#EBBF01')) {
     finalHex = '#1EFF00';
+  }
+
+  // Se for a página YouTube e estiver com o amarelo antigo (#FFDD00 / #E5AD06 / #EBBF01), substitui pelo vermelho oficial #F91010
+  if (pageType === 'youtube' && (finalHex.toUpperCase() === '#FFDD00' || finalHex.toUpperCase() === '#E5AD06' || finalHex.toUpperCase() === '#EBBF01')) {
+    finalHex = '#F91010';
   }
 
   return finalHex;

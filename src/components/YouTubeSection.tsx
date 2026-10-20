@@ -81,12 +81,15 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ onPlayVideo, isS
 
   return (
     <section id="youtube" className={`${isStandalone ? 'pt-0 pb-8 sm:pb-10' : 'py-10 sm:py-14'} bg-[#070709] border-t border-white/[0.06] relative`}>
+      {/* Red ambient laser glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[#F91010]/5 blur-[160px] pointer-events-none rounded-full" />
+
       <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10 space-y-6">
         
         {/* Sync Feedback Toast */}
         {syncFeedback && (
-          <div className="p-3.5 rounded-2xl bg-[#16161E] border border-[#ebbf01]/30 text-white text-xs flex items-center gap-2.5 animate-in fade-in duration-300">
-            <Sparkles className="w-4 h-4 text-[#ebbf01] shrink-0" />
+          <div className="p-3.5 rounded-2xl bg-[#16161E] border border-[#F91010]/30 text-white text-xs flex items-center gap-2.5 animate-in fade-in duration-300">
+            <Sparkles className="w-4 h-4 text-[#F91010] shrink-0" />
             <span className="font-medium">{syncFeedback}</span>
           </div>
         )}
@@ -108,21 +111,21 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ onPlayVideo, isS
             <button
               onClick={handleManualSync}
               disabled={isSyncingYouTube}
-              className="h-8.5 px-3.5 bg-[#ebbf01] hover:bg-[#f5cc14] text-black text-xs font-extrabold rounded-xl transition-all shadow-md shadow-[#ebbf01]/20 inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+              className="h-8.5 px-3.5 bg-[#F91010] hover:bg-[#d80c0c] text-white text-xs font-extrabold rounded-xl transition-all shadow-md shadow-[#F91010]/25 inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 active:scale-95"
               title="Sincronizar vídeos mais recentes do YouTube"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingYouTube ? 'animate-spin' : ''}`} />
-              <span className="whitespace-nowrap">{isSyncingYouTube ? 'Sincronizando...' : 'Sincronizar Canal'}</span>
+              <RefreshCw className={`w-3.5 h-3.5 text-white ${isSyncingYouTube ? 'animate-spin' : ''}`} />
+              <span className="whitespace-nowrap text-white font-extrabold">{isSyncingYouTube ? 'Sincronizando...' : 'Sincronizar Canal'}</span>
             </button>
 
             <a
               href={brand.links.youtube || 'https://www.youtube.com/@alx-garage'}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-8.5 px-3.5 bg-[#16161D] border border-red-500/40 hover:border-red-500 text-white font-extrabold text-[11px] tracking-wider uppercase transition-all shadow-md inline-flex items-center justify-center gap-2 rounded-xl cursor-pointer shrink-0"
+              className="h-8.5 px-3.5 bg-[#16161D] border border-[#F91010]/40 hover:border-[#F91010] text-white font-extrabold text-[11px] tracking-wider uppercase transition-all shadow-md inline-flex items-center justify-center gap-2 rounded-xl cursor-pointer shrink-0 active:scale-95"
             >
               <YouTubeLogoIcon className="w-4 h-4 shrink-0" />
-              <span>Inscrever-se</span>
+              <span className="text-white">Inscrever-se</span>
               <ExternalLink className="w-3 h-3 text-neutral-400 shrink-0" />
             </a>
           </div>
@@ -138,7 +141,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ onPlayVideo, isS
                   href={getYouTubeUrl(video)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`${idx >= 4 ? 'hidden md:flex' : 'flex'} group bg-[#111115] border border-white/[0.08] hover:border-[#ebbf01]/40 rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-1 shadow-2xl flex-col justify-between cursor-pointer h-full`}
+                  className={`${idx >= 4 ? 'hidden md:flex' : 'flex'} group bg-[#111115] border border-white/[0.08] hover:border-[#F91010]/50 rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-1 shadow-2xl flex-col justify-between cursor-pointer h-full`}
                 >
                   {/* Card Thumbnail Image - Same aspect-[16/10] and visual treatment as News */}
                   <div className="relative aspect-[16/10] overflow-hidden bg-[#16161D]">
@@ -165,11 +168,11 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ onPlayVideo, isS
                       </p>
                     </div>
 
-                    {/* Footer Button - Styled identical to the App card button */}
+                    {/* Footer Button - Styled with #F91010 and pure white text */}
                     <div className="pt-2">
-                      <div className="w-full inline-flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase tracking-wider group-hover:bg-[#f5cc14] transition-all shadow-md shadow-[#ebbf01]/20">
-                        <span>ASSISTIR</span>
-                        <ArrowRight className="w-4 h-4 text-black stroke-[2.5]" />
+                      <div className="w-full inline-flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#F91010] text-white font-extrabold text-xs uppercase tracking-wider group-hover:bg-[#d80c0c] transition-all shadow-md shadow-[#F91010]/25">
+                        <span className="text-white font-black tracking-wider">ASSISTIR</span>
+                        <ArrowRight className="w-4 h-4 text-white stroke-[2.5]" />
                       </div>
                     </div>
                   </div>
@@ -183,13 +186,13 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ onPlayVideo, isS
                 href={brand.links.youtube || 'https://www.youtube.com/@alx-garage'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex items-center justify-center gap-3.5 px-8 py-4 rounded-2xl bg-[#141419] border border-[#ebbf01]/40 hover:border-[#ebbf01] text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 shadow-xl shadow-[#ebbf01]/10 hover:shadow-[#ebbf01]/20 hover:scale-[1.02] cursor-pointer"
+                className="group inline-flex items-center justify-center gap-3.5 px-8 py-4 rounded-2xl bg-[#141419] border border-[#F91010]/40 hover:border-[#F91010] text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 shadow-xl shadow-[#F91010]/10 hover:shadow-[#F91010]/25 hover:scale-[1.02] cursor-pointer"
               >
-                <YouTubeLogoIcon className="w-7 h-7 shrink-0 group-hover:scale-110 transition-transform drop-shadow-[0_2px_10px_rgba(255,0,0,0.4)]" />
-                <span className="text-white font-extrabold group-hover:text-[#ebbf01] transition-colors">
+                <YouTubeLogoIcon className="w-7 h-7 shrink-0 group-hover:scale-110 transition-transform drop-shadow-[0_2px_10px_rgba(249,16,16,0.4)]" />
+                <span className="text-white font-extrabold group-hover:text-[#F91010] transition-colors">
                   Acessar Canal Oficial no YouTube
                 </span>
-                <ExternalLink className="w-4 h-4 text-[#ebbf01] shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                <ExternalLink className="w-4 h-4 text-[#F91010] shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </a>
             </div>
           </div>
@@ -202,7 +205,7 @@ export const YouTubeSection: React.FC<YouTubeSectionProps> = ({ onPlayVideo, isS
             </p>
             <button
               onClick={handleManualSync}
-              className="px-5 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase hover:bg-[#f5cc14] transition-all"
+              className="px-5 py-2.5 rounded-xl bg-[#F91010] text-white font-extrabold text-xs uppercase hover:bg-[#d80c0c] transition-all shadow-md shadow-[#F91010]/25 cursor-pointer"
             >
               Sincronizar Canal Agora
             </button>
