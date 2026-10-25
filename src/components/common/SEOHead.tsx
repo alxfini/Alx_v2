@@ -12,7 +12,8 @@ export const SEOHead: React.FC = () => {
     otaUpdates, 
     tutorials, 
     unlockServices, 
-    wallpapers 
+    wallpapers,
+    partners
   } = useSiteData();
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export const SEOHead: React.FC = () => {
       activePage,
       brand.brandName || 'Alx⁺',
       brand.defaultShareImageUrl,
-      { apps, news, products, otaUpdates, tutorials, unlockServices, wallpapers }
+      { apps, news, products, otaUpdates, tutorials, unlockServices, wallpapers, partners }
     );
   }, [
     activePage, 
@@ -32,7 +33,8 @@ export const SEOHead: React.FC = () => {
     otaUpdates, 
     tutorials, 
     unlockServices, 
-    wallpapers
+    wallpapers,
+    partners
   ]);
 
   return null;

@@ -40,5 +40,31 @@
       "summary": "Passo a passo para habilitar fontes desconhecidas e instalar APKs como Waze, Spotify e YouTube.",
       "imageUrl": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop"
     }
+  ],
+  "partners": [
+    {
+      "id": "parceiro-ev-garage-custom",
+      "slug": "ev-garage-custom",
+      "name": "EV Garage Custom & Estética Automotiva",
+      "badge": "Oficina Especializada & Estética EV",
+      "tagline": "Especialistas em desbloqueio, instalação de acessórios, iluminação e proteção cerâmica para veículos elétricos",
+      "imageUrl": "/imagens/modelos/seal-awd.jpg",
+      "bannerImageUrl": "/imagens/modelos/seal-awd.jpg",
+      "shortDescription": "Oficina técnica especializada na linha BYD, GWM e elétricos importados. Atendimento com ferramentas profissionais, desbloqueio de multimídia no local, vitrificação de pintura e instalação de iluminação ambiente.",
+      "order": 1,
+      "active": true
+    },
+    {
+      "id": "parceiro-techauto-peliculas",
+      "slug": "techauto-peliculas",
+      "name": "TechAuto Películas & Conforto Térmico",
+      "badge": "Películas Cerâmicas & Acessórios",
+      "tagline": "Películas cerâmicas térmicas de alta rejeição UV/IR e películas foscas anti-impressão digital para telas DiLink",
+      "imageUrl": "/imagens/modelos/yuan-plus.jpg",
+      "bannerImageUrl": "/imagens/modelos/yuan-plus.jpg",
+      "shortDescription": "Referência em proteção solar com películas nanocerâmicas de alto rendimento térmico. Reduz a temperatura interna da cabine, economizando bateria do ar-condicionado e aumentando a autonomia.",
+      "order": 2,
+      "active": true
+    }
   ]
 }

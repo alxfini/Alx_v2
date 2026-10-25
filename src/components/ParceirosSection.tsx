@@ -86,6 +86,22 @@ export const ParceirosSection: React.FC<ParceirosSectionProps> = ({ isStandalone
     e.stopPropagation();
     const slug = partner.slug || partner.id;
     const directUrl = `${window.location.origin}/parceiros/${encodeURIComponent(slug)}`;
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${partner.name} • Parceiro Alx⁺`,
+          text: partner.shortDescription || partner.tagline || `Conheça ${partner.name}!`,
+          url: directUrl,
+        });
+        setCopiedId(partner.id);
+        setTimeout(() => setCopiedId(null), 2500);
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(directUrl);

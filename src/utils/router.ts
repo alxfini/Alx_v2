@@ -514,6 +514,24 @@ export function updateDocumentTitle(
     case 'contato':
       pageDesc = 'Entre em contato com a equipe da plataforma ALX por e-mail, WhatsApp ou formulário.';
       break;
+    case 'parceiros': {
+      if (page.idOrSlug && storeData?.partners) {
+        const idOrSlugLower = decodeURIComponent(page.idOrSlug).toLowerCase();
+        const p = storeData.partners.find(
+          item => item.id === page.idOrSlug || item.slug === page.idOrSlug || item.id.toLowerCase() === idOrSlugLower || (item.slug && item.slug.toLowerCase() === idOrSlugLower)
+        );
+        if (p?.shortDescription) {
+          pageDesc = p.shortDescription;
+        } else if (p?.tagline) {
+          pageDesc = p.tagline;
+        } else {
+          pageDesc = 'Conheça nossos parceiros credenciados em oficinas especializadas, estética automotiva e acessórios.';
+        }
+      } else {
+        pageDesc = 'Conheça nossos parceiros credenciados em oficinas especializadas, estética automotiva e acessórios.';
+      }
+      break;
+    }
     case 'admin':
       pageDesc = 'Painel Administrativo da plataforma Alx⁺.';
       break;
@@ -557,6 +575,20 @@ export function updateDocumentTitle(
   // Dynamic OpenGraph / Social Share Card Image
   let pageImage = customDefaultImage || '/imagens/og-padrao.jpg';
   switch (page.type) {
+    case 'parceiros': {
+      if (page.idOrSlug && storeData?.partners) {
+        const idOrSlugLower = decodeURIComponent(page.idOrSlug).toLowerCase();
+        const p = storeData.partners.find(
+          item => item.id === page.idOrSlug || item.slug === page.idOrSlug || item.id.toLowerCase() === idOrSlugLower || (item.slug && item.slug.toLowerCase() === idOrSlugLower)
+        );
+        if (p?.imageUrl) {
+          pageImage = p.imageUrl;
+        } else if (p?.bannerImageUrl) {
+          pageImage = p.bannerImageUrl;
+        }
+      }
+      break;
+    }
     case 'iptv':
       pageImage = '/imagens/og-iptv.jpg';
       break;

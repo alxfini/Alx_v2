@@ -51,6 +51,7 @@ const MainAppContent: React.FC = () => {
     tutorials,
     unlockServices,
     wallpapers,
+    partners,
     isAdminAuthenticated,
     isPasswordModalOpen,
     setIsPasswordModalOpen,
@@ -141,7 +142,7 @@ const MainAppContent: React.FC = () => {
       activePage, 
       brand.brandName || 'Alx⁺', 
       brand.defaultShareImageUrl,
-      { apps, news, products, otaUpdates, tutorials, unlockServices, wallpapers }
+      { apps, news, products, otaUpdates, tutorials, unlockServices, wallpapers, partners }
     );
   }, [
     activePage, 
@@ -153,7 +154,8 @@ const MainAppContent: React.FC = () => {
     otaUpdates, 
     tutorials, 
     unlockServices, 
-    wallpapers
+    wallpapers,
+    partners
   ]);
 
   // Scroll to top on page transition

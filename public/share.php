@@ -257,6 +257,18 @@ if ($type === 'apps' || $type === 'app' || $type === 'aplicativos') {
         if (!empty($matchedVid['description'])) $description = $matchedVid['description'];
         $imageUrl = extract_item_image($matchedVid, $defaultShareImage);
     }
+} elseif ($type === 'parceiros' || $type === 'parceiro') {
+    $matchedPartner = find_item_in_array($data['partners'] ?? [], $slug);
+    if ($matchedPartner) {
+        if (!empty($matchedPartner['name'])) $title = $matchedPartner['name'] . ' • Parceiro ' . $siteName;
+        if (!empty($matchedPartner['shortDescription'])) $description = $matchedPartner['shortDescription'];
+        elseif (!empty($matchedPartner['tagline'])) $description = $matchedPartner['tagline'];
+        $imageUrl = extract_item_image($matchedPartner, $defaultShareImage);
+    } else {
+        $title = 'Rede de Parceiros Credenciados | ' . $siteName;
+        $description = 'Conheça nossos parceiros credenciados em oficinas especializadas, estética automotiva e acessórios.';
+        $imageUrl = '/imagens/og-parceiros.jpg';
+    }
 } elseif ($type === 'iptv') {
     $title = 'IPTV Automotivo • Streaming & Guias | ' . $siteName;
     $description = 'Aplicativos IPTV testados e otimizados para centrais multimídia automotivas.';
