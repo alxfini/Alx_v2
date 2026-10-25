@@ -589,6 +589,143 @@ app.post(['/api/github-delete.php', '/api/github-delete'], async (req, res) => {
   }
 });
 
+// 1.4 Endpoint de Sincronização do Canal YouTube (direto e sem bloqueio de CORS)
+app.all(['/api/youtube-sync', '/api/youtube-sync.php'], async (req, res) => {
+  try {
+    const channelInput = (req.query.channelInput || req.body?.channelInput || '').toString().trim() || 'UCa7fjaKfkkwk1OdzinQNStA';
+    const apiKey = (req.query.apiKey || req.body?.apiKey || '').toString().trim();
+
+    let channelId = '';
+
+    // 1. Formato UC...
+    if (/^UC[a-zA-Z0-9_-]{22}$/.test(channelInput)) {
+      channelId = channelInput;
+    } else {
+      const match = channelInput.match(/(?:channel\/|channel_id=)(UC[a-zA-Z0-9_-]{22})/);
+      if (match) channelId = match[1];
+    }
+
+    const lowerInput = channelInput.toLowerCase();
+    if (!channelId && (lowerInput.includes('alx-garage') || lowerInput.includes('alx_garage'))) {
+      channelId = 'UCa7fjaKfkkwk1OdzinQNStA';
+    }
+
+    // 2. Extração via handle ou URL
+    if (!channelId) {
+      const cleanHandle = channelInput.replace(/^.*youtube\.com\/@?/, '').replace(/^@/, '').split('/')[0].split('?')[0].trim();
+      if (cleanHandle) {
+        try {
+          const ytHtmlRes = await fetch(`https://www.youtube.com/@${cleanHandle}`, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept-Language': 'pt-BR,pt;q=0.9',
+            },
+          });
+          if (ytHtmlRes.ok) {
+            const html = await ytHtmlRes.text();
+            const match = html.match(/(?:channel_id=|\/channel\/|"channelId":")(UC[a-zA-Z0-9_-]{22})/);
+            if (match && match[1]) {
+              channelId = match[1];
+            }
+          }
+        } catch (e) {
+          console.warn('Falha ao resolver handle no YouTube:', e);
+        }
+      }
+    }
+
+    if (!channelId) {
+      channelId = 'UCa7fjaKfkkwk1OdzinQNStA';
+    }
+
+    // 3. Busca direto pelo feed oficial XML do YouTube
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    const rssRes = await fetch(rssUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!rssRes.ok) {
+      return res.status(rssRes.status).json({ success: false, error: `YouTube retornou status HTTP ${rssRes.status}` });
+    }
+
+    const xmlText = await rssRes.text();
+    const channelTitleMatch = xmlText.match(/<author>\s*<name>(.*?)<\/name>/s) || xmlText.match(/<title>(.*?)<\/title>/);
+    const channelTitle = channelTitleMatch ? channelTitleMatch[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim() : 'ALX Garage';
+
+    const entries = xmlText.split('<entry>');
+    const videos: any[] = [];
+
+    const autoCategorize = (title: string): string => {
+      const lower = (title || '').toLowerCase();
+      if (lower.includes('ota') || lower.includes('firmware') || lower.includes('atualiza')) return 'Atualizações & OTA';
+      if (lower.includes('tutorial') || lower.includes('passo a passo') || lower.includes('desbloque')) return 'Tutoriais';
+      if (lower.includes('review') || lower.includes('teste') || lower.includes('análise')) return 'Análise & Teste';
+      return 'Multimídia & Som';
+    };
+
+    const formatDateStr = (dateStr?: string): string => {
+      if (!dateStr) return 'Recente';
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return 'Recente';
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+      } catch {
+        return 'Recente';
+      }
+    };
+
+    for (let i = 1; i < entries.length; i++) {
+      const entry = entries[i];
+      const vidId = entry.match(/<yt:videoId>(.*?)<\/yt:videoId>/)?.[1] || '';
+      if (!vidId) continue;
+
+      let title = entry.match(/<title>(.*?)<\/title>/)?.[1] || '';
+      title = title.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .trim();
+
+      let description = entry.match(/<media:description>(.*?)<\/media:description>/s)?.[1] || '';
+      description = description.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1')
+        .replace(/<[^>]*>?/gm, '')
+        .trim()
+        .slice(0, 280);
+
+      const published = entry.match(/<published>(.*?)<\/published>/)?.[1] || '';
+
+      videos.push({
+        id: `yt-rss-${vidId}`,
+        youtubeId: vidId,
+        title: title || `Vídeo ${vidId}`,
+        description: description || 'Assista ao vídeo no canal oficial ALX Garage.',
+        date: formatDateStr(published),
+        duration: 'YouTube',
+        views: 'Canal Oficial',
+        isFeatured: videos.length === 0,
+        videoUrl: `https://www.youtube.com/watch?v=${vidId}`,
+        thumbnailUrl: `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`,
+        category: autoCategorize(title),
+      });
+    }
+
+    return res.json({
+      success: true,
+      count: videos.length,
+      videos,
+      channelId,
+      channelTitle,
+    });
+  } catch (err: any) {
+    console.error('Erro ao sincronizar YouTube no servidor:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao sincronizar YouTube' });
+  }
+});
+
 // 1.5 Endpoint /api/mysql-config.php (compatível com Hostinger e Local)
 app.get('/api/mysql-config.php', (_req, res) => {
   try {
