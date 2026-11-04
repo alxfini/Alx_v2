@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ShieldCheck, CheckCircle2, AlertCircle, X, ExternalLink, Copy, Check, Sparkles, HardDrive, RefreshCw, Lock, Crown, Youtube } from 'lucide-react';
+import { Download, ShieldCheck, CheckCircle2, X, Copy, Check, Lock, Crown, Youtube } from 'lucide-react';
 import { DownloadItem } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
 import { isItemVip } from '../../utils/vip';
+import { getMediaDownloadUrl } from '../../utils/mediaUrl';
 
 interface DownloadGatewayModalProps {
   item: DownloadItem | null;
@@ -12,31 +13,39 @@ interface DownloadGatewayModalProps {
 
 export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item, onClose, onOpenVipModal }) => {
   const { registerDownload, isVipLoggedIn, isAdminAuthenticated, setActivePage } = useSiteData();
-  const [countdown, setCountdown] = useState<number>(4);
+  
+  const isUserAuthenticated = isVipLoggedIn || isAdminAuthenticated;
+  const isVipRestricted = isItemVip(item);
+  const isLocked = isVipRestricted && !isUserAuthenticated;
+
+  const [subStep, setSubStep] = useState<'step1' | 'step2' | 'step3'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if (isUserAuthenticated || localStorage.getItem('alx_youtube_unlocked') === 'true') {
+          return 'step3';
+        }
+      } catch (e) {
+        return 'step1';
+      }
+    }
+    return 'step1';
+  });
+
+  const [countdown, setCountdown] = useState<number>(10);
+  const [progressPercent, setProgressPercent] = useState<number>(0);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [downloadStarted, setDownloadStarted] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string>('');
-  const [isSubscribedOrUnlocked, setIsSubscribedOrUnlocked] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return localStorage.getItem('alx_youtube_unlocked') === 'true';
-      } catch (e) {
-        return false;
-      }
-    }
-    return false;
-  });
+
+  const timerStartTimeRef = useRef<number | null>(null);
   const hasRegisteredRef = useRef<boolean>(false);
 
-  const isUserAuthenticated = isVipLoggedIn || isAdminAuthenticated;
-  const isVipRestricted = isItemVip(item);
-  const isLocked = isVipRestricted && !isUserAuthenticated;
-  const isUnlockedForDownload = isSubscribedOrUnlocked || isUserAuthenticated;
-
+  // Inicializa a sessão segura e o token temporário
   useEffect(() => {
     if (!item || isLocked) {
-      setCountdown(4);
+      setCountdown(10);
+      setProgressPercent(0);
       setIsDownloading(false);
       setDownloadStarted(false);
       setCopiedLink(false);
@@ -45,37 +54,71 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
       return;
     }
 
-    // Generate unique temporary session token for this download
     const randToken = `ALX-SEC-${Math.floor(1000 + Math.random() * 9000)}-${Date.now().toString(36).toUpperCase().slice(-4)}`;
     setSessionToken(randToken);
-    setCountdown(4);
-    setIsDownloading(false);
-    setDownloadStarted(false);
     hasRegisteredRef.current = false;
+    setDownloadStarted(false);
 
-    // Se ainda não estiver inscrito no canal e não for VIP/Admin logado, aguarda a ação do visitante
-    if (!isUnlockedForDownload) {
-      return;
+    // Se usuário já for VIP/Admin ou já estiver desbloqueado
+    if (isUserAuthenticated || (typeof window !== 'undefined' && localStorage.getItem('alx_youtube_unlocked') === 'true')) {
+      setSubStep('step3');
+    } else {
+      setSubStep('step1');
+      setCountdown(10);
+      setProgressPercent(0);
+    }
+  }, [item, isLocked, isUserAuthenticated]);
+
+  // Temporizador de 10 segundos da verificação do YouTube (Passo 2)
+  // Ao término, NÃO inicia download automaticamente: apenas libera o botão para o usuário clicar
+  useEffect(() => {
+    if (subStep !== 'step2') return;
+
+    if (!timerStartTimeRef.current) {
+      timerStartTimeRef.current = Date.now();
     }
 
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          triggerRealDownload();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const checkTimer = () => {
+      const elapsedMs = Date.now() - (timerStartTimeRef.current || Date.now());
+      const elapsedSec = elapsedMs / 1000;
+      const remainingSec = Math.max(0, 10 - Math.floor(elapsedSec));
+      const pct = Math.min(100, (elapsedSec / 10) * 100);
 
-    return () => clearInterval(timer);
-  }, [item, isLocked, isUnlockedForDownload]);
+      setCountdown(remainingSec);
+      setProgressPercent(pct);
+
+      if (elapsedSec >= 10) {
+        setSubStep('step3');
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('alx_youtube_unlocked', 'true');
+          } catch (e) {
+            console.warn('LocalStorage error:', e);
+          }
+        }
+        // NÃO dispara download automaticamente! Usuário deve clicar no botão.
+      }
+    };
+
+    const interval = setInterval(checkTimer, 100);
+
+    const handleWindowFocus = () => {
+      checkTimer();
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [subStep]);
 
   if (!item) return null;
 
+  // Dispara o download seguro quando o usuário clica no botão
   const triggerRealDownload = async () => {
-    if (isLocked) return;
+    if (isLocked || isDownloading) return;
     setIsDownloading(true);
     setDownloadStarted(true);
 
@@ -85,57 +128,58 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
     }
 
     const rawUrl = item.rawDownloadUrl || '';
-    if (rawUrl) {
-      const isVideo = Boolean(
-        rawUrl.match(/\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i) || 
-        item.fileSize?.toLowerCase().includes('vídeo') ||
-        item.fileSize?.toLowerCase().includes('video')
-      );
+    if (!rawUrl) {
+      setIsDownloading(false);
+      return;
+    }
 
-      const targetFileName = `${(item.title || 'download').toLowerCase().replace(/[^a-z0-9]/g, '-')}.${isVideo ? 'mp4' : 'jpg'}`;
+    const isVideo = Boolean(
+      rawUrl.match(/\.(mp4|webm|mov|mkv|avi)(\?.*)?$/i) || 
+      item.fileSize?.toLowerCase().includes('vídeo') ||
+      item.fileSize?.toLowerCase().includes('video')
+    );
 
-      // Se for um arquivo no mesmo servidor/domínio ou local, tenta baixar via Blob para forçar a caixa de diálogo de salvamento do navegador
-      let handledViaBlob = false;
-      if (typeof window !== 'undefined' && (!rawUrl.includes('github.com') || rawUrl.startsWith('/'))) {
-        try {
-          const res = await fetch(rawUrl, { method: 'GET' });
-          if (res.ok) {
-            const blob = await res.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = targetFileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-            handledViaBlob = true;
-          }
-        } catch (fetchErr) {
-          console.warn('Download direto por Blob falhou, utilizando redirecionamento seguro de link:', fetchErr);
+    const isApk = item.category === 'app' || rawUrl.toLowerCase().endsWith('.apk');
+    const defaultExt = isApk ? 'apk' : item.category === 'wallpaper' ? (isVideo ? 'mp4' : 'jpg') : 'bin';
+    
+    let cleanBaseName = (item.title || 'download').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    if (!cleanBaseName.endsWith(`.${defaultExt}`)) {
+      cleanBaseName = `${cleanBaseName}.${defaultExt}`;
+    }
+
+    // Passa a URL pelo proxy seguro para evitar 404 em repositórios privados do GitHub
+    const finalDownloadUrl = getMediaDownloadUrl(rawUrl, cleanBaseName);
+
+    let handledViaBlob = false;
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(finalDownloadUrl, { method: 'GET' });
+        if (res.ok) {
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = cleanBaseName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 20000);
+          handledViaBlob = true;
         }
+      } catch (fetchErr) {
+        console.warn('Download direto via Blob falhou, utilizando clique de âncora:', fetchErr);
       }
+    }
 
-      if (!handledViaBlob) {
-        // Fallback: Link direto do navegador
-        const link = document.createElement('a');
-        link.href = rawUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-
-        if (item.category === 'app') {
-          if (!rawUrl.includes('github.com')) {
-            link.download = `${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}.apk`;
-          }
-        } else if (item.category === 'wallpaper') {
-          if (!rawUrl.includes('github.com')) {
-            link.download = targetFileName;
-          }
-        }
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
+    if (!handledViaBlob) {
+      const link = document.createElement('a');
+      link.href = finalDownloadUrl;
+      link.download = cleanBaseName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
     setTimeout(() => {
@@ -143,15 +187,16 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
     }, 2000);
   };
 
-  const handleUnlockSubscription = () => {
-    setIsSubscribedOrUnlocked(true);
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('alx_youtube_unlocked', 'true');
-      } catch (e) {
-        console.warn('LocalStorage error:', e);
-      }
+  const handleStartSubscriptionStep = () => {
+    try {
+      window.open('https://www.youtube.com/@alx-garage?sub_confirmation=1', '_blank');
+    } catch (e) {
+      console.warn('Erro ao abrir nova aba do YouTube:', e);
     }
+    timerStartTimeRef.current = Date.now();
+    setCountdown(10);
+    setProgressPercent(0);
+    setSubStep('step2');
   };
 
   const handleCopyShareLink = () => {
@@ -167,23 +212,35 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
+  const versionText = item.version 
+    ? (item.version.toLowerCase().startsWith('v') ? item.version : `v ${item.version}`)
+    : 'v 1.0.0';
+
+  const typeText = item.category === 'app' 
+    ? 'APK ANDROID' 
+    : item.category === 'ota' 
+    ? 'FIRMWARE OTA' 
+    : 'ARQUIVO';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg bg-[#0F0F14] border border-white/[0.12] rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 text-white overflow-hidden">
         
         {/* Ambient Top Glow */}
-        <div className="absolute top-0 right-1/2 translate-x-1/2 w-64 h-32 bg-[#ebbf01]/10 blur-[80px] pointer-events-none rounded-full" />
+        <div className="absolute top-0 right-1/2 translate-x-1/2 w-64 h-32 bg-emerald-500/10 blur-[80px] pointer-events-none rounded-full" />
 
-        {/* Header */}
+        {/* Header - Conforme Imagem Oficial */}
         <div className="flex items-start justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#ebbf01]/10 border border-[#ebbf01]/30 flex items-center justify-center text-[#ebbf01] shrink-0">
-              <Download className="w-6 h-6 animate-bounce" />
+            {/* Ícone de Download Verde com Borda */}
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/10">
+              <Download className="w-6 h-6 stroke-[2]" />
             </div>
+
             <div>
-              <div className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#ebbf01] bg-[#ebbf01]/10 px-2.5 py-0.5 rounded-md border border-[#ebbf01]/20">
-                <ShieldCheck className="w-3 h-3" />
-                <span>Download Seguro ALX</span>
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/25">
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                <span>DOWNLOAD SEGURO ALX</span>
               </div>
               <h3 className="text-lg sm:text-xl font-black text-white font-heading mt-1">
                 {item.title}
@@ -194,24 +251,25 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
           <button
             onClick={onClose}
             className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            aria-label="Fechar"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* File Details Matrix */}
+        {/* Matriz de Detalhes do Arquivo (VERSÃO | TIPO | ACESSO) */}
         {item.category !== 'wallpaper' && (
-          <div className="grid grid-cols-3 gap-2 text-center text-xs bg-[#16161D] p-3 rounded-2xl border border-white/[0.06] relative z-10 font-mono">
+          <div className="grid grid-cols-3 gap-2 text-center text-xs bg-[#16161D] p-3.5 rounded-2xl border border-white/[0.06] relative z-10 font-mono">
             <div className="space-y-0.5">
-              <span className="text-[10px] text-neutral-400 font-sans block uppercase">Versão</span>
-              <span className="text-white font-bold">{item.version || 'Última'}</span>
+              <span className="text-[10px] text-neutral-400 font-sans block uppercase font-medium">VERSÃO</span>
+              <span className="text-white font-bold">{versionText}</span>
             </div>
             <div className="space-y-0.5 border-x border-white/[0.08]">
-              <span className="text-[10px] text-neutral-400 font-sans block uppercase">Tipo</span>
-              <span className="text-[#ebbf01] font-bold uppercase">{item.category === 'app' ? 'APK Android' : 'Firmware OTA'}</span>
+              <span className="text-[10px] text-neutral-400 font-sans block uppercase font-medium">TIPO</span>
+              <span className="text-emerald-400 font-bold uppercase">{typeText}</span>
             </div>
             <div className="space-y-0.5">
-              <span className="text-[10px] text-neutral-400 font-sans block uppercase">Acesso</span>
+              <span className="text-[10px] text-neutral-400 font-sans block uppercase font-medium">ACESSO</span>
               <span className={isLocked ? "text-amber-400 font-bold flex items-center justify-center gap-1" : "text-emerald-400 font-bold flex items-center justify-center gap-1"}>
                 {isLocked ? <Lock className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
                 <span>{isLocked ? 'Restrito VIP' : 'Verificado'}</span>
@@ -220,8 +278,25 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
           </div>
         )}
 
-        {/* Temporary Token / Lock Alert */}
+        {/* Linha da Sessão de Download Segura com Token Temporário */}
+        {sessionToken && (
+          <div className="bg-[#121218] border border-white/[0.08] p-3 rounded-xl flex items-center justify-between text-xs font-mono text-neutral-400 relative z-10">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span className="text-[11px] text-neutral-400 font-mono uppercase">SESSÃO DE DOWNLOAD SEGURA:</span>
+            </div>
+            <strong className="text-emerald-400 font-bold text-xs sm:text-sm font-mono tracking-wider">
+              {sessionToken}
+            </strong>
+            <span className="text-emerald-400 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider">
+              TOKEN TEMPORÁRIO ATIVO
+            </span>
+          </div>
+        )}
+
+        {/* Conteúdo Central */}
         {isLocked ? (
+          /* Bloqueio Exclusivo VIP */
           <div className="bg-gradient-to-b from-[#1C1620] to-[#110D15] border border-amber-500/40 rounded-2xl p-5 text-center space-y-4 relative z-10 shadow-xl">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto shadow-md">
               <Lock className="w-6 h-6 stroke-[2.5]" />
@@ -263,146 +338,115 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
               </button>
             </div>
           </div>
-        ) : !isUnlockedForDownload ? (
-          /* YouTube Subscribe to Unlock Barrier */
+        ) : subStep === 'step1' ? (
+          /* PASSO 1: Inscrição no YouTube */
           <div className="bg-gradient-to-b from-[#1C1113] via-[#140D0F] to-[#0A0A0D] border border-[#F91010]/40 rounded-2xl p-5 text-center space-y-4 relative z-10 shadow-2xl">
-            {/* YouTube Icon Badge */}
             <div className="w-13 h-13 rounded-2xl bg-[#F91010]/20 text-[#F91010] border border-[#F91010]/40 flex items-center justify-center mx-auto shadow-lg shadow-red-600/20">
               <Youtube className="w-7 h-7 fill-current" />
             </div>
 
             <div className="space-y-1.5 max-w-sm mx-auto">
               <div className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold text-red-400 uppercase tracking-wider bg-black/60 px-3 py-0.5 rounded-full border border-red-500/30">
-                <Sparkles className="w-3 h-3 text-[#F91010]" />
-                <span>Desbloqueio de Download Gratuito</span>
+                <span>Passo 1 • Inscrição no Canal</span>
               </div>
               <h4 className="text-base sm:text-lg font-black text-white font-heading">
-                Inscreva-se no Canal para Baixar
+                Inscreva-se no Canal para Liberar
               </h4>
               <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                Para mantermos nossos aplicativos, firmwares e conteúdos 100% gratuitos e atualizados, inscreva-se no canal oficial da <strong>ALX Garage</strong> no YouTube para liberar seu download.
+                Para liberar o download, inscreva-se no canal oficial da <strong>ALX Garage</strong> no YouTube. É rápido, gratuito e apoia novas atualizações!
               </p>
             </div>
 
             <div className="pt-2 flex flex-col gap-2.5 max-w-sm mx-auto">
-              <a
-                href="https://www.youtube.com/@alx-garage?sub_confirmation=1"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleUnlockSubscription}
+              <button
+                type="button"
+                onClick={handleStartSubscriptionStep}
                 className="w-full py-3.5 px-4 rounded-xl bg-[#F91010] hover:bg-[#d80c0c] text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-red-600/30 cursor-pointer active:scale-95"
               >
                 <Youtube className="w-4 h-4 fill-white shrink-0" />
-                <span>1. INSCREVER-SE NO CANAL @ALX-GARAGE</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-80 shrink-0" />
-              </a>
+                <span>INSCREVER-SE NO CANAL @ALX-GARAGE</span>
+              </button>
+              <p className="text-[11px] text-neutral-400">
+                O canal abrirá numa nova aba. Após a inscrição, a verificação de 10s começará sozinha.
+              </p>
+            </div>
+          </div>
+        ) : subStep === 'step2' ? (
+          /* PASSO 2: Verificando Inscrição (10 segundos) */
+          <div className="bg-[#0b0c10] border border-red-500/30 rounded-2xl p-6 text-center space-y-4 relative z-10 shadow-lg">
+            <div className="relative w-16 h-16 sm:w-18 sm:h-18 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-red-600/20 blur-md animate-pulse" />
+              <div
+                className="absolute inset-0 rounded-full border-[3px] border-red-500/20 border-t-red-500 border-r-red-500 animate-spin"
+                style={{ animationDuration: '1.2s' }}
+              />
+              <div className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg shadow-red-600/20">
+                <div className="w-7 h-5 bg-[#FF0000] rounded-md flex items-center justify-center shadow-sm">
+                  <div className="w-0 h-0 border-y-[3.5px] border-y-transparent border-l-[6px] border-l-white ml-0.5" />
+                </div>
+              </div>
+            </div>
 
+            <div className="space-y-1">
+              <h4 className="text-base sm:text-lg font-black text-white font-heading">
+                Confirmando inscrição...
+              </h4>
+              <p className="text-xs text-neutral-400">
+                Aguarde a liberação do seu link de download seguro.
+              </p>
+            </div>
+
+            <div className="w-full bg-white/[0.08] h-2.5 rounded-full overflow-hidden border border-white/[0.08] relative">
+              <div
+                className="bg-red-600 h-full transition-all duration-150 ease-linear rounded-full shadow-[0_0_12px_rgba(255,0,0,0.7)]"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            <p className="text-xs font-semibold text-neutral-300">
+              Quase lá... ({countdown}s)
+            </p>
+          </div>
+        ) : (
+          /* PASSO 3: Link Liberado com Sucesso - CONFORME A IMAGEM OFICIAL ENVIADA */
+          <div className="bg-[#0b0c10] border border-emerald-500/25 rounded-2xl p-6 text-center space-y-4 relative z-10 shadow-xl shadow-emerald-500/5">
+            {/* Badge Verde Central */}
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/25">
+              <Check className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
+              <span>Link liberado com sucesso!</span>
+            </div>
+
+            {/* Texto explicativo */}
+            <p className="text-xs sm:text-sm text-neutral-300 font-medium">
+              {downloadStarted
+                ? 'O download seguro foi disparado para o seu navegador.'
+                : 'Clique no botão abaixo para iniciar o download seguro do arquivo.'}
+            </p>
+
+            {/* Botão Verde Neon Gigante (Não inicia automaticamente, apenas ao clicar) */}
+            <div className="pt-2">
               <button
                 type="button"
-                onClick={handleUnlockSubscription}
-                className="text-[11px] font-mono text-neutral-400 hover:text-white transition-colors cursor-pointer py-1 underline decoration-neutral-700 hover:decoration-white underline-offset-4"
+                onClick={triggerRealDownload}
+                disabled={isDownloading}
+                className="w-full py-4 px-6 rounded-2xl bg-[#00E575] hover:bg-[#00f780] active:scale-[0.99] text-black font-black text-sm uppercase tracking-wider transition-all duration-150 flex items-center justify-center gap-2.5 shadow-xl shadow-[#00E575]/25 cursor-pointer"
               >
-                Já sou inscrito no canal ALX Garage (Liberar Download)
+                <Download className="w-5 h-5 stroke-[2.5]" />
+                <span>{downloadStarted ? 'BAIXAR NOVAMENTE' : 'BAIXAR AGORA'}</span>
               </button>
             </div>
           </div>
-        ) : (
-          <>
-            {/* Temporary Token Status Badge */}
-            {sessionToken && (
-              <div className="bg-[#121218] border border-white/[0.08] p-2.5 rounded-xl flex items-center justify-between text-[10px] font-mono text-neutral-400 relative z-10">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>SESSÃO DE DOWNLOAD SEGURA:</span>
-                  <strong className="text-[#ebbf01] font-bold">{sessionToken}</strong>
-                </div>
-                <span className="text-emerald-400 font-bold uppercase">Token Temporário Ativo</span>
-              </div>
-            )}
-
-            {/* YouTube Subscription Verified Status */}
-            <div className="bg-[#121218] border border-emerald-500/30 p-2.5 rounded-xl flex items-center justify-between text-[11px] font-mono relative z-10">
-              <div className="flex items-center gap-2 text-emerald-400">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="font-bold text-[10px] sm:text-[11px]">Canal YouTube Verificado • Download Liberado!</span>
-              </div>
-              <a
-                href="https://www.youtube.com/@alx-garage"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1 transition-colors shrink-0"
-              >
-                <Youtube className="w-3 h-3 text-[#F91010] fill-current" />
-                <span>@alx-garage</span>
-              </a>
-            </div>
-
-            {/* Countdown / Download Action */}
-            <div className="bg-gradient-to-b from-[#14141A] to-[#0A0A0D] border border-[#ebbf01]/30 rounded-2xl p-4 text-center space-y-3 relative z-10">
-              {countdown > 0 && !downloadStarted ? (
-                <div className="space-y-3 py-1">
-                  <span className="text-xs text-neutral-300 font-medium block">
-                    Preparando link seguro do arquivo... Liberação em:
-                  </span>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-4xl sm:text-5xl font-black text-[#ebbf01] font-mono tracking-tight animate-pulse">
-                      {countdown}
-                    </span>
-                    <span className="text-lg font-bold text-neutral-400 font-mono">segundos</span>
-                  </div>
-
-                  {/* Barra de progresso de 4 segundos */}
-                  <div className="w-full bg-white/[0.08] h-2 rounded-full overflow-hidden border border-white/[0.08]">
-                    <div
-                      className="bg-[#ebbf01] h-full transition-all duration-1000 ease-linear rounded-full shadow-[0_0_12px_rgba(235,191,1,0.5)]"
-                      style={{ width: `${((4 - countdown) / 4) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2 py-1">
-                  <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Link liberado com sucesso!</span>
-                  </div>
-                  <p className="text-xs text-neutral-300">
-                    O download seguro foi disparado para o seu navegador.
-                  </p>
-                </div>
-              )}
-
-              <div className="pt-2 flex flex-col sm:flex-row gap-2">
-                <button
-                  onClick={triggerRealDownload}
-                  disabled={countdown > 0 && !downloadStarted}
-                  className={`flex-1 py-3 px-4 rounded-xl font-extrabold text-xs uppercase transition-all flex items-center justify-center gap-2 shadow-lg ${
-                    countdown > 0 && !downloadStarted
-                      ? 'bg-neutral-800 text-neutral-400 border border-white/10 cursor-not-allowed opacity-80'
-                      : 'bg-[#ebbf01] hover:bg-[#f5cc14] text-black shadow-[#ebbf01]/20 cursor-pointer active:scale-98'
-                  }`}
-                >
-                  <Download className="w-4 h-4" />
-                  <span>
-                    {downloadStarted
-                      ? 'Baixar Novamente'
-                      : countdown > 0
-                      ? `Aguarde a liberação (${countdown}s)`
-                      : 'Iniciar Download Agora'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </>
         )}
 
-        {/* Share Link Protection Reminder */}
+        {/* Rodapé: Compartilhar o portal oficial com botão Copiar Link (Conforme Imagem) */}
         <div className="flex items-center justify-between gap-3 pt-2 text-xs text-neutral-400 border-t border-white/[0.06] relative z-10">
-          <span className="text-[11px]">Compartilhe o portal oficial para novas versões:</span>
+          <span className="text-[11px] sm:text-xs">Compartilhe o portal oficial para novas versões:</span>
           <button
+            type="button"
             onClick={handleCopyShareLink}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181822] hover:bg-[#20202E] text-white border border-white/[0.08] text-[11px] font-bold transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#161620] hover:bg-[#20202e] text-white border border-white/[0.08] text-xs font-bold transition-all cursor-pointer"
           >
-            {copiedLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-[#ebbf01]" />}
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-emerald-400" />}
             <span>{copiedLink ? 'Copiado!' : 'Copiar Link'}</span>
           </button>
         </div>

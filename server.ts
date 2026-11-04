@@ -113,28 +113,59 @@ function getStoredGitHubConfig(): { token?: string; owner?: string; repo?: strin
   if (cachedGhCredentials?.token) return cachedGhCredentials;
 
   try {
-    const siteDataPath = path.join(process.cwd(), 'public', 'api', 'site-data.json');
-    if (fs.existsSync(siteDataPath)) {
-      const raw = fs.readFileSync(siteDataPath, 'utf8');
-      const json = JSON.parse(raw);
-      if (json?.brand?.githubStorage?.token) {
-        cachedGhCredentials = {
-          token: json.brand.githubStorage.token,
-          owner: json.brand.githubStorage.owner,
-          repo: json.brand.githubStorage.repo,
-        };
-        return cachedGhCredentials;
+    const candidatePaths = [
+      path.join(process.cwd(), 'public', 'api', 'site-data.json'),
+      path.join(process.cwd(), 'public', 'site-data.json'),
+      path.join(process.cwd(), 'public', 'api', 'site-data-backup.json'),
+      path.join(process.cwd(), 'public', 'default-site-data.json'),
+      path.join(process.cwd(), 'site-data.json'),
+    ];
+    for (const siteDataPath of candidatePaths) {
+      if (fs.existsSync(siteDataPath)) {
+        const raw = fs.readFileSync(siteDataPath, 'utf8');
+        const json = JSON.parse(raw);
+        const gh = json?.brand?.githubStorage || json?.githubStorage;
+        if (gh?.token) {
+          cachedGhCredentials = {
+            token: String(gh.token).trim(),
+            owner: String(gh.owner || '').trim(),
+            repo: String(gh.repo || '').trim(),
+          };
+          return cachedGhCredentials;
+        }
       }
     }
   } catch (e) {}
 
+  const envToken = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+  if (envToken) {
+    cachedGhCredentials = {
+      token: envToken.trim(),
+      owner: (process.env.GITHUB_OWNER || process.env.VITE_GITHUB_OWNER || '').trim(),
+      repo: (process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || '').trim(),
+    };
+    return cachedGhCredentials;
+  }
+
   return null;
 }
 
-// Helper para obter MIME type correto para inline rendering
+// Helper para obter MIME type correto para inline rendering e downloads
 function getMediaMimeType(filePathOrUrl: string, diskFilePath?: string): string {
   const ext = path.extname(filePathOrUrl.split('?')[0]).toLowerCase();
   switch (ext) {
+    case '.apk':
+      return 'application/vnd.android.package-archive';
+    case '.zip':
+      return 'application/zip';
+    case '.rar':
+      return 'application/x-rar-compressed';
+    case '.7z':
+      return 'application/x-7z-compressed';
+    case '.exe':
+      return 'application/x-msdownload';
+    case '.bin':
+      return 'application/octet-stream';
     case '.jpg':
     case '.jpeg':
       return 'image/jpeg';
@@ -357,13 +388,17 @@ app.get(['/api/media-proxy', '/api/media-proxy.php'], async (req, res) => {
     return res.status(400).send('URL de mídia inválida ou não fornecida.');
   }
 
+  const isDownload = req.query.download === '1' || req.query.dl === '1';
+
   // 1. Extrai nome do arquivo
-  let fileName = '';
-  try {
-    const parsed = new URL(targetUrl);
-    fileName = path.basename(parsed.pathname);
-  } catch {
-    fileName = path.basename(targetUrl.split('?')[0]);
+  let fileName = (req.query.filename as string || '').trim();
+  if (!fileName) {
+    try {
+      const parsed = new URL(targetUrl);
+      fileName = path.basename(parsed.pathname);
+    } catch {
+      fileName = path.basename(targetUrl.split('?')[0]);
+    }
   }
 
   const cleanFileName = decodeURIComponent(fileName)
@@ -385,7 +420,7 @@ app.get(['/api/media-proxy', '/api/media-proxy.php'], async (req, res) => {
       if (fs.existsSync(cp)) {
         const finalType = getMediaMimeType(cleanFileName || targetUrl, cp);
         res.setHeader('Content-Type', finalType);
-        res.setHeader('Content-Disposition', `inline; filename="${cleanFileName}"`);
+        res.setHeader('Content-Disposition', `${isDownload ? 'attachment' : 'inline'}; filename="${cleanFileName}"`);
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
         return res.sendFile(cp);
@@ -460,11 +495,24 @@ app.get(['/api/media-proxy', '/api/media-proxy.php'], async (req, res) => {
                 'Accept': 'application/octet-stream',
                 'User-Agent': 'ALX-Media-Proxy/1.0',
               },
-              redirect: 'follow',
+              redirect: 'manual',
             });
 
-            if (assetRes.ok) {
-              const arrayBuffer = await assetRes.arrayBuffer();
+            let finalBinaryRes = assetRes;
+            if (assetRes.status >= 300 && assetRes.status < 400) {
+              const redirectLocation = assetRes.headers.get('location');
+              if (redirectLocation) {
+                // S3 pre-signed URL já contém a assinatura na query string; não deve reenviar o header Authorization do GitHub
+                finalBinaryRes = await fetch(redirectLocation, {
+                  headers: {
+                    'User-Agent': 'ALX-Media-Proxy/1.0',
+                  },
+                });
+              }
+            }
+
+            if (finalBinaryRes.ok) {
+              const arrayBuffer = await finalBinaryRes.arrayBuffer();
               const buffer = Buffer.from(arrayBuffer);
               const finalType = getMediaMimeType(cleanFileName || rawFileName);
               if (cleanFileName) {
@@ -473,7 +521,7 @@ app.get(['/api/media-proxy', '/api/media-proxy.php'], async (req, res) => {
                 } catch (e) {}
               }
               res.setHeader('Content-Type', finalType);
-              res.setHeader('Content-Disposition', `inline; filename="${cleanFileName}"`);
+              res.setHeader('Content-Disposition', `${isDownload ? 'attachment' : 'inline'}; filename="${cleanFileName || rawFileName}"`);
               res.setHeader('Access-Control-Allow-Origin', '*');
               res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
               return res.send(buffer);
@@ -485,10 +533,10 @@ app.get(['/api/media-proxy', '/api/media-proxy.php'], async (req, res) => {
       }
     }
 
-    // Fallback: download cURL direto da URL recebida
+    // Fallback: download direto da URL recebida
     const headers: Record<string, string> = {
       'User-Agent': 'ALX-Media-Proxy/1.0',
-      'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,video/*,*/*;q=0.8',
+      'Accept': '*/*',
     };
 
     if (activeToken) {
@@ -497,14 +545,26 @@ app.get(['/api/media-proxy', '/api/media-proxy.php'], async (req, res) => {
 
     const fetchRes = await fetch(targetUrl, {
       headers,
-      redirect: 'follow',
+      redirect: 'manual',
     });
 
-    if (!fetchRes.ok) {
-      return res.status(fetchRes.status).send(`Erro ao carregar mídia do GitHub: HTTP ${fetchRes.status}`);
+    let binaryRes = fetchRes;
+    if (fetchRes.status >= 300 && fetchRes.status < 400) {
+      const redirectLocation = fetchRes.headers.get('location');
+      if (redirectLocation) {
+        binaryRes = await fetch(redirectLocation, {
+          headers: {
+            'User-Agent': 'ALX-Media-Proxy/1.0',
+          },
+        });
+      }
     }
 
-    const arrayBuffer = await fetchRes.arrayBuffer();
+    if (!binaryRes.ok) {
+      return res.status(binaryRes.status).send(`Erro ao carregar mídia do GitHub: HTTP ${binaryRes.status}`);
+    }
+
+    const arrayBuffer = await binaryRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     // Salva em cache para requisições seguintes
@@ -516,13 +576,13 @@ app.get(['/api/media-proxy', '/api/media-proxy.php'], async (req, res) => {
       }
     }
 
-    const remoteContentType = fetchRes.headers.get('content-type');
-    const finalMime = (remoteContentType && (remoteContentType.startsWith('image/') || remoteContentType.startsWith('video/')))
+    const remoteContentType = binaryRes.headers.get('content-type');
+    const finalMime = (remoteContentType && !remoteContentType.includes('text/plain') && !remoteContentType.includes('application/octet-stream'))
       ? remoteContentType
       : mimeType;
 
     res.setHeader('Content-Type', finalMime);
-    res.setHeader('Content-Disposition', `inline; filename="${cleanFileName}"`);
+    res.setHeader('Content-Disposition', `${isDownload ? 'attachment' : 'inline'}; filename="${cleanFileName}"`);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
     return res.send(buffer);

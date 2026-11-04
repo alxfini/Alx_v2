@@ -357,13 +357,17 @@ export interface AppNotification {
 export interface DownloadItem {
   id: string;
   title: string;
-  category: 'app' | 'ota';
+  category: 'app' | 'ota' | 'wallpaper' | string;
   version?: string;
   size?: string;
+  fileSize?: string;
   rawDownloadUrl: string;
   applicableCars?: string;
   instructions?: string;
   slug?: string;
+  developer?: string;
+  author?: string;
+  downloads?: number;
 }
 
 export interface CustomPageLink {

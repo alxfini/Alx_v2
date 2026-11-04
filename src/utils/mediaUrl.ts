@@ -57,3 +57,30 @@ export function isVideoMediaUrl(url?: string | null): boolean {
   );
 }
 
+/**
+ * Converte URLs de download de repositórios privados ou públicos do GitHub
+ * para passarem pelo proxy autenticado com 'Content-Disposition: attachment'.
+ * Garante que em qualquer navegador/dispositivo o download ocorra sem erro 404 do GitHub.
+ */
+export function getMediaDownloadUrl(url?: string | null, customFileName?: string): string {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+    return trimmed;
+  }
+
+  const isGitHub =
+    trimmed.includes('github.com') ||
+    trimmed.includes('release-assets.githubusercontent.com') ||
+    trimmed.includes('objects.githubusercontent.com');
+
+  if (isGitHub) {
+    const fnParam = customFileName ? `&filename=${encodeURIComponent(customFileName)}` : '';
+    return `/api/media-proxy?url=${encodeURIComponent(trimmed)}&download=1${fnParam}`;
+  }
+
+  return trimmed;
+}
+

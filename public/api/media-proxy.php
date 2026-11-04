@@ -17,12 +17,27 @@ if (empty($targetUrl)) {
     exit;
 }
 
-$parsedPath = parse_url($targetUrl, PHP_URL_PATH);
-$fileName = basename($parsedPath ?: '');
+$isDownload = (isset($_GET['download']) && $_GET['download'] === '1') || (isset($_GET['dl']) && $_GET['dl'] === '1');
+$disposition = $isDownload ? 'attachment' : 'inline';
+
+$rawFileNameParam = trim($_GET['filename'] ?? '');
+if (!empty($rawFileNameParam)) {
+    $fileName = $rawFileNameParam;
+} else {
+    $parsedPath = parse_url($targetUrl, PHP_URL_PATH);
+    $fileName = basename($parsedPath ?: '');
+}
+
 $cleanFileName = preg_replace('/[^a-zA-Z0-9._-]/', '_', urldecode($fileName));
 $ext = strtolower(pathinfo($cleanFileName, PATHINFO_EXTENSION));
 
 $mimeTypes = [
+    'apk'  => 'application/vnd.android.package-archive',
+    'zip'  => 'application/zip',
+    'rar'  => 'application/x-rar-compressed',
+    '7z'   => 'application/x-7z-compressed',
+    'exe'  => 'application/x-msdownload',
+    'bin'  => 'application/octet-stream',
     'jpg'  => 'image/jpeg',
     'jpeg' => 'image/jpeg',
     'png'  => 'image/png',
@@ -34,7 +49,7 @@ $mimeTypes = [
     'webm' => 'video/webm',
     'mov'  => 'video/quicktime'
 ];
-$mimeType = $mimeTypes[$ext] ?? 'image/jpeg';
+$mimeType = $mimeTypes[$ext] ?? ($isDownload ? 'application/octet-stream' : 'image/jpeg');
 
 $uploadsDir = realpath(__DIR__ . '/../uploads') ?: (__DIR__ . '/../uploads');
 if (!is_dir($uploadsDir)) {
@@ -52,7 +67,7 @@ if (!empty($cleanFileName)) {
     foreach ($candidatePaths as $cp) {
         if (file_exists($cp) && filesize($cp) > 0) {
             header('Content-Type: ' . $mimeType);
-            header('Content-Disposition: inline; filename="' . $cleanFileName . '"');
+            header('Content-Disposition: ' . $disposition . '; filename="' . $cleanFileName . '"');
             header('Cache-Control: public, max-age=604800, immutable');
             readfile($cp);
             exit;
@@ -141,21 +156,38 @@ if (preg_match('/github\.com\/([^\/]+)\/([^\/]+)\/releases\/download\/([^\/]+)\/
             ];
             $ch = curl_init("https://api.github.com/repos/{$owner}/{$repo}/releases/assets/{$assetId}");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+            curl_setopt($ch, CURLOPT_HEADER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $upHeaders);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            $data = curl_exec($ch);
+            $rawResponse = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+            $headers = substr($rawResponse, 0, $headerSize);
+            $body = substr($rawResponse, $headerSize);
             curl_close($ch);
 
-            if ($httpCode >= 200 && $httpCode < 300 && !empty($data)) {
+            // S3 redirect manual sem repassar o header Authorization do GitHub
+            if ($httpCode >= 300 && $httpCode < 400 && preg_match('/Location:\s*([^\r\n]+)/i', $headers, $locMatches)) {
+                $redirectUrl = trim($locMatches[1]);
+                $ch2 = curl_init($redirectUrl);
+                curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch2, CURLOPT_USERAGENT, 'ALX-Media-Proxy/1.0');
+                curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+                $body = curl_exec($ch2);
+                $httpCode = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                curl_close($ch2);
+            }
+
+            if ($httpCode >= 200 && $httpCode < 300 && !empty($body)) {
                 if (!empty($cleanFileName)) {
-                    @file_put_contents($uploadsDir . '/gh_cache_' . $cleanFileName, $data);
+                    @file_put_contents($uploadsDir . '/gh_cache_' . $cleanFileName, $body);
                 }
                 header('Content-Type: ' . $mimeType);
-                header('Content-Disposition: inline; filename="' . $cleanFileName . '"');
+                header('Content-Disposition: ' . $disposition . '; filename="' . $cleanFileName . '"');
                 header('Cache-Control: public, max-age=604800, immutable');
-                echo $data;
+                echo $body;
                 exit;
             }
         }
@@ -168,7 +200,7 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 curl_setopt($ch, CURLOPT_USERAGENT, 'ALX-Media-Proxy/1.0');
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+curl_setopt($ch, CURLOPT_TIMEOUT, 60);
 
 if (!empty($token)) {
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -192,7 +224,7 @@ if ($httpCode >= 200 && $httpCode < 300 && !empty($data)) {
         : $mimeType;
 
     header('Content-Type: ' . $finalMime);
-    header('Content-Disposition: inline; filename="' . $cleanFileName . '"');
+    header('Content-Disposition: ' . $disposition . '; filename="' . $cleanFileName . '"');
     header('Cache-Control: public, max-age=604800, immutable');
     echo $data;
     exit;
