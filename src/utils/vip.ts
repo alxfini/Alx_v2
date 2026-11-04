@@ -14,6 +14,9 @@ export const isItemVip = (item: any): boolean => {
   // Opção 1: 'public' sem marcação VIP é aberto para todos
   if (item.visibility === 'public' && !item.isMembersOnly && !item.isVipExclusive && !item.isVip) return false;
 
+  // Se o item é explicitamente gratuito e não possui marcação de membro/VIP, é aberto para todos
+  if (item.isFree === true && !item.isVipExclusive && !item.isMembersOnly && !item.isVip) return false;
+
   if (item.isMembersOnly || item.isVipExclusive || item.isVipOnly || item.isVipRestricted || item.isVip) return true;
 
   if (typeof item.category === 'string') {

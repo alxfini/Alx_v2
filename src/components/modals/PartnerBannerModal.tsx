@@ -13,7 +13,8 @@ import {
   Image as ImageIcon,
   Send,
   Share2,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 import { PartnerItem, ALXApp } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
@@ -81,18 +82,29 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
 
   const youtubeEmbedUrl = getYouTubeEmbedUrl(partner.youtubeUrl);
 
-  // Filtra aplicativos vinculados
-  const linkedApps = (partner.linkedAppIds || [])
-    .map((id) => (storeApps || []).find((app) => app.id === id || app.slug === id))
-    .filter((app): app is ALXApp => Boolean(app));
+  // Filtra aplicativos vinculados (tanto pelo linkedAppIds do parceiro quanto pelo partnerSlug do próprio app)
+  const linkedApps = (storeApps || []).filter((app) => {
+    const isExplicitlyLinked = (partner.linkedAppIds || []).includes(app.id) || (partner.linkedAppIds || []).includes(app.slug);
+    const isAppPartnerLinked = Boolean(app.partnerSlug && (app.partnerSlug === partner.slug || app.partnerSlug === partner.id));
+    return isExplicitlyLinked || isAppPartnerLinked;
+  });
 
   const handleAppClick = (app: ALXApp) => {
-    onClose();
     const isVip = isItemVip(app);
     if (isVip && !isUserAuthenticated) {
       openVipModal();
     } else {
-      setActivePage({ type: 'app', idOrSlug: app.slug || app.id });
+      openDownloadGateway({
+        id: app.id,
+        title: app.name,
+        category: 'app',
+        version: app.version,
+        rawDownloadUrl: app.downloadUrl || 'https://drive.google.com',
+        applicableCars: app.compatibility?.join(', '),
+        slug: app.slug,
+        isMembersOnly: isVip,
+        isVipExclusive: isVip,
+      });
     }
   };
 
@@ -405,7 +417,10 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
                               <span>ÁREA DE MEMBROS</span>
                             </span>
                           ) : (
-                            <span>VER DETALHES & DOWNLOAD</span>
+                            <span className="flex items-center gap-1.5 text-black">
+                              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <span>BAIXAR APLICATIVO</span>
+                            </span>
                           )}
                           <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                         </button>

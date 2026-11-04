@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AppWindow, CheckCircle2, Download, ShoppingBag, Eye, Search, ChevronDown, Sparkles, ArrowRight, Crown, Lock } from 'lucide-react';
+import { AppWindow, CheckCircle2, Download, ShoppingBag, Eye, Search, ChevronDown, Sparkles, ArrowRight, Crown, Lock, Handshake } from 'lucide-react';
 import { useSiteData } from '../context/SiteDataContext';
 import { isItemVip } from '../utils/vip';
 import { isItemVisibleOnSite } from '../utils/visibility';
@@ -40,6 +40,11 @@ export const AppsSection: React.FC<AppsSectionProps> = ({ onSelectApp, onOpenVip
   };
 
   const handleOpenApp = (app: ALXApp) => {
+    if (app.partnerSlug) {
+      setActivePage({ type: 'parceiros', idOrSlug: app.partnerSlug });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setActivePage({ type: 'app', idOrSlug: app.slug || app.id });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -109,6 +114,11 @@ export const AppsSection: React.FC<AppsSectionProps> = ({ onSelectApp, onOpenVip
 
   const handleDownloadApp = (e: React.MouseEvent, app: ALXApp) => {
     e.stopPropagation();
+    if (app.partnerSlug) {
+      setActivePage({ type: 'parceiros', idOrSlug: app.partnerSlug });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     const isVIP = isItemVip(app);
     if (isVIP && !isVipLoggedIn && !isAdminAuthenticated) {
       onOpenVipModal();
@@ -243,6 +253,16 @@ export const AppsSection: React.FC<AppsSectionProps> = ({ onSelectApp, onOpenVip
                           </div>
                         )}
 
+                        {/* Partner Badge if linked to partner */}
+                        {app.partnerSlug && (
+                          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+                            <span className="text-[10px] font-black px-2.5 py-1 rounded-lg backdrop-blur-md bg-amber-400 text-black font-mono uppercase flex items-center gap-1 shadow-md">
+                              <Handshake className="w-3 h-3 text-black" />
+                              <span>{app.partnerName || 'Parceiro'}</span>
+                            </span>
+                          </div>
+                        )}
+
                         {/* Download Count Badge */}
                         {(app.downloadsCount !== undefined && app.downloadsCount !== null) && (
                           <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/80 backdrop-blur-md text-[10px] font-mono text-neutral-300 px-2.5 py-1 rounded-lg border border-white/[0.08]">
@@ -283,7 +303,12 @@ export const AppsSection: React.FC<AppsSectionProps> = ({ onSelectApp, onOpenVip
                         }}
                         className="w-full inline-flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase tracking-wider hover:bg-[#f5cc14] transition-all shadow-md shadow-[#ebbf01]/20 cursor-pointer"
                       >
-                        {isAppVIP && !isUserAuthenticated ? (
+                        {app.partnerSlug ? (
+                          <span className="flex items-center gap-1.5 text-black whitespace-nowrap truncate font-mono font-black">
+                            <Handshake className="w-3.5 h-3.5 stroke-[2.5] text-black shrink-0" />
+                            <span className="truncate">BAIXAR NO PARCEIRO</span>
+                          </span>
+                        ) : isAppVIP && !isUserAuthenticated ? (
                           <span className="flex items-center gap-1.5 text-black whitespace-nowrap truncate font-mono font-black">
                             <Lock className="w-3.5 h-3.5 stroke-[2.5] text-black shrink-0" />
                             <span className="truncate">ÁREA DE MEMBROS</span>

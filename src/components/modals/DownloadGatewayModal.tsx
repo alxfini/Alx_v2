@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ShieldCheck, CheckCircle2, AlertCircle, X, ExternalLink, Copy, Check, Sparkles, HardDrive, RefreshCw, Lock, Crown } from 'lucide-react';
+import { Download, ShieldCheck, CheckCircle2, AlertCircle, X, ExternalLink, Copy, Check, Sparkles, HardDrive, RefreshCw, Lock, Crown, Youtube } from 'lucide-react';
 import { DownloadItem } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
 import { isItemVip } from '../../utils/vip';
@@ -17,11 +17,22 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
   const [downloadStarted, setDownloadStarted] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string>('');
+  const [isSubscribedOrUnlocked, setIsSubscribedOrUnlocked] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('alx_youtube_unlocked') === 'true';
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
+  });
   const hasRegisteredRef = useRef<boolean>(false);
 
   const isUserAuthenticated = isVipLoggedIn || isAdminAuthenticated;
   const isVipRestricted = isItemVip(item);
   const isLocked = isVipRestricted && !isUserAuthenticated;
+  const isUnlockedForDownload = isSubscribedOrUnlocked || isUserAuthenticated;
 
   useEffect(() => {
     if (!item || isLocked) {
@@ -42,6 +53,11 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
     setDownloadStarted(false);
     hasRegisteredRef.current = false;
 
+    // Se ainda não estiver inscrito no canal e não for VIP/Admin logado, aguarda a ação do visitante
+    if (!isUnlockedForDownload) {
+      return;
+    }
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -54,7 +70,7 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [item, isLocked]);
+  }, [item, isLocked, isUnlockedForDownload]);
 
   if (!item) return null;
 
@@ -125,6 +141,17 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
     setTimeout(() => {
       setIsDownloading(false);
     }, 2000);
+  };
+
+  const handleUnlockSubscription = () => {
+    setIsSubscribedOrUnlocked(true);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('alx_youtube_unlocked', 'true');
+      } catch (e) {
+        console.warn('LocalStorage error:', e);
+      }
+    }
   };
 
   const handleCopyShareLink = () => {
@@ -236,6 +263,49 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
               </button>
             </div>
           </div>
+        ) : !isUnlockedForDownload ? (
+          /* YouTube Subscribe to Unlock Barrier */
+          <div className="bg-gradient-to-b from-[#1C1113] via-[#140D0F] to-[#0A0A0D] border border-[#F91010]/40 rounded-2xl p-5 text-center space-y-4 relative z-10 shadow-2xl">
+            {/* YouTube Icon Badge */}
+            <div className="w-13 h-13 rounded-2xl bg-[#F91010]/20 text-[#F91010] border border-[#F91010]/40 flex items-center justify-center mx-auto shadow-lg shadow-red-600/20">
+              <Youtube className="w-7 h-7 fill-current" />
+            </div>
+
+            <div className="space-y-1.5 max-w-sm mx-auto">
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold text-red-400 uppercase tracking-wider bg-black/60 px-3 py-0.5 rounded-full border border-red-500/30">
+                <Sparkles className="w-3 h-3 text-[#F91010]" />
+                <span>Desbloqueio de Download Gratuito</span>
+              </div>
+              <h4 className="text-base sm:text-lg font-black text-white font-heading">
+                Inscreva-se no Canal para Baixar
+              </h4>
+              <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                Para mantermos nossos aplicativos, firmwares e conteúdos 100% gratuitos e atualizados, inscreva-se no canal oficial da <strong>ALX Garage</strong> no YouTube para liberar seu download.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2.5 max-w-sm mx-auto">
+              <a
+                href="https://www.youtube.com/@alx-garage?sub_confirmation=1"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleUnlockSubscription}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#F91010] hover:bg-[#d80c0c] text-white font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-red-600/30 cursor-pointer active:scale-95"
+              >
+                <Youtube className="w-4 h-4 fill-white shrink-0" />
+                <span>1. INSCREVER-SE NO CANAL @ALX-GARAGE</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-80 shrink-0" />
+              </a>
+
+              <button
+                type="button"
+                onClick={handleUnlockSubscription}
+                className="text-[11px] font-mono text-neutral-400 hover:text-white transition-colors cursor-pointer py-1 underline decoration-neutral-700 hover:decoration-white underline-offset-4"
+              >
+                Já sou inscrito no canal ALX Garage (Liberar Download)
+              </button>
+            </div>
+          </div>
         ) : (
           <>
             {/* Temporary Token Status Badge */}
@@ -249,6 +319,23 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
                 <span className="text-emerald-400 font-bold uppercase">Token Temporário Ativo</span>
               </div>
             )}
+
+            {/* YouTube Subscription Verified Status */}
+            <div className="bg-[#121218] border border-emerald-500/30 p-2.5 rounded-xl flex items-center justify-between text-[11px] font-mono relative z-10">
+              <div className="flex items-center gap-2 text-emerald-400">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="font-bold text-[10px] sm:text-[11px]">Canal YouTube Verificado • Download Liberado!</span>
+              </div>
+              <a
+                href="https://www.youtube.com/@alx-garage"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-neutral-400 hover:text-white flex items-center gap-1 transition-colors shrink-0"
+              >
+                <Youtube className="w-3 h-3 text-[#F91010] fill-current" />
+                <span>@alx-garage</span>
+              </a>
+            </div>
 
             {/* Countdown / Download Action */}
             <div className="bg-gradient-to-b from-[#14141A] to-[#0A0A0D] border border-[#ebbf01]/30 rounded-2xl p-4 text-center space-y-3 relative z-10">

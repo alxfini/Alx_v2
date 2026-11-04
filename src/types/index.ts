@@ -68,6 +68,8 @@ export interface ALXApp {
   isUpdated?: boolean;
   isNew?: boolean;
   updatedAt?: string;
+  partnerSlug?: string;
+  partnerName?: string;
   changelog?: { version: string; date: string; changes: string[] }[];
 }
 

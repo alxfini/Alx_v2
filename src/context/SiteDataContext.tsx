@@ -686,7 +686,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               isMem = true;
             } else if (sa.visibility === 'unlisted' || sa.visibility === 'link_only') {
               isMem = false;
-            } else if (sa.visibility === 'public' && sa.isMembersOnly === false) {
+            } else if (sa.visibility === 'public' && (sa.isMembersOnly === false || sa.isFree === true)) {
               isMem = false;
             } else {
               isMem = Boolean(sa.isMembersOnly || sa.isVipExclusive || isItemVip(sa) || (def && isItemVip(def)));

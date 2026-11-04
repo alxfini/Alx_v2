@@ -7434,6 +7434,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   helperText="Escolha uma categoria existente ou crie uma nova."
                 />
 
+                {/* Vínculo com Parceiro Oficial */}
+                <div className="sm:col-span-2 p-3.5 bg-neutral-50 border border-neutral-200 rounded-2xl space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Handshake className="w-3.5 h-3.5 text-[#ebbf01]" />
+                      <span>Parceiro Oficial Vinculado (Opcional)</span>
+                    </label>
+                    {editingApp.partnerSlug && (
+                      <span className="text-[10px] font-mono font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300">
+                        ✓ Redireciona para /parceiros/{editingApp.partnerSlug}
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={editingApp.partnerSlug || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const matchedPartner = (partners || []).find((p) => (p.slug || p.id) === val);
+                      setEditingApp({
+                        ...editingApp,
+                        partnerSlug: val ? val : undefined,
+                        partnerName: matchedPartner ? matchedPartner.name : undefined,
+                      });
+                    }}
+                    className="w-full bg-white border border-neutral-300 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 font-medium focus:outline-none focus:border-black shadow-xs cursor-pointer"
+                  >
+                    <option value="">Nenhum (Aplicativo Próprio da ALX Garage)</option>
+                    {(partners || []).map((partner) => (
+                      <option key={partner.id} value={partner.slug || partner.id}>
+                        🤝 {partner.name} ({partner.slug ? `/parceiros/${partner.slug}` : partner.name})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-neutral-500 font-sans leading-relaxed">
+                    Ao vincular um parceiro (ex: <strong>Electro</strong>), quem clicar no app ou em "Baixar" na vitrine da loja será levado automaticamente para a página oficial do parceiro, onde o aplicativo estará disponível para download.
+                  </p>
+                </div>
+
                 {/* Classificação, Opções e Texto de Preço / Licença */}
                 <div className="sm:col-span-2 p-4 bg-neutral-50 border border-neutral-200 rounded-2xl space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -7447,7 +7485,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
 
                   {/* Opções Clicáveis acima do Campo de Texto */}
-                  <div className="flex flex-wrap items-center gap-3 pb-3 border-b border-neutral-200">
+                  <div className="flex flex-wrap items-center gap-2.5 pb-3 border-b border-neutral-200">
                     <button
                       type="button"
                       onClick={() => {
@@ -7455,17 +7493,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           ...editingApp,
                           isFree: true,
                           isVipExclusive: false,
+                          isMembersOnly: false,
                           priceText: 'Gratuito',
                         });
                       }}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         editingApp.isFree && !editingApp.isVipExclusive && editingApp.priceText === 'Gratuito'
                           ? 'bg-emerald-600 text-white shadow-md'
                           : 'bg-white text-neutral-800 hover:bg-neutral-100 border border-neutral-300'
                       }`}
                     >
                       <Check className="w-3.5 h-3.5" />
-                      <span>Aplicativo Gratuito ("Gratuito")</span>
+                      <span>Gratuito</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingApp({
+                          ...editingApp,
+                          isFree: true,
+                          isVipExclusive: false,
+                          isMembersOnly: false,
+                          priceText: 'Livre para Baixar',
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        editingApp.isFree && !editingApp.isVipExclusive && editingApp.priceText === 'Livre para Baixar'
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'bg-white text-neutral-800 hover:bg-neutral-100 border border-neutral-300'
+                      }`}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Livre para Baixar</span>
                     </button>
 
                     <button
@@ -7474,18 +7534,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         setEditingApp({
                           ...editingApp,
                           isVipExclusive: true,
+                          isMembersOnly: true,
                           isFree: false,
                           priceText: 'Exclusivo VIP',
                         });
                       }}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         editingApp.isVipExclusive && editingApp.priceText === 'Exclusivo VIP'
                           ? 'bg-[#ebbf01] text-black font-extrabold shadow-md'
                           : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
                       }`}
                     >
                       <Sparkles className="w-3.5 h-3.5 fill-current" />
-                      <span>Exclusivo VIP ("Exclusivo VIP")</span>
+                      <span>Exclusivo VIP</span>
                     </button>
 
                     <button
@@ -7496,50 +7557,115 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           showInIptv: !editingApp.showInIptv,
                         });
                       }}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         editingApp.showInIptv
                           ? 'bg-purple-600 text-white shadow-md'
                           : 'bg-purple-50 text-purple-900 hover:bg-purple-100 border border-purple-200'
                       }`}
                     >
                       <Tv className="w-3.5 h-3.5" />
-                      <span>{editingApp.showInIptv ? '✓ Exibindo na Página IPTV' : '+ Exibir na Página IPTV'}</span>
+                      <span>{editingApp.showInIptv ? '✓ Na Pasta IPTV' : '+ Pasta IPTV'}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => {
-                        if (editingApp.priceText === 'Gratuito' || editingApp.priceText === 'Exclusivo VIP') {
+                        if (editingApp.priceText === 'Gratuito' || editingApp.priceText === 'Exclusivo VIP' || editingApp.priceText === 'Livre para Baixar') {
                           setEditingApp({
                             ...editingApp,
                             priceText: '',
                           });
                         }
                       }}
-                      className="px-3 py-2 rounded-xl text-xs font-medium text-neutral-600 hover:text-black hover:bg-neutral-200/60 transition-colors cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-neutral-600 hover:text-black hover:bg-neutral-200/60 transition-colors cursor-pointer"
                     >
-                      <span>Personalizado / Digitar Valor</span>
+                      <span>Digitar Personalizado</span>
                     </button>
                   </div>
 
-                  {/* Campo de Texto do Preço */}
+                  {/* Seletor Explícito de Permissão: Grátis vs VIP (Mesmo com texto personalizado) */}
+                  <div className="p-3 bg-white border border-neutral-200 rounded-xl space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="text-[11px] font-mono font-bold text-neutral-800 uppercase tracking-wider">
+                        Permissão de Download (Acesso do Usuário):
+                      </span>
+                      <span className="text-[10px] font-mono font-bold">
+                        {editingApp.isFree && !editingApp.isVipExclusive ? (
+                          <span className="text-emerald-600">✓ Gratuito • Aberto para todos</span>
+                        ) : (
+                          <span className="text-amber-600">★ Exclusivo • Requer Membro VIP</span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingApp({
+                            ...editingApp,
+                            isFree: true,
+                            isVipExclusive: false,
+                            isMembersOnly: false,
+                            visibility: editingApp.visibility === 'public_vip' ? 'public' : (editingApp.visibility || 'public'),
+                          });
+                        }}
+                        className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          editingApp.isFree && !editingApp.isVipExclusive
+                            ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-600/30 font-black'
+                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-300'
+                        }`}
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Grátis / Aberto para Todos</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingApp({
+                            ...editingApp,
+                            isFree: false,
+                            isVipExclusive: true,
+                            isMembersOnly: true,
+                            visibility: editingApp.visibility === 'public' ? 'public_vip' : (editingApp.visibility || 'public_vip'),
+                          });
+                        }}
+                        className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          editingApp.isVipExclusive
+                            ? 'bg-[#ebbf01] text-black font-black shadow-md ring-2 ring-[#ebbf01]/50'
+                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-300'
+                        }`}
+                      >
+                        <Sparkles className="w-4 h-4 fill-current" />
+                        <span>Exclusivo VIP (Só Membros)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Campo de Texto do Preço / Licença */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] text-neutral-800 font-mono font-bold uppercase tracking-wider block">
-                      Texto Exibido no Card e na Página do App
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] text-neutral-800 font-mono font-bold uppercase tracking-wider block">
+                        Texto Exibido no Card e na Página do App
+                      </label>
+                      <span className="text-[10px] text-neutral-500 font-sans">
+                        Pode digitar qualquer texto (ex: "Livre para Baixar", "Sem Custo", "R$ 0,00", etc.)
+                      </span>
+                    </div>
                     <input
                       type="text"
                       value={editingApp.priceText || ''}
                       onChange={(e) => {
                         const val = e.target.value;
+                        const isVipWord = val.toLowerCase().includes('vip') || val.toLowerCase().includes('exclusivo');
                         setEditingApp({
                           ...editingApp,
                           priceText: val,
-                          isFree: val.toLowerCase().includes('gratuito'),
-                          isVipExclusive: val.toLowerCase().includes('vip') || val.toLowerCase().includes('exclusivo'),
+                          ...(isVipWord ? { isVipExclusive: true, isMembersOnly: true, isFree: false } : {}),
                         });
                       }}
-                      placeholder="Digite 'Gratuito', 'Exclusivo VIP', 'R$ 29,90' ou licença..."
+                      placeholder="Digite 'Gratuito', 'Livre para Baixar', 'Sem Custo', 'Exclusivo VIP'..."
                       className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 font-bold focus:outline-none shadow-xs ${
                         !editingApp.priceText || !editingApp.priceText.trim()
                           ? 'border-red-500 bg-red-50/40 focus:border-red-600'
@@ -7597,10 +7723,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => {
+                  const isVipMode = Boolean(editingApp.isVipExclusive || editingApp.priceText?.toLowerCase().includes('vip'));
                   const appToSave: ALXApp = {
                     ...editingApp,
                     name: editingApp.name?.trim() || 'Novo Aplicativo',
-                    priceText: editingApp.priceText?.trim() || 'Grátis',
+                    priceText: editingApp.priceText?.trim() || (isVipMode ? 'Exclusivo VIP' : 'Gratuito'),
+                    isFree: !isVipMode && Boolean(editingApp.isFree ?? true),
+                    isVipExclusive: isVipMode,
+                    isMembersOnly: isVipMode,
                   };
                   if (isCreatingApp) {
                     addApp(appToSave);

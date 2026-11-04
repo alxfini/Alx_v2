@@ -23,7 +23,9 @@ import {
   X,
   Loader2,
   Lock,
-  Crown
+  Crown,
+  Handshake,
+  ArrowRight
 } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
 import { ALXApp, NewsArticle, ProductItem } from '../../types';
@@ -341,7 +343,27 @@ export const CardDetailPage: React.FC<CardDetailPageProps> = ({
 
               {/* Main Action Button */}
               <div>
-                {!doesLinkGrantDirectAccess(app) && isItemVip(app) && !isUserAuthenticated ? (
+                {app.partnerSlug ? (
+                  <div className="space-y-3">
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 flex items-center gap-2.5">
+                      <Handshake className="w-4 h-4 text-amber-400 shrink-0" />
+                      <p className="text-[11px] text-neutral-300 leading-tight">
+                        Este aplicativo é oficial do parceiro <strong>{app.partnerName || 'Parceiro Oficial'}</strong>. O download e informações completas estão disponíveis na página oficial do parceiro.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActivePage({ type: 'parceiros', idOrSlug: app.partnerSlug });
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-full py-4 rounded-2xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase hover:bg-[#f5cc14] transition-all shadow-xl shadow-[#ebbf01]/20 flex items-center justify-center gap-2 tracking-wide cursor-pointer active:scale-95"
+                    >
+                      <Handshake className="w-4 h-4 stroke-[2.5]" />
+                      <span>Ir para a Página do Parceiro (Baixar App)</span>
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+                  </div>
+                ) : !doesLinkGrantDirectAccess(app) && isItemVip(app) && !isUserAuthenticated ? (
                   <div className="space-y-3">
                     <div className="p-3 rounded-2xl bg-amber-500/10 border border-[#ebbf01]/30 flex items-center gap-2.5">
                       <Lock className="w-4 h-4 text-[#ebbf01] shrink-0" />

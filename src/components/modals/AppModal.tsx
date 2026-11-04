@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { ALXApp } from '../../types';
-import { CheckCircle2, Download, ShoppingBag, ShieldCheck, Sparkles, Cpu, Layers, Smartphone, Share2, Check, Lock, Crown } from 'lucide-react';
+import { CheckCircle2, Download, ShoppingBag, ShieldCheck, Sparkles, Cpu, Layers, Smartphone, Share2, Check, Lock, Crown, Handshake } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
 import { isItemVip } from '../../utils/vip';
@@ -13,7 +13,7 @@ interface AppModalProps {
 }
 
 export const AppModal: React.FC<AppModalProps> = ({ app, onClose, onOpenVipModal }) => {
-  const { openDownloadGateway, isVipLoggedIn, isAdminAuthenticated } = useSiteData();
+  const { openDownloadGateway, isVipLoggedIn, isAdminAuthenticated, setActivePage } = useSiteData();
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -184,7 +184,25 @@ export const AppModal: React.FC<AppModalProps> = ({ app, onClose, onOpenVipModal
           </button>
 
           <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-3 w-full">
-            {isVIP && !isUserAuthenticated ? (
+            {app.partnerSlug ? (
+              <div className="w-full space-y-2">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center gap-2.5 text-xs text-neutral-300">
+                  <Handshake className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Este aplicativo é oficial do parceiro {app.partnerName || 'Parceiro Oficial'}. O download está disponível na página do parceiro.</span>
+                </div>
+                <button
+                  onClick={() => {
+                    onClose();
+                    setActivePage({ type: 'parceiros', idOrSlug: app.partnerSlug });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs tracking-wider uppercase hover:bg-[#f5cc14] transition-all shadow-md cursor-pointer"
+                >
+                  <Handshake className="w-4 h-4 stroke-[2.5]" />
+                  <span>IR PARA A PÁGINA DO PARCEIRO (BAIXAR)</span>
+                </button>
+              </div>
+            ) : isVIP && !isUserAuthenticated ? (
               <div className="w-full space-y-2">
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-[#ebbf01]/30 flex items-center gap-2.5 text-xs text-neutral-300">
                   <Lock className="w-4 h-4 text-[#ebbf01] shrink-0" />
