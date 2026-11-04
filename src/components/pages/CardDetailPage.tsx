@@ -25,10 +25,23 @@ import {
   Lock,
   Crown,
   Handshake,
-  ArrowRight
+  ArrowRight,
+  Youtube
 } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
 import { ALXApp, NewsArticle, ProductItem } from '../../types';
+
+const getYouTubeEmbedUrl = (url?: string): string | null => {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (trimmed.includes('youtube.com/embed/')) return trimmed;
+  const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|watch\?.+&v=))([\w-]{11})/);
+  if (match && match[1]) {
+    return `https://www.youtube-nocookie.com/embed/${match[1]}`;
+  }
+  return null;
+};
 import { newsArticles as defaultNewsArticles } from '../../data/news';
 import { getPageThemeHex } from '../../utils/pageColors';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
@@ -450,6 +463,42 @@ export const CardDetailPage: React.FC<CardDetailPageProps> = ({
               {app.fullDescription || app.description}
             </p>
           </div>
+
+          {/* YouTube Video Section (se cadastrado no app) */}
+          {getYouTubeEmbedUrl(app.youtubeUrl) && (
+            <div
+              className="bg-[#111116] rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl relative overflow-hidden transition-all duration-300"
+              style={{
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                borderColor: `${appThemeColor}66`
+              }}
+            >
+              <div
+                className="absolute top-0 left-0 right-0 h-1 opacity-90"
+                style={{
+                  background: `linear-gradient(90deg, transparent, #FF0000, transparent)`
+                }}
+              />
+
+              <div className="flex items-center gap-2">
+                <Youtube className="w-5 h-5 text-red-500 fill-current shrink-0" />
+                <h3 className="text-xs sm:text-sm font-extrabold font-heading tracking-wider uppercase text-white">
+                  Vídeo Demonstrativo & Tutorial
+                </h3>
+              </div>
+
+              <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/[0.08] shadow-2xl">
+                <iframe
+                  src={getYouTubeEmbedUrl(app.youtubeUrl)!}
+                  title={`Vídeo do aplicativo ${app.name}`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

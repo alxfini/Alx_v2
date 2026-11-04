@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, ShieldCheck, CheckCircle2, X, Copy, Check, Lock, Crown, Youtube } from 'lucide-react';
+import { Download, ShieldCheck, CheckCircle2, X, Copy, Check, Lock, Crown, Youtube, RefreshCw } from 'lucide-react';
 import { DownloadItem } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
 import { isItemVip } from '../../utils/vip';
@@ -34,6 +34,7 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
   const [countdown, setCountdown] = useState<number>(10);
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [isPreparing, setIsPreparing] = useState<boolean>(false);
   const [downloadStarted, setDownloadStarted] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [sessionToken, setSessionToken] = useState<string>('');
@@ -117,10 +118,10 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
   if (!item) return null;
 
   // Dispara o download seguro quando o usuário clica no botão
-  const triggerRealDownload = async () => {
-    if (isLocked || isDownloading) return;
+  const triggerRealDownload = () => {
+    if (isLocked || isDownloading || isPreparing) return;
+    setIsPreparing(true);
     setIsDownloading(true);
-    setDownloadStarted(true);
 
     if (item && item.id && !hasRegisteredRef.current) {
       hasRegisteredRef.current = true;
@@ -129,6 +130,7 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
 
     const rawUrl = item.rawDownloadUrl || '';
     if (!rawUrl) {
+      setIsPreparing(false);
       setIsDownloading(false);
       return;
     }
@@ -150,41 +152,27 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
     // Passa a URL pelo proxy seguro para evitar 404 em repositórios privados do GitHub
     const finalDownloadUrl = getMediaDownloadUrl(rawUrl, cleanBaseName);
 
-    let handledViaBlob = false;
-    if (typeof window !== 'undefined') {
-      try {
-        const res = await fetch(finalDownloadUrl, { method: 'GET' });
-        if (res.ok) {
-          const blob = await res.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = cleanBaseName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 20000);
-          handledViaBlob = true;
-        }
-      } catch (fetchErr) {
-        console.warn('Download direto via Blob falhou, utilizando clique de âncora:', fetchErr);
-      }
-    }
-
-    if (!handledViaBlob) {
-      const link = document.createElement('a');
-      link.href = finalDownloadUrl;
-      link.download = cleanBaseName;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
+    // Disparo nativo instantâneo: o navegador gerencia o download nativamente sem esperar buffer de 15s no JavaScript
+    const link = document.createElement('a');
+    link.href = finalDownloadUrl;
+    link.download = cleanBaseName;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
     setTimeout(() => {
+      try {
+        document.body.removeChild(link);
+      } catch (e) {}
+    }, 1500);
+
+    // Mantém o estado "PREPARANDO DOWNLOAD..." por 2 segundos fornecendo feedback visual imediato
+    // até o navegador abrir a caixa de diálogo ou notificação de download
+    setTimeout(() => {
+      setIsPreparing(false);
       setIsDownloading(false);
-    }, 2000);
+      setDownloadStarted(true);
+    }, 2200);
   };
 
   const handleStartSubscriptionStep = () => {
@@ -418,7 +406,9 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
 
             {/* Texto explicativo */}
             <p className="text-xs sm:text-sm text-neutral-300 font-medium">
-              {downloadStarted
+              {isPreparing
+                ? 'Preparando arquivo seguro... A opção de salvamento abrirá em instantes.'
+                : downloadStarted
                 ? 'O download seguro foi disparado para o seu navegador.'
                 : 'Clique no botão abaixo para iniciar o download seguro do arquivo.'}
             </p>
@@ -428,11 +418,24 @@ export const DownloadGatewayModal: React.FC<DownloadGatewayModalProps> = ({ item
               <button
                 type="button"
                 onClick={triggerRealDownload}
-                disabled={isDownloading}
-                className="w-full py-4 px-6 rounded-2xl bg-[#00E575] hover:bg-[#00f780] active:scale-[0.99] text-black font-black text-sm uppercase tracking-wider transition-all duration-150 flex items-center justify-center gap-2.5 shadow-xl shadow-[#00E575]/25 cursor-pointer"
+                disabled={isPreparing}
+                className={`w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2.5 shadow-xl cursor-pointer ${
+                  isPreparing
+                    ? 'bg-amber-400 text-black shadow-amber-400/25 animate-pulse'
+                    : 'bg-[#00E575] hover:bg-[#00f780] active:scale-[0.99] text-black shadow-[#00E575]/25'
+                }`}
               >
-                <Download className="w-5 h-5 stroke-[2.5]" />
-                <span>{downloadStarted ? 'BAIXAR NOVAMENTE' : 'BAIXAR AGORA'}</span>
+                {isPreparing ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin stroke-[2.5]" />
+                    <span>PREPARANDO DOWNLOAD...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-5 h-5 stroke-[2.5]" />
+                    <span>{downloadStarted ? 'BAIXAR NOVAMENTE' : 'BAIXAR AGORA'}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

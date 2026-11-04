@@ -70,6 +70,7 @@ export interface ALXApp {
   updatedAt?: string;
   partnerSlug?: string;
   partnerName?: string;
+  youtubeUrl?: string;
   changelog?: { version: string; date: string; changes: string[] }[];
 }
 

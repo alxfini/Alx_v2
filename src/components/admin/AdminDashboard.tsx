@@ -7700,6 +7700,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   />
                 </div>
 
+                {/* Vídeo do YouTube do Aplicativo */}
+                <div className="sm:col-span-2 space-y-1.5 p-3.5 bg-neutral-50 border border-neutral-200 rounded-2xl">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Youtube className="w-4 h-4 text-red-600 fill-current" />
+                      <span>Vídeo do YouTube do Aplicativo (Opcional)</span>
+                    </label>
+                    {editingApp.youtubeUrl && (
+                      <span className="text-[10px] font-mono font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md border border-red-200">
+                        ✓ Vídeo Vinculado
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={editingApp.youtubeUrl || ''}
+                    onChange={(e) => setEditingApp({ ...editingApp, youtubeUrl: e.target.value })}
+                    placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..."
+                    className="w-full bg-white border border-neutral-300 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 font-medium placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
+                  />
+                  <p className="text-[11px] text-neutral-500 font-sans leading-relaxed">
+                    Adicione um vídeo de demonstração, tutorial ou instalação do YouTube. O vídeo será exibido com player interativo na página de detalhes e na janela informativa do aplicativo.
+                  </p>
+                </div>
+
                 <div className="sm:col-span-2 space-y-1.5">
                   <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider">Descrição Completa</label>
                   <textarea

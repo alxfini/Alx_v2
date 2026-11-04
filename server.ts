@@ -502,6 +502,11 @@ app.get(['/api/media-proxy', '/api/media-proxy.php'], async (req, res) => {
             if (assetRes.status >= 300 && assetRes.status < 400) {
               const redirectLocation = assetRes.headers.get('location');
               if (redirectLocation) {
+                if (isDownload) {
+                  // Redireciona o navegador diretamente para a URL pré-assinada do S3 da Amazon!
+                  // Elimina o gargalo do servidor intermediário e inicia o download imediatamente
+                  return res.redirect(302, redirectLocation);
+                }
                 // S3 pre-signed URL já contém a assinatura na query string; não deve reenviar o header Authorization do GitHub
                 finalBinaryRes = await fetch(redirectLocation, {
                   headers: {

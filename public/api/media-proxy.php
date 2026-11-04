@@ -170,6 +170,10 @@ if (preg_match('/github\.com\/([^\/]+)\/([^\/]+)\/releases\/download\/([^\/]+)\/
             // S3 redirect manual sem repassar o header Authorization do GitHub
             if ($httpCode >= 300 && $httpCode < 400 && preg_match('/Location:\s*([^\r\n]+)/i', $headers, $locMatches)) {
                 $redirectUrl = trim($locMatches[1]);
+                if ($isDownload) {
+                    header('Location: ' . $redirectUrl, true, 302);
+                    exit;
+                }
                 $ch2 = curl_init($redirectUrl);
                 curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, true);
