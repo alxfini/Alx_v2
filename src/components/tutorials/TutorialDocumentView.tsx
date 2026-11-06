@@ -24,7 +24,8 @@ import {
   Edit3,
   RotateCcw,
   Save,
-  Film
+  Film,
+  AlertCircle
 } from 'lucide-react';
 import { Tutorial } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
@@ -293,21 +294,27 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
       // Callout Block (> ...)
       if (trimmed.startsWith('> ')) {
         const calloutText = trimmed.replace(/^>\s+/, '');
-        const isWarning = calloutText.toLowerCase().includes('atenção') || calloutText.toLowerCase().includes('cuidado');
-        const isTip = calloutText.toLowerCase().includes('dica') || calloutText.toLowerCase().includes('nota');
+        const lower = calloutText.toLowerCase();
+        const isDanger = lower.includes('observação') || lower.includes('observacao') || lower.includes('perigo') || lower.includes('urgente') || lower.includes('crítico') || lower.includes('critico');
+        const isWarning = !isDanger && (lower.includes('atenção') || lower.includes('atencao') || lower.includes('cuidado') || lower.includes('aviso'));
+        const isTip = !isDanger && (lower.includes('dica') || lower.includes('nota'));
 
         elements.push(
           <div 
             key={`callout-${i}`} 
-            className={`my-4 p-4 sm:p-5 rounded-2xl border flex items-start gap-3.5 ${
-              isWarning 
+            className={`my-4 p-4 sm:p-5 rounded-2xl border flex items-start gap-3.5 shadow-lg ${
+              isDanger
+                ? 'bg-red-500/10 border-red-500/30 text-red-200'
+                : isWarning 
                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' 
                 : isTip 
                 ? 'bg-blue-500/10 border-blue-500/30 text-blue-200' 
                 : 'bg-white/[0.04] border-white/[0.1] text-neutral-200'
             }`}
           >
-            {isWarning ? (
+            {isDanger ? (
+              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            ) : isWarning ? (
               <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             ) : isTip ? (
               <Sparkles className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />

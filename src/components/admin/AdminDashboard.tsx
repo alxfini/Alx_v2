@@ -424,7 +424,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       body: formData,
     });
     if (!res.ok) {
-      throw new Error(`Falha no envio do arquivo (HTTP ${res.status})`);
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.error || `Falha no envio do arquivo (HTTP ${res.status})`);
     }
     const data = await res.json().catch(() => null);
     if (!data?.success || !data?.url) {
@@ -9256,6 +9257,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         💡 Caixa Dica
                       </button>
 
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = editingTutorial.content || '';
+                          setEditingTutorial({ ...editingTutorial, content: `${current}\n\n> **Observação:** Importante verificar a versão e compatibilidade antes de prosseguir.\n` });
+                        }}
+                        className="px-2.5 py-1 rounded bg-red-100 hover:bg-red-200 border border-red-300 text-red-900 font-bold cursor-pointer shadow-2xs"
+                        title="Adicionar Caixa Vermelha de Observação / Atenção Especial"
+                      >
+                        🛑 Caixa Observação
+                      </button>
+
                       {/* Botão Inserir Foto no Texto */}
                       <button
                         type="button"
@@ -9493,6 +9506,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
+                                const maxSizeBytes = 500 * 1024 * 1024; // 500 MB
+                                if (file.size > maxSizeBytes) {
+                                  alert(`O vídeo selecionado (${(file.size / (1024 * 1024)).toFixed(1)} MB) ultrapassa o limite máximo de 500 MB. Por favor, envie um vídeo mais leve.`);
+                                  e.target.value = '';
+                                  return;
+                                }
                                 try {
                                   setIsUploadingInlineVideo(true);
                                   const url = await uploadTutorialMediaFile(file, convertVideoToWebm);
@@ -9502,7 +9521,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   }
                                   triggerSuccess(url.endsWith('.webm') ? 'Vídeo convertido em WebM e pronto para loop!' : 'Vídeo enviado com sucesso!');
                                 } catch (err: any) {
-                                  alert(err.message || 'Erro ao enviar vídeo');
+                                  alert(err.message || 'Erro ao enviar vídeo para o servidor. Tente novamente ou desmarque a conversão automática.');
                                 } finally {
                                   setIsUploadingInlineVideo(false);
                                   e.target.value = '';
@@ -9608,7 +9627,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       rows={10}
                       value={editingTutorial.content}
                       onChange={(e) => setEditingTutorial({ ...editingTutorial, content: e.target.value })}
-                      placeholder={`Escreva as instruções completas do tutorial aqui...\n\nUse:\n## Título da Seção\n1. Passo um\n2. Passo dois\n![Legenda da Foto](/uploads/foto.jpg)\n[video: /uploads/video.mp4 | Legenda do Vídeo]\n> **Atenção:** Aviso importante`}
+                      placeholder={`Escreva as instruções completas do tutorial aqui...\n\nUse:\n## Título da Seção\n1. Passo um\n2. Passo dois\n![Legenda da Foto](/uploads/foto.jpg)\n[video: /uploads/video.mp4 | Legenda do Vídeo]\n> **Atenção:** Aviso importante (amarelo)\n> **Dica:** Dica técnica (azul)\n> **Observação:** Observação especial (vermelho)`}
                       className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl p-3.5 text-xs text-neutral-900 font-mono leading-relaxed placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
                     />
                   </div>

@@ -39,7 +39,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB para instaladores e arquivos de mídia
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500MB para vídeos de alta resolução e instaladores
 });
 
 // Endpoint para excluir arquivo local do servidor (/uploads/ ou /aplicativos/)
@@ -68,8 +68,27 @@ app.post('/api/delete-file.php', (req, res) => {
   }
 });
 
+// Middleware com tratamento de erros de upload (ex: limite de tamanho amigável)
+const handleUploadMiddleware = (req: any, res: any, next: any) => {
+  upload.single('file')(req, res, (err: any) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          error: 'O arquivo enviado excede o limite máximo permitido de 500 MB. Por favor, envie um arquivo menor.',
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        error: `Falha no upload do arquivo: ${err?.message || 'Arquivo inválido'}`,
+      });
+    }
+    next();
+  });
+};
+
 // 1. Endpoint /api/upload.php (compatível com Hostinger e Local)
-app.post('/api/upload.php', upload.single('file'), async (req, res) => {
+app.post('/api/upload.php', handleUploadMiddleware, async (req, res) => {
   try {
     if (!req.file) {
       // Se não veio multipart, tenta ler body com dataUrl base64
@@ -103,18 +122,25 @@ app.post('/api/upload.php', upload.single('file'), async (req, res) => {
       const webmPath = path.join(uploadsDir, webmFilename);
 
       try {
-        const { execFileSync } = await import('child_process');
-        execFileSync('ffmpeg', [
-          '-y',
-          '-i', originalPath,
-          '-c:v', 'libvpx',
-          '-b:v', '1.5M',
-          '-crf', '22',
-          '-c:a', 'libopus',
-          '-deadline', 'realtime',
-          '-cpu-used', '4',
-          webmPath
-        ], { stdio: 'ignore', timeout: 90000 });
+        const { execFile } = await import('child_process');
+        await new Promise<void>((resolve, reject) => {
+          execFile('ffmpeg', [
+            '-y',
+            '-i', originalPath,
+            '-vf', "scale='min(1280,iw)':-2",
+            '-c:v', 'libvpx',
+            '-b:v', '1.2M',
+            '-crf', '24',
+            '-c:a', 'libopus',
+            '-ar', '48000',
+            '-deadline', 'realtime',
+            '-cpu-used', '4',
+            webmPath
+          ], { timeout: 120000 }, (error) => {
+            if (error) reject(error);
+            else resolve();
+          });
+        });
 
         if (fs.existsSync(webmPath) && fs.statSync(webmPath).size > 0) {
           try { fs.unlinkSync(originalPath); } catch {}
@@ -126,8 +152,9 @@ app.post('/api/upload.php', upload.single('file'), async (req, res) => {
             format: 'webm',
           });
         }
-      } catch (convErr) {
-        console.warn('Conversão para WebM via ffmpeg falhou ou demorou, mantendo arquivo original:', convErr);
+      } catch (convErr: any) {
+        console.warn('Conversão para WebM via ffmpeg falhou ou demorou, entregando arquivo original:', convErr?.message || convErr);
+        // Fallback seguro: continua e entrega o arquivo original sem erro 500!
       }
     }
 
