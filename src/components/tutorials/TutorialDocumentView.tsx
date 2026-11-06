@@ -23,7 +23,8 @@ import {
   Lock,
   Edit3,
   RotateCcw,
-  Save
+  Save,
+  Film
 } from 'lucide-react';
 import { Tutorial } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
@@ -122,10 +123,14 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
   };
 
   // Helper to extract YouTube video ID for embedded player
-  const getYouTubeEmbedUrl = (url?: string): string | null => {
+  const getYouTubeEmbedUrl = (url?: string, loop: boolean = true): string | null => {
     if (!url) return null;
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-    return match ? `https://www.youtube-nocookie.com/embed/${match[1]}` : null;
+    if (!match) return null;
+    const vidId = match[1];
+    return loop
+      ? `https://www.youtube-nocookie.com/embed/${vidId}?autoplay=0&loop=1&playlist=${vidId}`
+      : `https://www.youtube-nocookie.com/embed/${vidId}`;
   };
 
   const youtubeEmbedUrl = getYouTubeEmbedUrl(tutorial.videoUrl);
@@ -135,6 +140,7 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
     const lines = content.split('\n');
     const elements: React.ReactNode[] = [];
     let figureCount = 1;
+    let videoCount = 1;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -145,9 +151,81 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
         continue;
       }
 
+      // Check for inline video tag: [video: url | caption] or [vídeo: url | caption] or [video: url]
+      const tagVideoMatch = trimmed.match(/^\[(?:video|vídeo):\s*([^|\]]+)(?:\|\s*([^\]]+))?\]$/i);
+      const mdVideoMatch = trimmed.match(/^!\[(?:video|vídeo)(?::\s*|\s+)?(.*?)\]\((.*?)\)$/i);
+
       // Check for inline image markdown: ![caption](url) or [imagem: url | caption] or [imagem: url]
       const mdImgMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
       const tagImgMatch = trimmed.match(/^\[imagem:\s*([^|\]]+)(?:\|\s*([^\]]+))?\]$/i);
+
+      // Determine if this line represents an inline video
+      let detectedVideoUrl: string | null = null;
+      let detectedVideoCaption = '';
+
+      if (tagVideoMatch) {
+        detectedVideoUrl = tagVideoMatch[1].trim();
+        detectedVideoCaption = (tagVideoMatch[2] || '').trim();
+      } else if (mdVideoMatch) {
+        detectedVideoUrl = mdVideoMatch[2].trim();
+        detectedVideoCaption = (mdVideoMatch[1] || '').trim();
+      } else if (mdImgMatch) {
+        const potentialUrl = mdImgMatch[2].trim();
+        const isVideoExtension = /\.(mp4|webm|mov|ogg|m4v|mkv)($|\?)/i.test(potentialUrl);
+        const isYouTubeLink = /(?:youtu\.be\/|youtube\.com)/i.test(potentialUrl);
+        if (isVideoExtension || isYouTubeLink) {
+          detectedVideoUrl = potentialUrl;
+          detectedVideoCaption = mdImgMatch[1].trim();
+        }
+      }
+
+      if (detectedVideoUrl) {
+        const vidNum = videoCount++;
+        const ytEmbed = getYouTubeEmbedUrl(detectedVideoUrl, true);
+
+        elements.push(
+          <figure key={`vid-${i}`} className="my-6 rounded-2xl overflow-hidden border border-white/[0.1] bg-[#121217] shadow-xl">
+            <div className="relative aspect-video max-h-[460px] bg-black overflow-hidden flex items-center justify-center">
+              {ytEmbed ? (
+                <iframe
+                  src={ytEmbed}
+                  title={detectedVideoCaption || `Vídeo ${vidNum}`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={detectedVideoUrl}
+                  controls
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full object-contain bg-black"
+                >
+                  Seu navegador não suporta a tag de vídeo.
+                </video>
+              )}
+            </div>
+            <figcaption className="px-4 py-2.5 bg-[#181820] border-t border-white/[0.08] text-xs font-mono text-neutral-300 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Film className="w-3.5 h-3.5 text-[#1EFF00] shrink-0" />
+                <span className="truncate">
+                  <strong>Vídeo {vidNum}:</strong> {detectedVideoCaption || 'Demonstração em vídeo'}
+                </span>
+              </div>
+              <span 
+                className="px-2 py-0.5 rounded-md bg-[#1EFF00]/15 text-[#1EFF00] border border-[#1EFF00]/30 text-[10px] font-mono shrink-0 flex items-center gap-1 shadow-2xs"
+                title="Este vídeo está configurado para repetir continuamente (Loop)"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>Loop Contínuo</span>
+              </span>
+            </figcaption>
+          </figure>
+        );
+        continue;
+      }
 
       if (mdImgMatch || tagImgMatch) {
         const url = (mdImgMatch ? mdImgMatch[2] : tagImgMatch![1]).trim();

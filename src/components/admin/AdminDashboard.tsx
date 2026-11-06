@@ -69,7 +69,8 @@ import {
   Search,
   QrCode,
   CreditCard,
-  Palette
+  Palette,
+  Film
 } from 'lucide-react';
 import { TutorialDocumentView } from '../tutorials/TutorialDocumentView';
 import { useSiteData } from '../../context/SiteDataContext';
@@ -403,6 +404,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showImagePrompt, setShowImagePrompt] = useState(false);
   const [inlineImgUrl, setInlineImgUrl] = useState('');
   const [inlineImgCaption, setInlineImgCaption] = useState('');
+  const [showVideoPrompt, setShowVideoPrompt] = useState(false);
+  const [inlineVideoUrl, setInlineVideoUrl] = useState('');
+  const [inlineVideoCaption, setInlineVideoCaption] = useState('');
+  const [isUploadingInlineImg, setIsUploadingInlineImg] = useState(false);
+  const [isUploadingInlineVideo, setIsUploadingInlineVideo] = useState(false);
+  const [isUploadingGalleryImgs, setIsUploadingGalleryImgs] = useState(false);
+  const [convertVideoToWebm, setConvertVideoToWebm] = useState(true);
+
+  // Helper para upload direto de mídias (imagens e vídeos) do tutorial para o servidor
+  const uploadTutorialMediaFile = async (file: File, convertToWebm = false): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (convertToWebm) {
+      formData.append('convertToWebm', 'true');
+    }
+    const res = await fetch('/api/upload.php', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      throw new Error(`Falha no envio do arquivo (HTTP ${res.status})`);
+    }
+    const data = await res.json().catch(() => null);
+    if (!data?.success || !data?.url) {
+      throw new Error(data?.error || 'Erro ao salvar arquivo no servidor');
+    }
+    return data.url;
+  };
 
   const [editingUnlockService, setEditingUnlockService] = useState<UnlockServiceItem | null>(null);
   const [isCreatingUnlockService, setIsCreatingUnlockService] = useState(false);
@@ -9230,45 +9259,161 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {/* Botão Inserir Foto no Texto */}
                       <button
                         type="button"
-                        onClick={() => setShowImagePrompt(!showImagePrompt)}
-                        className="px-3 py-1 rounded bg-neutral-900 hover:bg-black text-[#ebbf01] font-bold cursor-pointer shadow-2xs flex items-center gap-1 ml-auto"
-                        title="Inserir Foto ou Imagem com Legenda no Texto"
+                        onClick={() => {
+                          setShowImagePrompt(!showImagePrompt);
+                          setShowVideoPrompt(false);
+                        }}
+                        className={`px-3 py-1 rounded font-bold cursor-pointer shadow-2xs flex items-center gap-1.5 ml-auto transition-colors ${
+                          showImagePrompt ? 'bg-[#ebbf01] text-black' : 'bg-neutral-900 hover:bg-black text-[#ebbf01]'
+                        }`}
+                        title="Inserir Foto ou Imagem com Legenda no Texto (Upload direto ou Link)"
                       >
-                        <ImageIcon className="w-3 h-3 text-[#ebbf01]" />
+                        <ImageIcon className="w-3.5 h-3.5" />
                         <span>📷 Inserir Foto no Texto</span>
+                      </button>
+
+                      {/* Botão Inserir Vídeo no Texto */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowVideoPrompt(!showVideoPrompt);
+                          setShowImagePrompt(false);
+                        }}
+                        className={`px-3 py-1 rounded font-bold cursor-pointer shadow-2xs flex items-center gap-1.5 transition-colors ${
+                          showVideoPrompt ? 'bg-[#1EFF00] text-black' : 'bg-neutral-900 hover:bg-black text-[#1EFF00]'
+                        }`}
+                        title="Inserir Vídeo no Corpo do Texto (Upload direto ou YouTube)"
+                      >
+                        <Film className="w-3.5 h-3.5" />
+                        <span>🎬 Inserir Vídeo no Texto</span>
                       </button>
                     </div>
 
-                    {/* Popover / Form para Inserir Foto com Legenda */}
+                    {/* Popover / Form para Inserir Foto com Legenda e Upload Direto */}
                     {showImagePrompt && (
-                      <div className="p-3.5 bg-neutral-900 text-white rounded-2xl border border-white/10 space-y-3 animate-in fade-in">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-mono font-bold text-[#ebbf01]">Inserir Imagem / Foto no Tutorial:</span>
+                      <div className="p-4 bg-neutral-900 text-white rounded-2xl border border-[#ebbf01]/40 shadow-2xl space-y-3.5 animate-in fade-in">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <span className="text-xs font-mono font-bold text-[#ebbf01] flex items-center gap-1.5">
+                            <ImageIcon className="w-4 h-4 text-[#ebbf01]" />
+                            <span>Inserir Imagem / Foto no Tutorial</span>
+                          </span>
                           <button
                             type="button"
                             onClick={() => setShowImagePrompt(false)}
-                            className="text-neutral-400 hover:text-white"
+                            className="text-neutral-400 hover:text-white p-1"
                           >
                             <X className="w-4 h-4" />
                           </button>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+
+                        {/* Upload Direto da Foto */}
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Opção 1: Selecionar Foto do Computador / Celular
+                          </label>
+                          <label className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#ebbf01]/40 hover:border-[#ebbf01] bg-neutral-800/80 hover:bg-neutral-800 cursor-pointer text-xs font-mono transition-colors">
+                            {isUploadingInlineImg ? (
+                              <span className="flex items-center gap-2 text-[#ebbf01]">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Enviando foto para o servidor...</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2 text-neutral-200">
+                                <Upload className="w-4 h-4 text-[#ebbf01]" />
+                                <span className="font-bold text-[#ebbf01]">Clique aqui para subir imagem do dispositivo</span>
+                              </span>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={isUploadingInlineImg}
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  setIsUploadingInlineImg(true);
+                                  const url = await uploadTutorialMediaFile(file);
+                                  setInlineImgUrl(url);
+                                  if (!inlineImgCaption) {
+                                    setInlineImgCaption(file.name.replace(/\.[^/.]+$/, ''));
+                                  }
+                                  if (editingTutorial) {
+                                    const currentImages = editingTutorial.images || [];
+                                    if (!currentImages.includes(url)) {
+                                      setEditingTutorial({
+                                        ...editingTutorial,
+                                        images: [...currentImages, url]
+                                      });
+                                    }
+                                  }
+                                  triggerSuccess('Foto enviada com sucesso!');
+                                } catch (err: any) {
+                                  alert(err.message || 'Erro ao enviar imagem');
+                                } finally {
+                                  setIsUploadingInlineImg(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Prévia da imagem se tiver url */}
+                        {inlineImgUrl && (
+                          <div className="flex items-center gap-3 p-2 bg-neutral-800/80 rounded-xl border border-white/10">
+                            <img src={inlineImgUrl} alt="Prévia" className="w-16 h-12 object-cover rounded-lg border border-white/20 shrink-0 bg-black/40" />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[10px] font-mono text-[#1EFF00] block truncate">✓ Imagem pronta</span>
+                              <span className="text-[10px] font-mono text-neutral-400 block truncate">{inlineImgUrl}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setInlineImgUrl('')}
+                              className="text-neutral-400 hover:text-red-400 p-1"
+                              title="Remover"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Campo de URL manual (caso queira colar link) */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Opção 2: Ou digite a URL da Imagem
+                          </label>
                           <input
                             type="text"
                             value={inlineImgUrl}
                             onChange={(e) => setInlineImgUrl(e.target.value)}
-                            placeholder="URL da Imagem (ex: https://...)"
-                            className="bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ebbf01]"
+                            placeholder="URL da Imagem (ex: https://... ou /uploads/...)"
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ebbf01]"
                           />
+                        </div>
+
+                        {/* Legenda */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Legenda da Foto (aparecerá abaixo da imagem no tutorial)
+                          </label>
                           <input
                             type="text"
                             value={inlineImgCaption}
                             onChange={(e) => setInlineImgCaption(e.target.value)}
-                            placeholder="Legenda da foto (ex: Tela de confirmação no DiLink)"
-                            className="bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ebbf01]"
+                            placeholder="Ex: Tela de confirmação no DiLink"
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ebbf01]"
                           />
                         </div>
-                        <div className="flex justify-end gap-2">
+
+                        <div className="flex justify-end gap-2 pt-1 border-t border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setShowImagePrompt(false)}
+                            className="px-3 py-1.5 rounded-xl text-neutral-400 hover:text-white text-xs font-mono cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -9280,10 +9425,180 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               setInlineImgUrl('');
                               setInlineImgCaption('');
                               setShowImagePrompt(false);
+                              triggerSuccess('Imagem inserida no texto!');
                             }}
-                            className="px-4 py-1.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs font-mono cursor-pointer hover:bg-[#f5cc14]"
+                            disabled={!inlineImgUrl.trim()}
+                            className="px-4 py-1.5 rounded-xl bg-[#ebbf01] disabled:opacity-40 text-black font-extrabold text-xs font-mono cursor-pointer hover:bg-[#f5cc14] transition-all"
                           >
                             Inserir no Texto
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Popover / Form para Inserir Vídeo com Legenda e Upload Direto */}
+                    {showVideoPrompt && (
+                      <div className="p-4 bg-neutral-900 text-white rounded-2xl border border-[#1EFF00]/40 shadow-2xl space-y-3.5 animate-in fade-in">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <span className="text-xs font-mono font-bold text-[#1EFF00] flex items-center gap-1.5">
+                            <Film className="w-4 h-4 text-[#1EFF00]" />
+                            <span>Inserir Vídeo no Corpo do Tutorial</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowVideoPrompt(false)}
+                            className="text-neutral-400 hover:text-white p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Opção de Conversão Automática para WebM */}
+                        <div className="flex items-center gap-2.5 p-2.5 bg-neutral-800/80 rounded-xl border border-[#1EFF00]/30 shadow-xs">
+                          <input
+                            type="checkbox"
+                            id="convertWebmCheck"
+                            checked={convertVideoToWebm}
+                            onChange={(e) => setConvertVideoToWebm(e.target.checked)}
+                            className="rounded accent-[#1EFF00] w-4 h-4 cursor-pointer shrink-0"
+                          />
+                          <label htmlFor="convertWebmCheck" className="text-xs font-mono text-neutral-200 cursor-pointer select-none leading-tight">
+                            <span>Converter automaticamente para <strong className="text-[#1EFF00]">WebM</strong> ao subir</span>
+                            <span className="block text-[10px] text-neutral-400 mt-0.5">Formato de vídeo ultraleve que carrega instantâneo e executa em <strong>looping contínuo</strong>.</span>
+                          </label>
+                        </div>
+
+                        {/* Upload Direto de Vídeo */}
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Opção 1: Selecionar Vídeo do Computador / Celular (MP4, WebM, MOV)
+                          </label>
+                          <label className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#1EFF00]/40 hover:border-[#1EFF00] bg-neutral-800/80 hover:bg-neutral-800 cursor-pointer text-xs font-mono transition-colors">
+                            {isUploadingInlineVideo ? (
+                              <span className="flex items-center gap-2 text-[#1EFF00]">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>{convertVideoToWebm ? 'Enviando e convertendo para WebM... Aguarde' : 'Enviando vídeo para o servidor (aguarde)...'}</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2 text-neutral-200">
+                                <Upload className="w-4 h-4 text-[#1EFF00]" />
+                                <span className="font-bold text-[#1EFF00]">Clique aqui para subir vídeo do dispositivo</span>
+                              </span>
+                            )}
+                            <input
+                              type="file"
+                              accept="video/mp4,video/webm,video/quicktime,video/*"
+                              disabled={isUploadingInlineVideo}
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  setIsUploadingInlineVideo(true);
+                                  const url = await uploadTutorialMediaFile(file, convertVideoToWebm);
+                                  setInlineVideoUrl(url);
+                                  if (!inlineVideoCaption) {
+                                    setInlineVideoCaption(file.name.replace(/\.[^/.]+$/, ''));
+                                  }
+                                  triggerSuccess(url.endsWith('.webm') ? 'Vídeo convertido em WebM e pronto para loop!' : 'Vídeo enviado com sucesso!');
+                                } catch (err: any) {
+                                  alert(err.message || 'Erro ao enviar vídeo');
+                                } finally {
+                                  setIsUploadingInlineVideo(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Prévia do vídeo se tiver url */}
+                        {inlineVideoUrl && (
+                          <div className="p-2.5 bg-neutral-800/80 rounded-xl border border-white/10 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-[#1EFF00] flex items-center gap-1">
+                                <Check className="w-3 h-3 text-[#1EFF00]" />
+                                <span>Vídeo selecionado {inlineVideoUrl.endsWith('.webm') && '(WebM em Looping)'}:</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setInlineVideoUrl('')}
+                                className="text-neutral-400 hover:text-red-400 text-xs"
+                                title="Remover"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="max-h-36 overflow-hidden rounded-lg bg-black flex items-center justify-center">
+                              {inlineVideoUrl.includes('youtube.com') || inlineVideoUrl.includes('youtu.be') ? (
+                                <div className="p-3 text-xs font-mono text-neutral-300 flex items-center gap-2">
+                                  <Youtube className="w-4 h-4 text-red-500" />
+                                  <span>Vídeo do YouTube detectado</span>
+                                </div>
+                              ) : (
+                                <video src={inlineVideoUrl} controls loop playsInline preload="metadata" className="w-full max-h-36 object-contain" />
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400">
+                              <span className="truncate">{inlineVideoUrl}</span>
+                              <span className="text-[#1EFF00] shrink-0 font-bold ml-2">🔁 Repete em Loop</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Campo de URL manual (YouTube ou link direto de vídeo) */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Opção 2: Ou informe o Link do Vídeo (YouTube ou link direto MP4)
+                          </label>
+                          <input
+                            type="text"
+                            value={inlineVideoUrl}
+                            onChange={(e) => setInlineVideoUrl(e.target.value)}
+                            placeholder="Ex: https://www.youtube.com/watch?v=... ou /uploads/video.mp4"
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#1EFF00]"
+                          />
+                        </div>
+
+                        {/* Legenda do Vídeo */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Legenda / Título do Vídeo no Tutorial
+                          </label>
+                          <input
+                            type="text"
+                            value={inlineVideoCaption}
+                            onChange={(e) => setInlineVideoCaption(e.target.value)}
+                            placeholder="Ex: Demonstração da ativação do procedimento passo a passo"
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#1EFF00]"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1 border-t border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setShowVideoPrompt(false)}
+                            className="px-3 py-1.5 rounded-xl text-neutral-400 hover:text-white text-xs font-mono cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!inlineVideoUrl.trim()) return;
+                              const current = editingTutorial.content || '';
+                              const caption = inlineVideoCaption.trim() || 'Vídeo explicativo do tutorial';
+                              const tag = `\n\n[video: ${inlineVideoUrl.trim()} | ${caption}]\n\n`;
+                              setEditingTutorial({ ...editingTutorial, content: `${current}${tag}` });
+                              setInlineVideoUrl('');
+                              setInlineVideoCaption('');
+                              setShowVideoPrompt(false);
+                              triggerSuccess('Vídeo inserido no corpo do texto!');
+                            }}
+                            disabled={!inlineVideoUrl.trim()}
+                            className="px-4 py-1.5 rounded-xl bg-[#1EFF00] disabled:opacity-40 text-black font-extrabold text-xs font-mono cursor-pointer hover:bg-[#25ff08] transition-all"
+                          >
+                            Inserir Vídeo no Texto
                           </button>
                         </div>
                       </div>
@@ -9293,7 +9608,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       rows={10}
                       value={editingTutorial.content}
                       onChange={(e) => setEditingTutorial({ ...editingTutorial, content: e.target.value })}
-                      placeholder={`Escreva as instruções completas do tutorial aqui...\n\nUse:\n## Título da Seção\n1. Passo um\n2. Passo dois\n![Legenda da Foto](https://url-da-imagem.jpg)\n> **Atenção:** Aviso importante`}
+                      placeholder={`Escreva as instruções completas do tutorial aqui...\n\nUse:\n## Título da Seção\n1. Passo um\n2. Passo dois\n![Legenda da Foto](/uploads/foto.jpg)\n[video: /uploads/video.mp4 | Legenda do Vídeo]\n> **Atenção:** Aviso importante`}
                       className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl p-3.5 text-xs text-neutral-900 font-mono leading-relaxed placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
                     />
                   </div>
@@ -9349,33 +9664,81 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                     )}
 
-                    {/* Campo para anexar nova imagem à galeria */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="text"
-                        value={newAttachedImgUrl}
-                        onChange={(e) => setNewAttachedImgUrl(e.target.value)}
-                        placeholder="Adicionar URL de imagem à galeria (ex: https://...)"
-                        className="flex-1 bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const trimmed = newAttachedImgUrl.trim();
-                          if (!trimmed) return;
-                          const currentImages = editingTutorial.images || [];
-                          if (!currentImages.includes(trimmed)) {
-                            setEditingTutorial({
-                              ...editingTutorial,
-                              images: [...currentImages, trimmed]
-                            });
-                          }
-                          setNewAttachedImgUrl('');
-                        }}
-                        className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-[#ebbf01] rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-xs"
-                      >
-                        + Anexar Foto
-                      </button>
+                    {/* Opções para anexar fotos à galeria: Upload Direto e URL */}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Botão de Upload Direto do Dispositivo */}
+                        <label className="flex items-center gap-1.5 px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-[#ebbf01] rounded-xl text-xs font-bold font-mono cursor-pointer transition-colors shadow-xs">
+                          {isUploadingGalleryImgs ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Enviando fotos...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5 text-[#ebbf01]" />
+                              <span>📤 Subir Fotos do Dispositivo</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            disabled={isUploadingGalleryImgs}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const files: File[] = e.target.files ? Array.from(e.target.files) : [];
+                              if (files.length === 0) return;
+                              try {
+                                setIsUploadingGalleryImgs(true);
+                                const uploadedUrls: string[] = [];
+                                for (const file of files) {
+                                  const url = await uploadTutorialMediaFile(file);
+                                  uploadedUrls.push(url);
+                                }
+                                const current = editingTutorial.images || [];
+                                const newSet = Array.from(new Set([...current, ...uploadedUrls]));
+                                setEditingTutorial({ ...editingTutorial, images: newSet });
+                                triggerSuccess(`${uploadedUrls.length} foto(s) adicionada(s) à galeria!`);
+                              } catch (err: any) {
+                                alert(err.message || 'Erro ao subir imagens');
+                              } finally {
+                                setIsUploadingGalleryImgs(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+
+                        {/* Campo para anexar via URL manual */}
+                        <div className="flex-1 min-w-[220px] flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newAttachedImgUrl}
+                            onChange={(e) => setNewAttachedImgUrl(e.target.value)}
+                            placeholder="Ou cole URL da foto (https://...)"
+                            className="flex-1 bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const trimmed = newAttachedImgUrl.trim();
+                              if (!trimmed) return;
+                              const currentImages = editingTutorial.images || [];
+                              if (!currentImages.includes(trimmed)) {
+                                setEditingTutorial({
+                                  ...editingTutorial,
+                                  images: [...currentImages, trimmed]
+                                });
+                              }
+                              setNewAttachedImgUrl('');
+                            }}
+                            className="px-3 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer shrink-0 shadow-xs"
+                          >
+                            + URL
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

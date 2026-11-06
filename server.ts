@@ -69,7 +69,7 @@ app.post('/api/delete-file.php', (req, res) => {
 });
 
 // 1. Endpoint /api/upload.php (compatível com Hostinger e Local)
-app.post('/api/upload.php', upload.single('file'), (req, res) => {
+app.post('/api/upload.php', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       // Se não veio multipart, tenta ler body com dataUrl base64
@@ -91,6 +91,44 @@ app.post('/api/upload.php', upload.single('file'), (req, res) => {
         }
       }
       return res.status(400).json({ success: false, error: 'Nenhum arquivo enviado' });
+    }
+
+    const originalPath = req.file.path;
+    const isVideo = (req.file.mimetype && req.file.mimetype.startsWith('video/')) || /\.(mp4|mov|avi|mkv|webm)$/i.test(req.file.originalname);
+    const shouldConvertToWebm = req.body?.convertToWebm === 'true' || req.body?.convertToWebm === '1';
+
+    // Se solicitado conversão para WebM e o arquivo não for .webm
+    if (isVideo && shouldConvertToWebm && !req.file.filename.toLowerCase().endsWith('.webm')) {
+      const webmFilename = req.file.filename.replace(/\.[^/.]+$/, '') + '.webm';
+      const webmPath = path.join(uploadsDir, webmFilename);
+
+      try {
+        const { execFileSync } = await import('child_process');
+        execFileSync('ffmpeg', [
+          '-y',
+          '-i', originalPath,
+          '-c:v', 'libvpx',
+          '-b:v', '1.5M',
+          '-crf', '22',
+          '-c:a', 'libopus',
+          '-deadline', 'realtime',
+          '-cpu-used', '4',
+          webmPath
+        ], { stdio: 'ignore', timeout: 90000 });
+
+        if (fs.existsSync(webmPath) && fs.statSync(webmPath).size > 0) {
+          try { fs.unlinkSync(originalPath); } catch {}
+          return res.json({
+            success: true,
+            url: `/uploads/${webmFilename}`,
+            filename: webmFilename,
+            converted: true,
+            format: 'webm',
+          });
+        }
+      } catch (convErr) {
+        console.warn('Conversão para WebM via ffmpeg falhou ou demorou, mantendo arquivo original:', convErr);
+      }
     }
 
     const safeUrl = `/uploads/${req.file.filename}`;

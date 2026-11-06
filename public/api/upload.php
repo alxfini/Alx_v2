@@ -70,6 +70,18 @@ if ($isVideo) {
     $safeName .= '.' . $finalExt;
     $targetPath = $uploadDir . $safeName;
     $success = move_uploaded_file($file['tmp_name'], $targetPath);
+
+    $convertToWebm = (isset($_POST['convertToWebm']) && ($_POST['convertToWebm'] === 'true' || $_POST['convertToWebm'] === '1'));
+    if ($success && $convertToWebm && $finalExt !== 'webm') {
+        $webmName = 'media_' . time() . '_' . bin2hex(random_bytes(4)) . '.webm';
+        $webmPath = $uploadDir . $webmName;
+        @exec("ffmpeg -y -i " . escapeshellarg($targetPath) . " -c:v libvpx -b:v 1.5M -crf 22 -c:a libopus -deadline realtime -cpu-used 4 " . escapeshellarg($webmPath) . " 2>&1", $out, $code);
+        if ($code === 0 && file_exists($webmPath) && filesize($webmPath) > 0) {
+            @unlink($targetPath);
+            $safeName = $webmName;
+            $finalExt = 'webm';
+        }
+    }
 } else {
     // Se for SVG, GIF ou ICO, manter formato original sem reprocessar canvas GD
     $isVectorOrSpecial = in_array($mime, ['image/svg+xml', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon']) || in_array($ext, ['svg', 'gif', 'ico']);
