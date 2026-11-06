@@ -136,6 +136,62 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
 
   const youtubeEmbedUrl = getYouTubeEmbedUrl(tutorial.videoUrl);
 
+  const CALLOUT_COLOR_MAP: Record<string, string> = {
+    vermelho: '#ef4444',
+    red: '#ef4444',
+    laranja: '#f97316',
+    orange: '#f97316',
+    amarelo: '#eab308',
+    yellow: '#eab308',
+    ouro: '#ebbf01',
+    gold: '#ebbf01',
+    verde: '#10b981',
+    green: '#10b981',
+    neon: '#1EFF00',
+    azul: '#3b82f6',
+    blue: '#3b82f6',
+    roxo: '#8b5cf6',
+    purple: '#8b5cf6',
+    violeta: '#a855f7',
+    rosa: '#ec4899',
+    pink: '#ec4899',
+    ciano: '#06b6d4',
+    cyan: '#06b6d4',
+    turquesa: '#14b8a6',
+    cinza: '#64748b',
+    gray: '#64748b',
+    branco: '#e2e8f0',
+    white: '#e2e8f0',
+  };
+
+  const resolveColorHex = (colorStr?: string): string => {
+    if (!colorStr) return '#3b82f6';
+    const clean = colorStr.trim().toLowerCase();
+    if (clean.startsWith('#')) {
+      if (/^#[0-9a-f]{3,8}$/i.test(clean)) {
+        return clean;
+      }
+    }
+    if (CALLOUT_COLOR_MAP[clean]) {
+      return CALLOUT_COLOR_MAP[clean];
+    }
+    return '#3b82f6';
+  };
+
+  const hexToRgba = (hex: string, alpha: number): string => {
+    let clean = hex.replace('#', '').trim();
+    if (clean.length === 3) {
+      clean = clean.split('').map(c => c + c).join('');
+    }
+    if (clean.length >= 6) {
+      const r = parseInt(clean.substring(0, 2), 16) || 0;
+      const g = parseInt(clean.substring(2, 4), 16) || 0;
+      const b = parseInt(clean.substring(4, 6), 16) || 0;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    return `rgba(59, 130, 246, ${alpha})`;
+  };
+
   // Parse markdown content with support for images, headings, callouts, steps
   const renderFormattedContent = (content: string) => {
     const lines = content.split('\n');
@@ -152,8 +208,8 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
         continue;
       }
 
-      // Check for inline video tag: [video: url | caption] or [vídeo: url | caption] or [video: url]
-      const tagVideoMatch = trimmed.match(/^\[(?:video|vídeo):\s*([^|\]]+)(?:\|\s*([^\]]+))?\]$/i);
+      // Check for inline video tag: [video: url | caption | loop/noloop] or [vídeo: url | caption | loop/noloop]
+      const tagVideoMatch = trimmed.match(/^\[(?:video|vídeo):\s*([^\]]+)\]$/i);
       const mdVideoMatch = trimmed.match(/^!\[(?:video|vídeo)(?::\s*|\s+)?(.*?)\]\((.*?)\)$/i);
 
       // Check for inline image markdown: ![caption](url) or [imagem: url | caption] or [imagem: url]
@@ -163,10 +219,20 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
       // Determine if this line represents an inline video
       let detectedVideoUrl: string | null = null;
       let detectedVideoCaption = '';
+      let isVideoLoop = true;
 
       if (tagVideoMatch) {
-        detectedVideoUrl = tagVideoMatch[1].trim();
-        detectedVideoCaption = (tagVideoMatch[2] || '').trim();
+        const parts = tagVideoMatch[1].split('|').map(p => p.trim());
+        detectedVideoUrl = parts[0];
+        detectedVideoCaption = parts[1] || '';
+        if (parts[2]) {
+          const l = parts[2].toLowerCase();
+          if (l === 'noloop' || l === 'no-loop' || l === 'sem-loop' || l === 'false' || l === 'nao' || l === 'não') {
+            isVideoLoop = false;
+          } else if (l === 'loop' || l === 'true' || l === 'sim') {
+            isVideoLoop = true;
+          }
+        }
       } else if (mdVideoMatch) {
         detectedVideoUrl = mdVideoMatch[2].trim();
         detectedVideoCaption = (mdVideoMatch[1] || '').trim();
@@ -182,7 +248,7 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
 
       if (detectedVideoUrl) {
         const vidNum = videoCount++;
-        const ytEmbed = getYouTubeEmbedUrl(detectedVideoUrl, true);
+        const ytEmbed = getYouTubeEmbedUrl(detectedVideoUrl, isVideoLoop);
 
         elements.push(
           <figure key={`vid-${i}`} className="my-6 rounded-2xl overflow-hidden border border-white/[0.1] bg-[#121217] shadow-xl">
@@ -199,7 +265,7 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
                 <video
                   src={detectedVideoUrl}
                   controls
-                  loop
+                  loop={isVideoLoop}
                   playsInline
                   preload="metadata"
                   className="w-full h-full object-contain bg-black"
@@ -215,13 +281,23 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
                   <strong>Vídeo {vidNum}:</strong> {detectedVideoCaption || 'Demonstração em vídeo'}
                 </span>
               </div>
-              <span 
-                className="px-2 py-0.5 rounded-md bg-[#1EFF00]/15 text-[#1EFF00] border border-[#1EFF00]/30 text-[10px] font-mono shrink-0 flex items-center gap-1 shadow-2xs"
-                title="Este vídeo está configurado para repetir continuamente (Loop)"
-              >
-                <RotateCcw className="w-2.5 h-2.5" />
-                <span>Loop Contínuo</span>
-              </span>
+              {isVideoLoop ? (
+                <span 
+                  className="px-2 py-0.5 rounded-md bg-[#1EFF00]/15 text-[#1EFF00] border border-[#1EFF00]/30 text-[10px] font-mono shrink-0 flex items-center gap-1 shadow-2xs"
+                  title="Este vídeo está configurado para repetir continuamente (Loop)"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span>Loop Contínuo</span>
+                </span>
+              ) : (
+                <span 
+                  className="px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-400 border border-white/10 text-[10px] font-mono shrink-0 flex items-center gap-1"
+                  title="Reprodução padrão (não repete ao terminar)"
+                >
+                  <Play className="w-2.5 h-2.5" />
+                  <span>Reprodução Única</span>
+                </span>
+              )}
             </figcaption>
           </figure>
         );
@@ -291,37 +367,76 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
         continue;
       }
 
-      // Callout Block (> ...)
-      if (trimmed.startsWith('> ')) {
-        const calloutText = trimmed.replace(/^>\s+/, '');
-        const lower = calloutText.toLowerCase();
-        const isDanger = lower.includes('observação') || lower.includes('observacao') || lower.includes('perigo') || lower.includes('urgente') || lower.includes('crítico') || lower.includes('critico');
-        const isWarning = !isDanger && (lower.includes('atenção') || lower.includes('atencao') || lower.includes('cuidado') || lower.includes('aviso'));
-        const isTip = !isDanger && (lower.includes('dica') || lower.includes('nota'));
+      // Check for standalone [caixa: cor | texto] or [box: cor | texto]
+      const tagCaixaMatch = trimmed.match(/^\[(?:caixa|box):\s*([^\|\]]+)(?:\|\s*([^\]]+))?\]$/i);
+
+      // Callout Block (> ...) or [caixa: ...]
+      if (trimmed.startsWith('> ') || tagCaixaMatch) {
+        let calloutText = '';
+        let explicitColor: string | undefined = undefined;
+
+        if (tagCaixaMatch) {
+          explicitColor = tagCaixaMatch[1].trim();
+          calloutText = (tagCaixaMatch[2] || '').trim();
+        } else {
+          const raw = trimmed.replace(/^>\s+/, '').trim();
+          // Check for [cor: ...] or [color: ...] at start
+          const colorTagMatch = raw.match(/^\[(?:cor|color):\s*([^\|\]]+)(?:\|\s*([^\]]+))?\]\s*(.*)$/i);
+          if (colorTagMatch) {
+            explicitColor = colorTagMatch[1].trim();
+            const inlineTitle = colorTagMatch[2] ? `**${colorTagMatch[2].trim()}:** ` : '';
+            calloutText = inlineTitle + (colorTagMatch[3] || '').trim();
+          } else {
+            calloutText = raw;
+          }
+        }
+
+        let resolvedColor = '#3b82f6';
+        if (explicitColor) {
+          resolvedColor = resolveColorHex(explicitColor);
+        } else {
+          // Fallback to keyword-based detection for legacy tutorials
+          const lower = calloutText.toLowerCase();
+          const isDanger = lower.includes('observação') || lower.includes('observacao') || lower.includes('perigo') || lower.includes('urgente') || lower.includes('crítico') || lower.includes('critico');
+          const isWarning = !isDanger && (lower.includes('atenção') || lower.includes('atencao') || lower.includes('cuidado') || lower.includes('aviso'));
+          const isTip = !isDanger && (lower.includes('dica') || lower.includes('nota'));
+
+          if (isDanger) resolvedColor = '#ef4444';
+          else if (isWarning) resolvedColor = '#f59e0b';
+          else if (isTip) resolvedColor = '#3b82f6';
+          else resolvedColor = '#10b981';
+        }
+
+        // Select an icon appropriate for the tone or generic highlight
+        const lowerText = calloutText.toLowerCase();
+        const isDangerIcon = resolvedColor === '#ef4444' || lowerText.includes('observação') || lowerText.includes('perigo');
+        const isWarningIcon = resolvedColor === '#f59e0b' || resolvedColor === '#eab308' || resolvedColor === '#f97316' || lowerText.includes('atenção') || lowerText.includes('cuidado');
+        const isTipIcon = resolvedColor === '#3b82f6' || lowerText.includes('dica');
 
         elements.push(
           <div 
             key={`callout-${i}`} 
-            className={`my-4 p-4 sm:p-5 rounded-2xl border flex items-start gap-3.5 shadow-lg ${
-              isDanger
-                ? 'bg-red-500/10 border-red-500/30 text-red-200'
-                : isWarning 
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' 
-                : isTip 
-                ? 'bg-blue-500/10 border-blue-500/30 text-blue-200' 
-                : 'bg-white/[0.04] border-white/[0.1] text-neutral-200'
-            }`}
+            style={{
+              backgroundColor: hexToRgba(resolvedColor, 0.12),
+              borderColor: hexToRgba(resolvedColor, 0.35),
+              borderLeftColor: resolvedColor,
+              borderLeftWidth: '4px',
+              boxShadow: `0 4px 20px -2px ${hexToRgba(resolvedColor, 0.2)}`
+            }}
+            className="my-4 p-4 sm:p-5 rounded-2xl border flex items-start gap-3.5 shadow-lg backdrop-blur-xs transition-all"
           >
-            {isDanger ? (
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            ) : isWarning ? (
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            ) : isTip ? (
-              <Sparkles className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-            ) : (
-              <Info className="w-5 h-5 text-[#1EFF00] shrink-0 mt-0.5" />
-            )}
-            <div className="text-xs sm:text-sm leading-relaxed font-sans">
+            <div style={{ color: resolvedColor }} className="shrink-0 mt-0.5">
+              {isDangerIcon ? (
+                <AlertCircle className="w-5 h-5" />
+              ) : isWarningIcon ? (
+                <AlertTriangle className="w-5 h-5" />
+              ) : isTipIcon ? (
+                <Sparkles className="w-5 h-5" />
+              ) : (
+                <Info className="w-5 h-5" />
+              )}
+            </div>
+            <div className="text-xs sm:text-sm leading-relaxed font-sans text-neutral-100 flex-1">
               {renderInlineStyles(calloutText)}
             </div>
           </div>
@@ -498,38 +613,7 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
                 {renderFormattedContent(tutorial.content)}
               </div>
 
-              {/* Galeria de Imagens Anexadas Adicionais (se existirem) */}
-              {tutorial.images && tutorial.images.length > 0 && (
-                <div className="space-y-3 pt-6 border-t border-white/[0.08]">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1EFF00] uppercase tracking-wider">
-                    <FileText className="w-4 h-4" />
-                    <span>Figuras & Diagramas Anexados ao Guia</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {tutorial.images.map((imgUrl, idx) => (
-                      <div 
-                        key={idx}
-                        onClick={() => setEnlargedImage(imgUrl)}
-                        className="rounded-xl overflow-hidden border border-white/[0.08] bg-[#14141c] cursor-pointer group hover:border-[#1EFF00]/40 transition-colors"
-                      >
-                        <div className="aspect-video bg-black/40 overflow-hidden relative">
-                          <img 
-                            src={imgUrl} 
-                            alt={`Anexo ${idx + 1}`} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Eye className="w-5 h-5 text-white" />
-                          </div>
-                        </div>
-                        <div className="p-2 text-[11px] font-mono text-neutral-400 truncate">
-                          Anexo #{idx + 1}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+
 
               {/* YouTube Video Embed Integrado no FINAL DO TUTORIAL */}
               {tutorial.videoUrl && (

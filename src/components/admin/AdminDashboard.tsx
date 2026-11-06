@@ -85,7 +85,7 @@ import { PartnersTab } from './PartnersTab';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
 import { resolveWallpaperDownloadUrl } from '../../utils/wallpaperUrl';
 import { EDITABLE_PAGES, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../../utils/pageColors';
-import { ALXApp, NewsArticle, ProductItem, EVModel, OTAUpdate, Tutorial, YouTubeVideo, CustomPageLink, UnlockServiceItem, WallpaperItem, CustomSocialLink, ContactCardItem, VipMember, IptvAppItem, IptvSimpleLink } from '../../types';
+import { ALXApp, NewsArticle, ProductItem, EVModel, OTAUpdate, Tutorial, TutorialVideoItem, YouTubeVideo, CustomPageLink, UnlockServiceItem, WallpaperItem, CustomSocialLink, ContactCardItem, VipMember, IptvAppItem, IptvSimpleLink } from '../../types';
 import { SocialIcon } from '../common/SocialIcon';
 import { getResolvedFooterIcons } from '../../utils/footerIcons';
 import { getResolvedHeaderMenu } from '../../utils/headerMenu';
@@ -407,10 +407,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showVideoPrompt, setShowVideoPrompt] = useState(false);
   const [inlineVideoUrl, setInlineVideoUrl] = useState('');
   const [inlineVideoCaption, setInlineVideoCaption] = useState('');
+  const [inlineVideoLoop, setInlineVideoLoop] = useState(true);
   const [isUploadingInlineImg, setIsUploadingInlineImg] = useState(false);
   const [isUploadingInlineVideo, setIsUploadingInlineVideo] = useState(false);
   const [isUploadingGalleryImgs, setIsUploadingGalleryImgs] = useState(false);
-  const [convertVideoToWebm, setConvertVideoToWebm] = useState(true);
+  const [isUploadingGalleryVideo, setIsUploadingGalleryVideo] = useState(false);
+  const [newAttachedVideoUrl, setNewAttachedVideoUrl] = useState('');
+  const [newAttachedVideoCaption, setNewAttachedVideoCaption] = useState('');
+  const [convertVideoToWebm, setConvertVideoToWebm] = useState(false);
+  const [showCalloutPrompt, setShowCalloutPrompt] = useState(false);
+  const [calloutColor, setCalloutColor] = useState('#ef4444');
+  const [calloutTitle, setCalloutTitle] = useState('Observação');
+  const [calloutText, setCalloutText] = useState('Importante verificar a versão e compatibilidade antes de prosseguir.');
+
+  const PRESET_CALLOUT_COLORS = [
+    { name: 'Vermelho', hex: '#ef4444', label: 'Observação / Alerta', defaultTitle: 'Observação', icon: '🛑' },
+    { name: 'Laranja', hex: '#f97316', label: 'Cuidado / Importante', defaultTitle: 'Cuidado', icon: '⚡' },
+    { name: 'Amarelo', hex: '#eab308', label: 'Atenção / Aviso', defaultTitle: 'Atenção', icon: '⚠️' },
+    { name: 'Verde', hex: '#10b981', label: 'Recomendação / Sucesso', defaultTitle: 'Recomendação', icon: '✅' },
+    { name: 'Neon', hex: '#1EFF00', label: 'Destaque ALX Neon', defaultTitle: 'Destaque', icon: '🔥' },
+    { name: 'Azul', hex: '#3b82f6', label: 'Dica / Informação', defaultTitle: 'Dica', icon: '💡' },
+    { name: 'Ciano', hex: '#06b6d4', label: 'Requisito Técnico', defaultTitle: 'Requisito', icon: '💎' },
+    { name: 'Roxo', hex: '#8b5cf6', label: 'Exclusivo VIP', defaultTitle: 'Acesso VIP', icon: '👑' },
+    { name: 'Rosa', hex: '#ec4899', label: 'Novidade / Bônus', defaultTitle: 'Novidade', icon: '🌸' },
+    { name: 'Cinza', hex: '#64748b', label: 'Nota / Rodapé', defaultTitle: 'Nota', icon: '📌' },
+  ];
 
   // Helper para upload direto de mídias (imagens e vídeos) do tutorial para o servidor
   const uploadTutorialMediaFile = async (file: File, convertToWebm = false): Promise<string> => {
@@ -432,6 +453,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       throw new Error(data?.error || 'Erro ao salvar arquivo no servidor');
     }
     return data.url;
+  };
+
+  const [imageCaptions, setImageCaptions] = useState<Record<string, string>>({});
+
+  // Helper para excluir arquivo físico permanentemente do servidor (liberar espaço em disco)
+  const handleDeleteServerFile = async (filePath: string): Promise<boolean> => {
+    if (!filePath) return false;
+    try {
+      const res = await fetch('/api/delete-file.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filepath: filePath }),
+      });
+      const data = await res.json().catch(() => ({ success: true }));
+      return !!data.success;
+    } catch (err) {
+      console.error('Erro ao excluir arquivo:', err);
+      return false;
+    }
   };
 
   const [editingUnlockService, setEditingUnlockService] = useState<UnlockServiceItem | null>(null);
@@ -9233,41 +9273,117 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         • Marcadores
                       </button>
 
+                      {/* Seletor & Criador de Caixa com Qualquer Cor */}
                       <button
                         type="button"
                         onClick={() => {
-                          const current = editingTutorial.content || '';
-                          setEditingTutorial({ ...editingTutorial, content: `${current}\n\n> **Atenção:** Não desligue o carro durante a atualização.\n` });
+                          setShowCalloutPrompt(!showCalloutPrompt);
+                          setShowImagePrompt(false);
+                          setShowVideoPrompt(false);
                         }}
-                        className="px-2.5 py-1 rounded bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 font-bold cursor-pointer shadow-2xs"
-                        title="Adicionar Caixa de Alerta / Aviso"
+                        className={`px-3 py-1 rounded font-bold cursor-pointer shadow-2xs flex items-center gap-1.5 transition-all border ${
+                          showCalloutPrompt 
+                            ? 'bg-purple-600 text-white border-purple-400 ring-2 ring-purple-300' 
+                            : 'bg-white hover:bg-neutral-100 text-neutral-900 border-neutral-300'
+                        }`}
+                        title="Personalizar e Inserir Caixa com Qualquer Cor"
                       >
-                        ⚠️ Caixa Aviso
+                        <Palette className="w-3.5 h-3.5 text-purple-600" />
+                        <span>🎨 Caixa Colorida (Escolher Cor)</span>
+                        <span 
+                          className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-2xs shrink-0" 
+                          style={{ backgroundColor: calloutColor }}
+                        />
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const current = editingTutorial.content || '';
-                          setEditingTutorial({ ...editingTutorial, content: `${current}\n\n> **Dica:** Utilize um pendrive formatado em FAT32.\n` });
-                        }}
-                        className="px-2.5 py-1 rounded bg-blue-100 hover:bg-blue-200 border border-blue-300 text-blue-900 font-bold cursor-pointer shadow-2xs"
-                        title="Adicionar Caixa de Dica Técnica"
-                      >
-                        💡 Caixa Dica
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const current = editingTutorial.content || '';
-                          setEditingTutorial({ ...editingTutorial, content: `${current}\n\n> **Observação:** Importante verificar a versão e compatibilidade antes de prosseguir.\n` });
-                        }}
-                        className="px-2.5 py-1 rounded bg-red-100 hover:bg-red-200 border border-red-300 text-red-900 font-bold cursor-pointer shadow-2xs"
-                        title="Adicionar Caixa Vermelha de Observação / Atenção Especial"
-                      >
-                        🛑 Caixa Observação
-                      </button>
+                      {/* Botões rápidos de 1-clique para cores frequentes */}
+                      <div className="hidden sm:flex items-center gap-1 border-l border-neutral-300 pl-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCalloutColor('#ef4444');
+                            setCalloutTitle('Observação');
+                            const current = editingTutorial.content || '';
+                            setEditingTutorial({ 
+                              ...editingTutorial, 
+                              content: `${current}\n\n> [cor: #ef4444] **Observação:** Importante verificar a versão e compatibilidade antes de prosseguir.\n` 
+                            });
+                            triggerSuccess('Caixa Vermelha (Observação) inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-red-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Vermelha rápida (Observação)"
+                        >
+                          🛑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCalloutColor('#eab308');
+                            setCalloutTitle('Atenção');
+                            const current = editingTutorial.content || '';
+                            setEditingTutorial({ 
+                              ...editingTutorial, 
+                              content: `${current}\n\n> [cor: #eab308] **Atenção:** Não desligue o carro durante a atualização.\n` 
+                            });
+                            triggerSuccess('Caixa Amarela (Atenção) inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-amber-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Amarela rápida (Atenção)"
+                        >
+                          ⚠️
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCalloutColor('#3b82f6');
+                            setCalloutTitle('Dica');
+                            const current = editingTutorial.content || '';
+                            setEditingTutorial({ 
+                              ...editingTutorial, 
+                              content: `${current}\n\n> [cor: #3b82f6] **Dica:** Utilize um pendrive formatado em FAT32.\n` 
+                            });
+                            triggerSuccess('Caixa Azul (Dica) inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-blue-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Azul rápida (Dica)"
+                        >
+                          💡
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCalloutColor('#10b981');
+                            setCalloutTitle('Recomendação');
+                            const current = editingTutorial.content || '';
+                            setEditingTutorial({ 
+                              ...editingTutorial, 
+                              content: `${current}\n\n> [cor: #10b981] **Recomendação:** Realize um backup antes de iniciar.\n` 
+                            });
+                            triggerSuccess('Caixa Verde inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-emerald-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Verde rápida"
+                        >
+                          ✅
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCalloutColor('#8b5cf6');
+                            setCalloutTitle('Exclusivo');
+                            const current = editingTutorial.content || '';
+                            setEditingTutorial({ 
+                              ...editingTutorial, 
+                              content: `${current}\n\n> [cor: #8b5cf6] **Exclusivo:** Conteúdo especial e validado.\n` 
+                            });
+                            triggerSuccess('Caixa Roxa inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-purple-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Roxa rápida"
+                        >
+                          👑
+                        </button>
+                      </div>
 
                       {/* Botão Inserir Foto no Texto */}
                       <button
@@ -9275,6 +9391,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         onClick={() => {
                           setShowImagePrompt(!showImagePrompt);
                           setShowVideoPrompt(false);
+                          setShowCalloutPrompt(false);
                         }}
                         className={`px-3 py-1 rounded font-bold cursor-pointer shadow-2xs flex items-center gap-1.5 ml-auto transition-colors ${
                           showImagePrompt ? 'bg-[#ebbf01] text-black' : 'bg-neutral-900 hover:bg-black text-[#ebbf01]'
@@ -9291,6 +9408,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         onClick={() => {
                           setShowVideoPrompt(!showVideoPrompt);
                           setShowImagePrompt(false);
+                          setShowCalloutPrompt(false);
                         }}
                         className={`px-3 py-1 rounded font-bold cursor-pointer shadow-2xs flex items-center gap-1.5 transition-colors ${
                           showVideoPrompt ? 'bg-[#1EFF00] text-black' : 'bg-neutral-900 hover:bg-black text-[#1EFF00]'
@@ -9301,6 +9419,192 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span>🎬 Inserir Vídeo no Texto</span>
                       </button>
                     </div>
+
+                    {/* Popover / Form para Escolher Qualquer Cor de Caixa */}
+                    {showCalloutPrompt && (
+                      <div className="p-4 bg-neutral-900 text-white rounded-2xl border border-purple-500/50 shadow-2xl space-y-4 animate-in fade-in">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                          <span className="text-xs font-mono font-bold text-purple-300 flex items-center gap-2">
+                            <Palette className="w-4 h-4 text-purple-400" />
+                            <span>Personalizar Caixa de Destaque / Aviso (Escolha Qualquer Cor)</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowCalloutPrompt(false)}
+                            className="text-neutral-400 hover:text-white p-1 cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Paleta de Cores Pré-definidas */}
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            1. Escolha uma Cor da Paleta ou Personalize no Seletor Livre:
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                            {PRESET_CALLOUT_COLORS.map((preset) => {
+                              const isSelected = calloutColor.toLowerCase() === preset.hex.toLowerCase();
+                              return (
+                                <button
+                                  key={preset.hex}
+                                  type="button"
+                                  onClick={() => {
+                                    setCalloutColor(preset.hex);
+                                    if (!calloutTitle || PRESET_CALLOUT_COLORS.some(p => p.defaultTitle === calloutTitle)) {
+                                      setCalloutTitle(preset.defaultTitle);
+                                    }
+                                  }}
+                                  className={`flex items-center gap-2 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                    isSelected 
+                                      ? 'bg-white/15 border-white ring-2 ring-white/50 text-white scale-[1.02]' 
+                                      : 'bg-black/30 border-white/10 text-neutral-300 hover:bg-white/5 hover:border-white/30'
+                                  }`}
+                                >
+                                  <span 
+                                    className="w-4 h-4 rounded-full border border-black/30 shadow-2xs shrink-0 flex items-center justify-center text-[10px]"
+                                    style={{ backgroundColor: preset.hex }}
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold truncate leading-tight flex items-center gap-1">
+                                      <span>{preset.icon}</span>
+                                      <span>{preset.name}</span>
+                                    </div>
+                                    <div className="text-[9px] font-mono text-neutral-400 truncate">{preset.hex}</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Seletor Livre de Cor HEX */}
+                        <div className="p-3 rounded-xl bg-black/40 border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs font-mono font-bold text-neutral-300 flex items-center gap-2 cursor-pointer">
+                              <span>Ou escolha literalmente qualquer cor:</span>
+                              <input
+                                type="color"
+                                value={calloutColor}
+                                onChange={(e) => setCalloutColor(e.target.value)}
+                                className="w-8 h-8 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0.5"
+                                title="Seletor de cor livre"
+                              />
+                            </label>
+                            <input
+                              type="text"
+                              value={calloutColor}
+                              onChange={(e) => setCalloutColor(e.target.value)}
+                              placeholder="#HEX"
+                              className="w-24 px-2.5 py-1 text-xs font-mono font-bold bg-neutral-800 border border-white/20 rounded-lg text-white uppercase focus:border-purple-400 focus:outline-none"
+                            />
+                          </div>
+                          <div className="text-[11px] font-mono text-neutral-300">
+                            Cor selecionada: <strong style={{ color: calloutColor }}>{calloutColor}</strong>
+                          </div>
+                        </div>
+
+                        {/* Título e Texto */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="space-y-1 sm:col-span-1">
+                            <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                              2. Título / Destaque:
+                            </label>
+                            <input
+                              type="text"
+                              value={calloutTitle}
+                              onChange={(e) => setCalloutTitle(e.target.value)}
+                              placeholder="Ex: Observação, Atenção..."
+                              className="w-full bg-neutral-800 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-purple-400"
+                            />
+                            {/* Chips de títulos rápidos */}
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {['Observação', 'Atenção', 'Dica', 'Cuidado', 'Importante', 'Requisito'].map(chip => (
+                                <button
+                                  key={chip}
+                                  type="button"
+                                  onClick={() => setCalloutTitle(chip)}
+                                  className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-neutral-300 cursor-pointer"
+                                >
+                                  {chip}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1 sm:col-span-2">
+                            <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                              3. Mensagem / Conteúdo da Caixa:
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={calloutText}
+                              onChange={(e) => setCalloutText(e.target.value)}
+                              placeholder="Digite a mensagem ou orientação que ficará dentro da caixa..."
+                              className="w-full bg-neutral-800 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-purple-400 leading-relaxed"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Prévia em Tempo Real */}
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-mono text-neutral-400 font-bold block">
+                            👁️ Prévia em Tempo Real (Como ficará no Tutorial):
+                          </label>
+                          <div 
+                            style={{
+                              backgroundColor: `${calloutColor}18`,
+                              borderColor: `${calloutColor}50`,
+                              borderLeftColor: calloutColor,
+                              borderLeftWidth: '4px',
+                            }}
+                            className="p-3.5 rounded-xl border flex items-start gap-3 shadow-lg transition-all"
+                          >
+                            <span 
+                              className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 font-bold text-xs"
+                              style={{ color: calloutColor }}
+                            >
+                              ●
+                            </span>
+                            <div className="text-xs text-neutral-100 font-sans leading-relaxed">
+                              {calloutTitle && <strong style={{ color: calloutColor }}>{calloutTitle}: </strong>}
+                              <span>{calloutText || 'Escreva o texto explicativo da caixa acima...'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botões de Ação */}
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setShowCalloutPrompt(false)}
+                            className="px-3 py-1.5 rounded-xl border border-white/20 hover:bg-white/10 text-neutral-300 text-xs font-mono cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = editingTutorial.content || '';
+                              const title = calloutTitle.trim();
+                              const body = calloutText.trim() || 'Digite seu texto aqui.';
+                              const formattedTag = `\n\n> [cor: ${calloutColor}] ${title ? `**${title}:** ` : ''}${body}\n`;
+                              
+                              setEditingTutorial({
+                                ...editingTutorial,
+                                content: `${current}${formattedTag}`,
+                              });
+                              setShowCalloutPrompt(false);
+                              triggerSuccess(`Caixa personalizada (${calloutColor}) inserida com sucesso!`);
+                            }}
+                            className="px-4 py-1.5 rounded-xl text-black font-extrabold text-xs font-mono cursor-pointer transition-all shadow-md hover:scale-[1.02]"
+                            style={{ backgroundColor: calloutColor }}
+                          >
+                            + Inserir Caixa no Tutorial
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Popover / Form para Inserir Foto com Legenda e Upload Direto */}
                     {showImagePrompt && (
@@ -9593,6 +9897,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           />
                         </div>
 
+                        {/* Opção de Looping Contínuo */}
+                        <div className="flex items-center justify-between p-2.5 bg-neutral-800/80 rounded-xl border border-white/10">
+                          <span className="text-xs font-mono text-neutral-200">
+                            Repetição em Loop no Tutorial:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setInlineVideoLoop(!inlineVideoLoop)}
+                            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                              inlineVideoLoop 
+                                ? 'bg-[#1EFF00]/20 text-[#1EFF00] border border-[#1EFF00]/40' 
+                                : 'bg-neutral-700 text-neutral-300 border border-neutral-600'
+                            }`}
+                          >
+                            <RotateCcw className={`w-3 h-3 ${inlineVideoLoop ? 'text-[#1EFF00]' : 'text-neutral-400'}`} />
+                            <span>{inlineVideoLoop ? '🔁 Looping Ativado' : '▶️ Tocar uma vez'}</span>
+                          </button>
+                        </div>
+
                         <div className="flex justify-end gap-2 pt-1 border-t border-white/10">
                           <button
                             type="button"
@@ -9607,12 +9930,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               if (!inlineVideoUrl.trim()) return;
                               const current = editingTutorial.content || '';
                               const caption = inlineVideoCaption.trim() || 'Vídeo explicativo do tutorial';
-                              const tag = `\n\n[video: ${inlineVideoUrl.trim()} | ${caption}]\n\n`;
-                              setEditingTutorial({ ...editingTutorial, content: `${current}${tag}` });
+                              const loopTag = inlineVideoLoop ? 'loop' : 'noloop';
+                              const tag = `\n\n[video: ${inlineVideoUrl.trim()} | ${caption} | ${loopTag}]\n\n`;
+
+                              // Adiciona também na lista de vídeos anexados abaixo
+                              const currentVideos = editingTutorial.videos || [];
+                              const newVidItem: TutorialVideoItem = {
+                                id: `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                                url: inlineVideoUrl.trim(),
+                                caption,
+                                loop: inlineVideoLoop,
+                              };
+                              const exists = currentVideos.some(v => v.url === newVidItem.url);
+                              const updatedVideos = exists 
+                                ? currentVideos.map(v => v.url === newVidItem.url ? { ...v, caption, loop: inlineVideoLoop } : v)
+                                : [...currentVideos, newVidItem];
+
+                              setEditingTutorial({ 
+                                ...editingTutorial, 
+                                content: `${current}${tag}`,
+                                videos: updatedVideos 
+                              });
                               setInlineVideoUrl('');
                               setInlineVideoCaption('');
                               setShowVideoPrompt(false);
-                              triggerSuccess('Vídeo inserido no corpo do texto!');
+                              triggerSuccess('Vídeo inserido no texto e salvo na lista abaixo!');
                             }}
                             disabled={!inlineVideoUrl.trim()}
                             className="px-4 py-1.5 rounded-xl bg-[#1EFF00] disabled:opacity-40 text-black font-extrabold text-xs font-mono cursor-pointer hover:bg-[#25ff08] transition-all"
@@ -9627,7 +9969,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       rows={10}
                       value={editingTutorial.content}
                       onChange={(e) => setEditingTutorial({ ...editingTutorial, content: e.target.value })}
-                      placeholder={`Escreva as instruções completas do tutorial aqui...\n\nUse:\n## Título da Seção\n1. Passo um\n2. Passo dois\n![Legenda da Foto](/uploads/foto.jpg)\n[video: /uploads/video.mp4 | Legenda do Vídeo]\n> **Atenção:** Aviso importante (amarelo)\n> **Dica:** Dica técnica (azul)\n> **Observação:** Observação especial (vermelho)`}
+                      placeholder={`Escreva as instruções completas do tutorial aqui...\n\nUse:\n## Título da Seção\n1. Passo um\n2. Passo dois\n![Legenda da Foto](/uploads/foto.jpg)\n[video: /uploads/video.mp4 | Legenda do Vídeo | loop]\n> [cor: #ef4444] **Observação:** Aviso vermelho\n> [cor: #1EFF00] **Destaque:** Caixa neon personalizada (ou escolha qualquer cor HEX!)`}
                       className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl p-3.5 text-xs text-neutral-900 font-mono leading-relaxed placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
                     />
                   </div>
@@ -9644,42 +9986,166 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </span>
                     </div>
 
-                    {/* Lista de Imagens Anexadas com Botão Inserir no Texto */}
-                    {editingTutorial.images && editingTutorial.images.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                        {editingTutorial.images.map((img, idx) => (
-                          <div key={idx} className="group relative rounded-xl overflow-hidden border border-neutral-300 bg-white shadow-xs">
-                            <div className="aspect-video bg-neutral-100 overflow-hidden">
-                              <img src={img} alt={`Anexo ${idx + 1}`} className="w-full h-full object-cover" />
+                    {/* Lista de Imagens Anexadas com Preview, Edição de Legenda, Inserção no Texto e Exclusão do Servidor */}
+                    {editingTutorial.images && editingTutorial.images.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                        {editingTutorial.images.map((img, idx) => {
+                          const isServerFile = img.startsWith('/uploads/') || img.includes('uploads/');
+                          const isInText = (editingTutorial.content || '').includes(img);
+                          const currentCaption = imageCaptions[img] !== undefined 
+                            ? imageCaptions[img] 
+                            : `Figura ${idx + 1}: Procedimento do tutorial`;
+
+                          return (
+                            <div key={idx} className="rounded-xl overflow-hidden border border-neutral-300 bg-white shadow-xs p-2.5 space-y-2">
+                              {/* Preview da Imagem com Badges de Status */}
+                              <div className="relative aspect-video bg-neutral-950 rounded-lg overflow-hidden flex items-center justify-center group">
+                                <img src={img} alt={`Anexo ${idx + 1}`} className="w-full h-full object-contain" />
+                                
+                                <div className="absolute top-2 left-2 flex items-center gap-1">
+                                  {isInText ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-600/95 text-white font-mono text-[9px] font-bold flex items-center gap-0.5 shadow-xs">
+                                      <Check className="w-2.5 h-2.5" />
+                                      <span>No Texto</span>
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-neutral-800/90 text-neutral-300 font-mono text-[9px]">
+                                      Não inserida
+                                    </span>
+                                  )}
+                                  {isServerFile ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-blue-600/90 text-white font-mono text-[9px] font-bold">
+                                      Servidor
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-amber-600/90 text-white font-mono text-[9px]">
+                                      Link Web
+                                    </span>
+                                  )}
+                                </div>
+
+                                <a 
+                                  href={img} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 cursor-pointer"
+                                  title="Ver imagem original em nova aba"
+                                >
+                                  <Eye className="w-3 h-3 text-[#1EFF00]" />
+                                  <span>Ampliar</span>
+                                </a>
+                              </div>
+
+                              {/* Campo de Legenda da Imagem */}
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-mono text-neutral-600 font-bold block">
+                                  Legenda / Descrição da Imagem:
+                                </label>
+                                <input
+                                  type="text"
+                                  value={currentCaption}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setImageCaptions(prev => ({ ...prev, [img]: val }));
+                                  }}
+                                  placeholder={`Figura ${idx + 1}: Descrição da foto...`}
+                                  className="w-full bg-neutral-50 border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 font-mono placeholder:text-neutral-400 focus:outline-none focus:border-black"
+                                />
+                              </div>
+
+                              {/* Ações: Inserir / Atualizar no Texto, Desvincular e Excluir do Servidor */}
+                              <div className="flex flex-wrap items-center justify-between gap-1 pt-1.5 border-t border-neutral-200">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const captionToUse = (currentCaption || `Figura ${idx + 1}: Imagem explicativa`).trim();
+                                    const current = editingTutorial.content || '';
+                                    if (isInText) {
+                                      const escapedUrl = img.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const regex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)`, 'g');
+                                      const updatedContent = current.replace(regex, `![${captionToUse}](${img})`);
+                                      setEditingTutorial({ ...editingTutorial, content: updatedContent });
+                                      triggerSuccess('Legenda da imagem atualizada no texto!');
+                                    } else {
+                                      const tag = `\n\n![${captionToUse}](${img})\n\n`;
+                                      setEditingTutorial({ ...editingTutorial, content: `${current}${tag}` });
+                                      triggerSuccess(`Foto #${idx + 1} inserida no texto!`);
+                                    }
+                                  }}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition-all flex items-center gap-1 ${
+                                    isInText 
+                                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                                      : 'bg-neutral-900 hover:bg-black text-[#ebbf01]'
+                                  }`}
+                                  title={isInText ? 'Atualizar a legenda desta imagem no corpo do texto' : 'Inserir esta imagem no texto'}
+                                >
+                                  {isInText ? <span>🔄 Atualizar no Texto</span> : <span>+ Inserir no Texto</span>}
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                  {/* Desvincular do tutorial */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedImages = (editingTutorial.images || []).filter((_, i) => i !== idx);
+                                      let updatedContent = editingTutorial.content || '';
+                                      const escapedUrl = img.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const regex = new RegExp(`\\n*!\\[[^\\]]*\\]\\(${escapedUrl}\\)\\n*`, 'gi');
+                                      updatedContent = updatedContent.replace(regex, '\n');
+                                      setEditingTutorial({
+                                        ...editingTutorial,
+                                        images: updatedImages,
+                                        content: updatedContent.trim(),
+                                      });
+                                      triggerSuccess('Foto desvinculada do tutorial!');
+                                    }}
+                                    className="px-1.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-[10px] font-mono cursor-pointer border border-neutral-300"
+                                    title="Remover apenas deste tutorial (mantém arquivo no servidor)"
+                                  >
+                                    Desvincular
+                                  </button>
+
+                                  {/* Excluir Definitivamente do Servidor */}
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const isServer = img.startsWith('/uploads/') || img.includes('uploads/');
+                                      const confirmPrompt = isServer
+                                        ? `Deseja excluir PERMANENTEMENTE esta imagem do servidor?\n\nArquivo: ${img}\nO arquivo físico será apagado do disco liberando espaço.`
+                                        : 'Deseja remover esta imagem do tutorial?';
+
+                                      if (!window.confirm(confirmPrompt)) return;
+
+                                      if (isServer) {
+                                        await handleDeleteServerFile(img);
+                                      }
+
+                                      const updatedImages = (editingTutorial.images || []).filter((_, i) => i !== idx);
+                                      let updatedContent = editingTutorial.content || '';
+                                      const escapedUrl = img.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const regex = new RegExp(`\\n*!\\[[^\\]]*\\]\\(${escapedUrl}\\)\\n*`, 'gi');
+                                      updatedContent = updatedContent.replace(regex, '\n');
+                                      setEditingTutorial({
+                                        ...editingTutorial,
+                                        images: updatedImages,
+                                        content: updatedContent.trim(),
+                                      });
+                                      triggerSuccess(isServer ? 'Imagem excluída do servidor e do tutorial com sucesso!' : 'Imagem removida!');
+                                    }}
+                                    className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 transition-colors cursor-pointer"
+                                    title="Excluir arquivo permanentemente do disco do servidor"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            <div className="p-1.5 flex items-center justify-between gap-1 bg-white border-t border-neutral-200">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = editingTutorial.content || '';
-                                  const tag = `\n\n![Figura ${idx + 1}: Imagem do procedimento](${img})\n\n`;
-                                  setEditingTutorial({ ...editingTutorial, content: `${current}${tag}` });
-                                  triggerSuccess(`Foto #${idx + 1} inserida no texto!`);
-                                }}
-                                className="text-[10px] font-mono font-bold text-neutral-800 hover:text-black hover:underline cursor-pointer truncate"
-                                title="Inserir esta imagem no texto do tutorial"
-                              >
-                                + Inserir no Texto
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = (editingTutorial.images || []).filter((_, i) => i !== idx);
-                                  setEditingTutorial({ ...editingTutorial, images: updated });
-                                }}
-                                className="text-neutral-400 hover:text-red-600 p-0.5"
-                                title="Excluir da galeria"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center bg-white rounded-xl border border-dashed border-neutral-300 text-xs font-mono text-neutral-500">
+                        Nenhuma imagem atribuída a este tutorial ainda. Suba fotos do dispositivo abaixo ou cole uma URL.
                       </div>
                     )}
 
@@ -9761,7 +10227,339 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* 6. Link do Vídeo no YouTube (opcional) */}
+                  {/* 6. Galeria de Vídeos & Clipes Anexados ao Documento */}
+                  <div className="sm:col-span-2 p-4 bg-neutral-50 border border-neutral-200 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <Film className="w-3.5 h-3.5 text-[#1EFF00]" />
+                        <span>Galeria de Vídeos & Clipes do Documento</span>
+                      </label>
+                      <span className="text-[11px] font-mono text-neutral-500">
+                        {(editingTutorial.videos || []).length} vídeo(s) anexado(s)
+                      </span>
+                    </div>
+
+                    {/* Lista de Vídeos Anexados com Prévia, Edição de Legenda, Looping, Inserção e Exclusão do Servidor */}
+                    {editingTutorial.videos && editingTutorial.videos.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        {editingTutorial.videos.map((vid, vIdx) => {
+                          const isWebm = vid.url.endsWith('.webm');
+                          const isYouTube = vid.url.includes('youtube.com') || vid.url.includes('youtu.be');
+                          const isServerFile = vid.url.startsWith('/uploads/') || vid.url.includes('uploads/');
+                          const isInText = (editingTutorial.content || '').includes(vid.url);
+
+                          return (
+                            <div key={vid.id || vIdx} className="rounded-xl overflow-hidden border border-neutral-300 bg-white shadow-xs p-2.5 space-y-2.5">
+                              {/* Player do Vídeo com Controles e Looping */}
+                              <div className="relative aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center">
+                                {isYouTube ? (
+                                  <div className="p-3 text-xs font-mono text-neutral-300 flex items-center gap-2">
+                                    <Youtube className="w-5 h-5 text-red-500 shrink-0" />
+                                    <span className="truncate">YouTube: {vid.url}</span>
+                                  </div>
+                                ) : (
+                                  <video
+                                    src={vid.url}
+                                    controls
+                                    loop={vid.loop !== false}
+                                    playsInline
+                                    preload="metadata"
+                                    className="w-full h-full object-contain bg-black"
+                                  />
+                                )}
+                                
+                                <div className="absolute top-2 left-2 flex items-center gap-1">
+                                  {isInText ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-600/95 text-white font-mono text-[9px] font-bold flex items-center gap-0.5 shadow-xs">
+                                      <Check className="w-2.5 h-2.5" />
+                                      <span>No Texto</span>
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-neutral-900/90 text-neutral-300 font-mono text-[9px]">
+                                      Não inserido
+                                    </span>
+                                  )}
+                                  <span className="px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[9px] font-mono text-white font-bold">
+                                    {isWebm ? 'WEBM' : isYouTube ? 'YOUTUBE' : 'MP4'}
+                                  </span>
+                                  {isServerFile && (
+                                    <span className="px-1.5 py-0.5 rounded bg-blue-600/90 text-white font-mono text-[9px] font-bold">
+                                      Servidor
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="absolute top-2 right-2 flex items-center gap-1">
+                                  {vid.loop !== false ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-[#1EFF00]/95 backdrop-blur-md text-[9px] font-mono text-black font-extrabold flex items-center gap-0.5 shadow-xs">
+                                      <RotateCcw className="w-2.5 h-2.5" />
+                                      <span>LOOP</span>
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-neutral-800/90 backdrop-blur-md text-[9px] font-mono text-neutral-300">
+                                      1x
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Campo de Legenda do Vídeo */}
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-mono text-neutral-600 font-bold block">
+                                  Legenda / Descrição da Demonstração:
+                                </label>
+                                <input
+                                  type="text"
+                                  value={vid.caption || ''}
+                                  onChange={(e) => {
+                                    const newCaption = e.target.value;
+                                    const updated = (editingTutorial.videos || []).map((v, i) =>
+                                      i === vIdx ? { ...v, caption: newCaption } : v
+                                    );
+                                    setEditingTutorial({ ...editingTutorial, videos: updated });
+                                  }}
+                                  placeholder="Ex: Demonstração de ativação na central multimídia"
+                                  className="w-full bg-neutral-50 border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 font-mono placeholder:text-neutral-400 focus:outline-none focus:border-black"
+                                />
+                              </div>
+
+                              {/* Botões de Ação: Alternar Looping, Inserir/Atualizar no Texto, Desvincular e Excluir do Servidor */}
+                              <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-neutral-200">
+                                {/* Botão de Alternar Looping */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const currentLoop = vid.loop !== false;
+                                    const updated = (editingTutorial.videos || []).map((v, i) =>
+                                      i === vIdx ? { ...v, loop: !currentLoop } : v
+                                    );
+                                    // Se já estiver no texto, sincroniza também a tag no texto
+                                    let contentUpdated = editingTutorial.content || '';
+                                    if (isInText) {
+                                      const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const reg = new RegExp(`\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]`, 'gi');
+                                      const caption = vid.caption || `Vídeo ${vIdx + 1}: Demonstração`;
+                                      const loopParam = !currentLoop ? 'loop' : 'noloop';
+                                      contentUpdated = contentUpdated.replace(reg, `[video: ${vid.url} | ${caption} | ${loopParam}]`);
+                                    }
+                                    setEditingTutorial({ 
+                                      ...editingTutorial, 
+                                      videos: updated,
+                                      content: contentUpdated 
+                                    });
+                                    triggerSuccess(`Looping do Vídeo #${vIdx + 1}: ${!currentLoop ? 'LIGADO' : 'DESLIGADO'}`);
+                                  }}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                                    vid.loop !== false
+                                      ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300'
+                                      : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border border-neutral-300'
+                                  }`}
+                                  title="Clique para alternar repetição contínua em looping"
+                                >
+                                  <RotateCcw className={`w-3 h-3 ${vid.loop !== false ? 'text-emerald-700' : 'text-neutral-500'}`} />
+                                  <span>{vid.loop !== false ? 'Looping: Ligado' : 'Looping: Desligado'}</span>
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                  {/* Inserir ou Atualizar no Texto */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = editingTutorial.content || '';
+                                      const caption = vid.caption || `Vídeo ${vIdx + 1}: Demonstração`;
+                                      const loopParam = vid.loop !== false ? 'loop' : 'noloop';
+                                      if (isInText) {
+                                        const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                        const reg = new RegExp(`\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]`, 'gi');
+                                        const updatedContent = current.replace(reg, `[video: ${vid.url} | ${caption} | ${loopParam}]`);
+                                        setEditingTutorial({ ...editingTutorial, content: updatedContent });
+                                        triggerSuccess(`Vídeo #${vIdx + 1} atualizado no texto!`);
+                                      } else {
+                                        const tag = `\n\n[video: ${vid.url} | ${caption} | ${loopParam}]\n\n`;
+                                        setEditingTutorial({ ...editingTutorial, content: `${current}${tag}` });
+                                        triggerSuccess(`Vídeo #${vIdx + 1} inserido no texto!`);
+                                      }
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition-colors shadow-2xs ${
+                                      isInText
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                        : 'bg-neutral-900 hover:bg-black text-[#1EFF00]'
+                                    }`}
+                                    title={isInText ? 'Atualizar legenda e looping deste vídeo no texto' : 'Inserir este vídeo na posição do texto'}
+                                  >
+                                    {isInText ? <span>🔄 Atualizar no Texto</span> : <span>+ Inserir no Texto</span>}
+                                  </button>
+
+                                  {/* Desvincular do tutorial */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = (editingTutorial.videos || []).filter((_, i) => i !== vIdx);
+                                      let updatedContent = editingTutorial.content || '';
+                                      const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const reg = new RegExp(`\\n*\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]\\n*`, 'gi');
+                                      updatedContent = updatedContent.replace(reg, '\n');
+                                      setEditingTutorial({
+                                        ...editingTutorial,
+                                        videos: updated,
+                                        content: updatedContent.trim(),
+                                      });
+                                      triggerSuccess('Vídeo desvinculado do tutorial!');
+                                    }}
+                                    className="px-1.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-[10px] font-mono cursor-pointer border border-neutral-300"
+                                    title="Remover apenas deste tutorial (mantém arquivo no servidor)"
+                                  >
+                                    Desvincular
+                                  </button>
+
+                                  {/* Excluir Definitivamente do Servidor */}
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const isServer = vid.url.startsWith('/uploads/') || vid.url.includes('uploads/');
+                                      const confirmPrompt = isServer
+                                        ? `Deseja excluir PERMANENTEMENTE este vídeo do servidor?\n\nArquivo: ${vid.url}\nO arquivo físico será apagado do disco liberando espaço.`
+                                        : 'Deseja remover este vídeo do tutorial?';
+
+                                      if (!window.confirm(confirmPrompt)) return;
+
+                                      if (isServer) {
+                                        await handleDeleteServerFile(vid.url);
+                                      }
+
+                                      const updated = (editingTutorial.videos || []).filter((_, i) => i !== vIdx);
+                                      let updatedContent = editingTutorial.content || '';
+                                      const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const reg = new RegExp(`\\n*\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]\\n*`, 'gi');
+                                      updatedContent = updatedContent.replace(reg, '\n');
+                                      setEditingTutorial({
+                                        ...editingTutorial,
+                                        videos: updated,
+                                        content: updatedContent.trim(),
+                                      });
+                                      triggerSuccess(isServer ? 'Vídeo excluído do servidor e do tutorial com sucesso!' : 'Vídeo removido!');
+                                    }}
+                                    className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 transition-colors cursor-pointer"
+                                    title="Excluir vídeo permanentemente do disco do servidor (liberar espaço)"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center bg-white rounded-xl border border-dashed border-neutral-300 text-xs font-mono text-neutral-500">
+                        Nenhum vídeo anexado a este tutorial ainda. Suba um vídeo abaixo ou cole uma URL.
+                      </div>
+                    )}
+
+                    {/* Formulário para Subir Novo Vídeo ou Anexar URL */}
+                    <div className="space-y-2 pt-1 border-t border-neutral-200">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Botão de Upload Direto do Dispositivo */}
+                        <label className="flex items-center gap-1.5 px-3.5 py-2 bg-neutral-900 hover:bg-black text-[#1EFF00] rounded-xl text-xs font-bold font-mono cursor-pointer transition-colors shadow-xs">
+                          {isUploadingGalleryVideo ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Enviando vídeo...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5 text-[#1EFF00]" />
+                              <span>📤 Subir Vídeo do Dispositivo (MP4 / WebM / MOV)</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm,video/quicktime,video/*"
+                            disabled={isUploadingGalleryVideo}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const maxSizeBytes = 500 * 1024 * 1024; // 500 MB
+                              if (file.size > maxSizeBytes) {
+                                alert(`O vídeo selecionado (${(file.size / (1024 * 1024)).toFixed(1)} MB) é maior que o limite de 500 MB.`);
+                                e.target.value = '';
+                                return;
+                              }
+                              try {
+                                setIsUploadingGalleryVideo(true);
+                                const url = await uploadTutorialMediaFile(file, convertVideoToWebm);
+                                const newVidItem: TutorialVideoItem = {
+                                  id: `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                                  url,
+                                  caption: file.name.replace(/\.[^/.]+$/, ''),
+                                  loop: true,
+                                };
+                                const current = editingTutorial.videos || [];
+                                setEditingTutorial({
+                                  ...editingTutorial,
+                                  videos: [...current, newVidItem]
+                                });
+                                triggerSuccess('Vídeo anexado à galeria com sucesso!');
+                              } catch (err: any) {
+                                alert(err.message || 'Erro ao subir vídeo');
+                              } finally {
+                                setIsUploadingGalleryVideo(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+
+                        {/* Checkbox opcional de conversão para WebM */}
+                        <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-neutral-300 bg-white text-[11px] font-mono text-neutral-700 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={convertVideoToWebm}
+                            onChange={(e) => setConvertVideoToWebm(e.target.checked)}
+                            className="rounded accent-[#1EFF00] w-3.5 h-3.5"
+                          />
+                          <span>Converter para WebM (Opcional)</span>
+                        </label>
+                      </div>
+
+                      {/* Campo para anexar via URL manual ou YouTube */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newAttachedVideoUrl}
+                          onChange={(e) => setNewAttachedVideoUrl(e.target.value)}
+                          placeholder="Ou cole URL de vídeo (ex: /uploads/video.mp4 ou https://youtube.com/...)"
+                          className="flex-1 bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const trimmed = newAttachedVideoUrl.trim();
+                            if (!trimmed) return;
+                            const newVidItem: TutorialVideoItem = {
+                              id: `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                              url: trimmed,
+                              caption: 'Vídeo explicativo',
+                              loop: true,
+                            };
+                            const current = editingTutorial.videos || [];
+                            setEditingTutorial({
+                              ...editingTutorial,
+                              videos: [...current, newVidItem]
+                            });
+                            setNewAttachedVideoUrl('');
+                            triggerSuccess('Vídeo anexado à galeria!');
+                          }}
+                          className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-[#1EFF00] rounded-xl text-xs font-bold font-mono transition-all cursor-pointer shrink-0 shadow-xs"
+                        >
+                          + Anexar Vídeo
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 7. Link do Vídeo no YouTube (opcional) */}
                   <div className="sm:col-span-2 space-y-1.5">
                     <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Youtube className="w-3.5 h-3.5 text-red-600" />

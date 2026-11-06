@@ -43,7 +43,7 @@ const upload = multer({
 });
 
 // Endpoint para excluir arquivo local do servidor (/uploads/ ou /aplicativos/)
-app.post('/api/delete-file.php', (req, res) => {
+app.post(['/api/delete-file.php', '/api/delete-file'], (req, res) => {
   try {
     const { filepath } = req.body || {};
     if (!filepath || typeof filepath !== 'string') {

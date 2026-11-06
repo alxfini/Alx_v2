@@ -291,6 +291,13 @@ export interface OTAUpdate {
   modelTarget?: string; // Alias de retrocompatibilidade
 }
 
+export interface TutorialVideoItem {
+  id: string;
+  url: string;
+  caption?: string;
+  loop?: boolean;
+}
+
 export interface Tutorial {
   id: string;
   slug: string;
@@ -300,6 +307,7 @@ export interface Tutorial {
   category: string;
   imageUrl?: string;
   images?: string[];
+  videos?: TutorialVideoItem[];
   videoUrl?: string;
   author?: string;
   date: string;
