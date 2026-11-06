@@ -9994,7 +9994,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           const isInText = (editingTutorial.content || '').includes(img);
                           const currentCaption = imageCaptions[img] !== undefined 
                             ? imageCaptions[img] 
-                            : `Figura ${idx + 1}: Procedimento do tutorial`;
+                            : '';
 
                           return (
                             <div key={idx} className="rounded-xl overflow-hidden border border-neutral-300 bg-white shadow-xs p-2.5 space-y-2">
@@ -10039,7 +10039,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {/* Campo de Legenda da Imagem */}
                               <div className="space-y-1">
                                 <label className="text-[10px] font-mono text-neutral-600 font-bold block">
-                                  Legenda / Descrição da Imagem:
+                                  Legenda da Imagem (somente o texto desejado):
                                 </label>
                                 <input
                                   type="text"
@@ -10048,7 +10048,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     const val = e.target.value;
                                     setImageCaptions(prev => ({ ...prev, [img]: val }));
                                   }}
-                                  placeholder={`Figura ${idx + 1}: Descrição da foto...`}
+                                  placeholder="Digite a legenda da foto..."
                                   className="w-full bg-neutral-50 border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 font-mono placeholder:text-neutral-400 focus:outline-none focus:border-black"
                                 />
                               </div>
@@ -10058,16 +10058,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const captionToUse = (currentCaption || `Figura ${idx + 1}: Imagem explicativa`).trim();
+                                    const rawCap = (currentCaption || '').replace(/^(?:figura|imagem)\s*\d+\s*:\s*/i, '').trim();
                                     const current = editingTutorial.content || '';
                                     if (isInText) {
                                       const escapedUrl = img.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                       const regex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)`, 'g');
-                                      const updatedContent = current.replace(regex, `![${captionToUse}](${img})`);
+                                      const updatedContent = current.replace(regex, `![${rawCap}](${img})`);
                                       setEditingTutorial({ ...editingTutorial, content: updatedContent });
                                       triggerSuccess('Legenda da imagem atualizada no texto!');
                                     } else {
-                                      const tag = `\n\n![${captionToUse}](${img})\n\n`;
+                                      const tag = `\n\n![${rawCap}](${img})\n\n`;
                                       setEditingTutorial({ ...editingTutorial, content: `${current}${tag}` });
                                       triggerSuccess(`Foto #${idx + 1} inserida no texto!`);
                                     }
@@ -10306,7 +10306,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {/* Campo de Legenda do Vídeo */}
                               <div className="space-y-1">
                                 <label className="text-[10px] font-mono text-neutral-600 font-bold block">
-                                  Legenda / Descrição da Demonstração:
+                                  Legenda do Vídeo (somente o texto desejado):
                                 </label>
                                 <input
                                   type="text"
@@ -10318,7 +10318,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     );
                                     setEditingTutorial({ ...editingTutorial, videos: updated });
                                   }}
-                                  placeholder="Ex: Demonstração de ativação na central multimídia"
+                                  placeholder="Digite a legenda do vídeo..."
                                   className="w-full bg-neutral-50 border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 font-mono placeholder:text-neutral-400 focus:outline-none focus:border-black"
                                 />
                               </div>
@@ -10338,9 +10338,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     if (isInText) {
                                       const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                       const reg = new RegExp(`\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]`, 'gi');
-                                      const caption = vid.caption || `Vídeo ${vIdx + 1}: Demonstração`;
+                                      const cleanCap = (vid.caption || '').replace(/^(?:vídeo|video)\s*\d+\s*:\s*/i, '').trim();
                                       const loopParam = !currentLoop ? 'loop' : 'noloop';
-                                      contentUpdated = contentUpdated.replace(reg, `[video: ${vid.url} | ${caption} | ${loopParam}]`);
+                                      contentUpdated = contentUpdated.replace(reg, `[video: ${vid.url} | ${cleanCap} | ${loopParam}]`);
                                     }
                                     setEditingTutorial({ 
                                       ...editingTutorial, 
@@ -10366,16 +10366,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     type="button"
                                     onClick={() => {
                                       const current = editingTutorial.content || '';
-                                      const caption = vid.caption || `Vídeo ${vIdx + 1}: Demonstração`;
+                                      const cleanCap = (vid.caption || '').replace(/^(?:vídeo|video)\s*\d+\s*:\s*/i, '').trim();
                                       const loopParam = vid.loop !== false ? 'loop' : 'noloop';
                                       if (isInText) {
                                         const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                         const reg = new RegExp(`\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]`, 'gi');
-                                        const updatedContent = current.replace(reg, `[video: ${vid.url} | ${caption} | ${loopParam}]`);
+                                        const updatedContent = current.replace(reg, `[video: ${vid.url} | ${cleanCap} | ${loopParam}]`);
                                         setEditingTutorial({ ...editingTutorial, content: updatedContent });
                                         triggerSuccess(`Vídeo #${vIdx + 1} atualizado no texto!`);
                                       } else {
-                                        const tag = `\n\n[video: ${vid.url} | ${caption} | ${loopParam}]\n\n`;
+                                        const tag = `\n\n[video: ${vid.url} | ${cleanCap} | ${loopParam}]\n\n`;
                                         setEditingTutorial({ ...editingTutorial, content: `${current}${tag}` });
                                         triggerSuccess(`Vídeo #${vIdx + 1} inserido no texto!`);
                                       }

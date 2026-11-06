@@ -247,7 +247,7 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
       }
 
       if (detectedVideoUrl) {
-        const vidNum = videoCount++;
+        const cleanVideoCaption = (detectedVideoCaption || '').replace(/^(?:vídeo|video)\s*\d+\s*:\s*/i, '').trim();
         const ytEmbed = getYouTubeEmbedUrl(detectedVideoUrl, isVideoLoop);
 
         elements.push(
@@ -256,7 +256,7 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
               {ytEmbed ? (
                 <iframe
                   src={ytEmbed}
-                  title={detectedVideoCaption || `Vídeo ${vidNum}`}
+                  title={cleanVideoCaption || 'Demonstração em vídeo'}
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -274,31 +274,31 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
                 </video>
               )}
             </div>
-            <figcaption className="px-4 py-2.5 bg-[#181820] border-t border-white/[0.08] text-xs font-mono text-neutral-300 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <Film className="w-3.5 h-3.5 text-[#1EFF00] shrink-0" />
-                <span className="truncate">
-                  <strong>Vídeo {vidNum}:</strong> {detectedVideoCaption || 'Demonstração em vídeo'}
-                </span>
-              </div>
-              {isVideoLoop ? (
-                <span 
-                  className="px-2 py-0.5 rounded-md bg-[#1EFF00]/15 text-[#1EFF00] border border-[#1EFF00]/30 text-[10px] font-mono shrink-0 flex items-center gap-1 shadow-2xs"
-                  title="Este vídeo está configurado para repetir continuamente (Loop)"
-                >
-                  <RotateCcw className="w-2.5 h-2.5" />
-                  <span>Loop Contínuo</span>
-                </span>
-              ) : (
-                <span 
-                  className="px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-400 border border-white/10 text-[10px] font-mono shrink-0 flex items-center gap-1"
-                  title="Reprodução padrão (não repete ao terminar)"
-                >
-                  <Play className="w-2.5 h-2.5" />
-                  <span>Reprodução Única</span>
-                </span>
-              )}
-            </figcaption>
+            {cleanVideoCaption && (
+              <figcaption className="px-4 py-2.5 bg-[#181820] border-t border-white/[0.08] text-xs font-mono text-neutral-300 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Film className="w-3.5 h-3.5 text-[#1EFF00] shrink-0" />
+                  <span className="truncate">{cleanVideoCaption}</span>
+                </div>
+                {isVideoLoop ? (
+                  <span 
+                    className="px-2 py-0.5 rounded-md bg-[#1EFF00]/15 text-[#1EFF00] border border-[#1EFF00]/30 text-[10px] font-mono shrink-0 flex items-center gap-1 shadow-2xs"
+                    title="Este vídeo está configurado para repetir continuamente (Loop)"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" />
+                    <span>Loop Contínuo</span>
+                  </span>
+                ) : (
+                  <span 
+                    className="px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-400 border border-white/10 text-[10px] font-mono shrink-0 flex items-center gap-1"
+                    title="Reprodução padrão (não repete ao terminar)"
+                  >
+                    <Play className="w-2.5 h-2.5" />
+                    <span>Reprodução Única</span>
+                  </span>
+                )}
+              </figcaption>
+            )}
           </figure>
         );
         continue;
@@ -306,8 +306,8 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
 
       if (mdImgMatch || tagImgMatch) {
         const url = (mdImgMatch ? mdImgMatch[2] : tagImgMatch![1]).trim();
-        const caption = (mdImgMatch ? mdImgMatch[1] : tagImgMatch![2] || '').trim();
-        const figNum = figureCount++;
+        const rawCaption = (mdImgMatch ? mdImgMatch[1] : tagImgMatch![2] || '').trim();
+        const cleanImgCaption = rawCaption.replace(/^(?:figura|imagem)\s*\d+\s*:\s*/i, '').trim();
 
         elements.push(
           <figure key={`img-${i}`} className="my-6 rounded-2xl overflow-hidden border border-white/[0.1] bg-[#121217] shadow-xl">
@@ -317,7 +317,7 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
             >
               <img 
                 src={url} 
-                alt={caption || `Figura ${figNum}`} 
+                alt={cleanImgCaption || 'Imagem do tutorial'} 
                 className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
               />
               <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-mono text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
@@ -325,9 +325,9 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
                 <span>Clique para ampliar</span>
               </div>
             </div>
-            {caption && (
+            {cleanImgCaption && (
               <figcaption className="px-4 py-2.5 bg-[#181820] border-t border-white/[0.08] text-xs font-mono text-neutral-400 flex items-center justify-between">
-                <span><strong>Figura {figNum}:</strong> {caption}</span>
+                <span>{cleanImgCaption}</span>
               </figcaption>
             )}
           </figure>
