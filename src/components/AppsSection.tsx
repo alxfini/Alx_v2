@@ -7,7 +7,7 @@ import { ALXApp } from '../types';
 import { getMediaPreviewUrl } from '../utils/mediaUrl';
 
 // Helper to format app downloads count (multiplied by 51, e.g. 10 -> 510 downloads)
-const formatAppDownloads = (rawCount?: number): string => {
+export const formatAppDownloads = (rawCount?: number): string => {
   if (!rawCount || rawCount <= 0) return '0 downloads';
   const val = rawCount * 51;
   if (val >= 1000000) {

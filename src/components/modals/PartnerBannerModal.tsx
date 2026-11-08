@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   X, 
   ExternalLink, 
@@ -14,12 +14,14 @@ import {
   Send,
   Share2,
   Check,
-  Download
+  Download,
+  Handshake
 } from 'lucide-react';
 import { PartnerItem, ALXApp } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
 import { getMediaPreviewUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/mediaUrl';
 import { isItemVip } from '../../utils/vip';
+import { formatAppDownloads } from '../AppsSection';
 
 interface PartnerBannerModalProps {
   partner: PartnerItem | null;
@@ -70,16 +72,33 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
     };
   }, [isOpen, onClose, enlargedImage]);
 
+  // Filtra e ORDENA aplicativos vinculados conforme a ordem definida no ADM do parceiro
+  const linkedApps = useMemo(() => {
+    if (!partner) return [];
+    const rawApps = storeApps || [];
+    const orderedIds = partner.linkedAppIds || [];
+
+    // 1. Aplicativos explicitamente vinculados na ordem exata de linkedAppIds
+    const explicitlyOrdered: ALXApp[] = [];
+    orderedIds.forEach((idOrSlug) => {
+      const found = rawApps.find((a) => a.id === idOrSlug || a.slug === idOrSlug);
+      if (found && !explicitlyOrdered.some((x) => x.id === found.id)) {
+        explicitlyOrdered.push(found);
+      }
+    });
+
+    // 2. Outros apps vinculados por partnerSlug mas que não estavam na lista de IDs
+    const bySlugApps = rawApps.filter((a) => {
+      const isPartnerLinked = Boolean(a.partnerSlug && (a.partnerSlug === partner.slug || a.partnerSlug === partner.id));
+      return isPartnerLinked && !explicitlyOrdered.some((x) => x.id === a.id);
+    });
+
+    return [...explicitlyOrdered, ...bySlugApps];
+  }, [storeApps, partner?.linkedAppIds, partner?.slug, partner?.id, partner]);
+
   if (!isOpen || !partner) return null;
 
   const youtubeEmbedUrl = getYouTubeEmbedUrl(partner.youtubeUrl);
-
-  // Filtra aplicativos vinculados (tanto pelo linkedAppIds do parceiro quanto pelo partnerSlug do próprio app)
-  const linkedApps = (storeApps || []).filter((app) => {
-    const isExplicitlyLinked = (partner.linkedAppIds || []).includes(app.id) || (partner.linkedAppIds || []).includes(app.slug);
-    const isAppPartnerLinked = Boolean(app.partnerSlug && (app.partnerSlug === partner.slug || app.partnerSlug === partner.id));
-    return isExplicitlyLinked || isAppPartnerLinked;
-  });
 
   const handleAppClick = (app: ALXApp) => {
     const isVip = isItemVip(app);
@@ -379,9 +398,9 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
             </div>
           )}
 
-          {/* 4. MAIS ABAIXO - APLICATIVOS: Card modo UI/UX com cabeçalho centralizado no mobile */}
+          {/* 4. MAIS ABAIXO - APLICATIVOS VINCULADOS AO PARCEIRO: Cards IDÊNTICOS aos da Página de Apps */}
           {linkedApps.length > 0 && (
-            <div className="space-y-5 bg-gradient-to-b from-[#111116] via-[#0c0c10] to-[#060608] border border-white/[0.08] hover:border-[var(--color-brand)]/30 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden transition-colors duration-300">
+            <div className="space-y-6 bg-gradient-to-b from-[#111116] via-[#0c0c10] to-[#060608] border border-white/[0.08] hover:border-[var(--color-brand)]/30 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden transition-colors duration-300">
               <div className="absolute -right-12 -top-12 w-48 h-48 bg-[var(--color-brand)]/10 rounded-full blur-2xl pointer-events-none" />
 
               <div className="flex items-center justify-center sm:justify-start border-b border-white/[0.08] pb-3.5 relative z-10">
@@ -390,84 +409,109 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
                     <Smartphone className="w-4 h-4 text-[var(--color-brand)]" />
                   </div>
                   <h3 className="text-base sm:text-lg font-bold text-white font-heading tracking-wide">
-                    Aplicativos
+                    Aplicativos Homologados & Parceria
                   </h3>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 pt-1 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1 relative z-10">
                 {linkedApps.map((app) => {
-                  const coverImage = app.coverImage || app.iconUrl;
                   const isAppVIP = isItemVip(app);
 
                   return (
                     <div
                       key={app.id}
                       onClick={() => handleAppClick(app)}
-                      className="group bg-gradient-to-b from-[#14141d] to-[#0c0c10] border border-white/[0.08] hover:border-[var(--color-brand)]/40 rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-xl flex flex-col justify-between cursor-pointer"
+                      className="group bg-[#111115] border border-white/[0.08] hover:border-[#ebbf01]/40 rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-1 shadow-xl hover:shadow-2xl hover:shadow-black/70 flex flex-col justify-between cursor-pointer"
                     >
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-14 h-14 rounded-xl overflow-hidden bg-black shrink-0 border border-white/[0.08] relative">
-                            {coverImage ? (
-                              <img
-                                src={getMediaPreviewUrl(coverImage)}
-                                alt={app.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[var(--color-brand)]">
-                                <Smartphone className="w-6 h-6" />
-                              </div>
+                      <div>
+                        {/* Top Preview Image Container */}
+                        <div className="relative aspect-[16/10] overflow-hidden bg-[#16161D]">
+                          <img
+                            src={getMediaPreviewUrl(app.coverImage || app.iconUrl)}
+                            alt={app.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/imagens/apps/byd-cockpit.jpg';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#111115] via-transparent to-black/30" />
+
+                          {/* Member Badge if VIP Exclusive */}
+                          {isAppVIP && (
+                            <div className="absolute top-3 left-3 flex items-center gap-2">
+                              <span className="text-[10px] font-black px-2.5 py-1 rounded-lg backdrop-blur-md bg-[#ebbf01] text-black font-mono uppercase flex items-center gap-1 shadow-md">
+                                <Crown className="w-3 h-3 fill-black" />
+                                <span>Membros</span>
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Partner Badge if linked to partner */}
+                          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+                            <span className="text-[10px] font-black px-2.5 py-1 rounded-lg backdrop-blur-md bg-amber-400 text-black font-mono uppercase flex items-center gap-1 shadow-md">
+                              <Handshake className="w-3 h-3 text-black" />
+                              <span>{app.partnerName || partner.name || 'Parceiro'}</span>
+                            </span>
+                          </div>
+
+                          {/* Download Count Badge */}
+                          {(app.downloadsCount !== undefined && app.downloadsCount !== null) && (
+                            <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/80 backdrop-blur-md text-[10px] font-mono text-neutral-300 px-2.5 py-1 rounded-lg border border-white/[0.08]">
+                              <span className="text-[#ebbf01] font-bold">
+                                {formatAppDownloads(app.downloadsCount)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* App Details */}
+                        <div className="p-6 space-y-3">
+                          <div className="flex items-center gap-2.5">
+                            <h3 className="text-xl font-bold text-white font-heading truncate">
+                              {app.name}
+                            </h3>
+                            {/* Bolinha vermelha piscando indicando atualização / novo */}
+                            {(app.isUpdated || app.isNew) && (
+                              <span className="flex items-center shrink-0" title="Aplicativo Atualizado / Novo">
+                                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-xs shadow-red-500/80" />
+                              </span>
                             )}
                           </div>
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <h4 className="text-sm sm:text-base font-bold text-white truncate font-heading group-hover:text-[var(--color-brand)] transition-colors">
-                                {app.name}
-                              </h4>
-                              {isAppVIP && (
-                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-[var(--color-brand)] text-black font-mono uppercase shrink-0 flex items-center gap-0.5">
-                                  <Crown className="w-2.5 h-2.5 fill-black" />
-                                  <span>VIP</span>
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-neutral-400 font-mono truncate">
-                              {app.category || 'Aplicativo Automotivo'} • {app.version || 'v1.0'}
-                            </p>
-                          </div>
+                          {/* Full Description */}
+                          <p className="text-xs text-neutral-300 leading-relaxed whitespace-pre-line line-clamp-4">
+                            {app.fullDescription || app.description || app.tagline}
+                          </p>
                         </div>
-
-                        <p className="text-xs text-neutral-300 leading-relaxed line-clamp-2">
-                          {app.description || app.tagline}
-                        </p>
                       </div>
 
-                      <div className="pt-4">
+                      {/* Bottom Action Button - Directs to Download or VIP */}
+                      <div className="p-6 pt-0">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAppClick(app);
                           }}
-                          className="w-full inline-flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-black font-mono font-black text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer"
+                          className="w-full inline-flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase tracking-wider hover:bg-[#f5cc14] transition-all shadow-md shadow-[#ebbf01]/20 cursor-pointer"
                         >
                           {isAppVIP && !isUserAuthenticated ? (
-                            <span className="flex items-center gap-1.5 text-black">
-                              <Lock className="w-3.5 h-3.5 stroke-[2.5]" />
-                              <span>ÁREA DE MEMBROS</span>
+                            <span className="flex items-center gap-1.5 text-black whitespace-nowrap truncate font-mono font-black">
+                              <Lock className="w-3.5 h-3.5 stroke-[2.5] text-black shrink-0" />
+                              <span className="truncate">ÁREA DE MEMBROS</span>
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1.5 text-black">
-                              <Download className="w-3.5 h-3.5 stroke-[2.5]" />
-                              <span>BAIXAR APLICATIVO</span>
+                            <span className="flex items-center gap-1.5 text-black whitespace-nowrap truncate font-mono font-black">
+                              <Download className="w-3.5 h-3.5 stroke-[2.5] text-black shrink-0" />
+                              <span className="truncate">DOWNLOAD</span>
                             </span>
                           )}
-                          <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <ArrowRight className="w-4 h-4 text-black stroke-[2.5]" />
                         </button>
                       </div>
+
                     </div>
                   );
                 })}

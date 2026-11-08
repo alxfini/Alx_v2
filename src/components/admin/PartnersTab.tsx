@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Handshake, 
   Plus, 
@@ -92,10 +92,20 @@ Descreva aqui os detalhes da parceria, vantagens para os clientes da Alx⁺ e di
   };
 
   const handleStartEdit = (partner: PartnerItem) => {
+    const existingIds = partner.linkedAppIds ? [...partner.linkedAppIds] : [];
+    // Também inclui aplicativos que possuem partnerSlug correspondente
+    (apps || []).forEach((a) => {
+      if (a.partnerSlug && (a.partnerSlug === partner.slug || a.partnerSlug === partner.id)) {
+        if (!existingIds.includes(a.id) && !existingIds.includes(a.slug || '')) {
+          existingIds.push(a.id);
+        }
+      }
+    });
+
     setEditingPartner({
       ...partner,
       additionalImages: partner.additionalImages ? [...partner.additionalImages] : [],
-      linkedAppIds: partner.linkedAppIds ? [...partner.linkedAppIds] : [],
+      linkedAppIds: existingIds,
     });
     setIsCreating(false);
     setAppSearchQuery('');
@@ -147,15 +157,45 @@ Descreva aqui os detalhes da parceria, vantagens para os clientes da Alx⁺ e di
   // Toggle app vinculado
   const handleToggleLinkedApp = (appId: string) => {
     if (!editingPartner) return;
+    const appItem = (apps || []).find((a) => a.id === appId || a.slug === appId);
+    const targetSlug = appItem?.slug;
     const currentList = editingPartner.linkedAppIds || [];
-    const exists = currentList.includes(appId);
+    const exists = currentList.some((id) => id === appId || (targetSlug && id === targetSlug));
     const updated = exists 
-      ? currentList.filter((id) => id !== appId)
+      ? currentList.filter((id) => id !== appId && (targetSlug ? id !== targetSlug : true))
       : [...currentList, appId];
     
     setEditingPartner({
       ...editingPartner,
       linkedAppIds: updated,
+    });
+  };
+
+  // Mover app vinculado para cima ou para baixo para escolher a ordem
+  const handleMoveLinkedApp = (index: number, direction: 'up' | 'down') => {
+    if (!editingPartner) return;
+    const currentList = [...(editingPartner.linkedAppIds || [])];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentList.length) return;
+    const [moved] = currentList.splice(index, 1);
+    currentList.splice(targetIndex, 0, moved);
+    setEditingPartner({
+      ...editingPartner,
+      linkedAppIds: currentList,
+    });
+  };
+
+  // Desvincular app diretamente
+  const handleRemoveLinkedApp = (appId: string) => {
+    if (!editingPartner) return;
+    const appItem = (apps || []).find((a) => a.id === appId || a.slug === appId);
+    const targetSlug = appItem?.slug;
+    const currentList = (editingPartner.linkedAppIds || []).filter(
+      (id) => id !== appId && (targetSlug ? id !== targetSlug : true)
+    );
+    setEditingPartner({
+      ...editingPartner,
+      linkedAppIds: currentList,
     });
   };
 
@@ -187,6 +227,19 @@ Descreva aqui os detalhes da parceria, vantagens para os clientes da Alx⁺ e di
     const q = appSearchQuery.toLowerCase();
     return a.name.toLowerCase().includes(q) || (a.category && a.category.toLowerCase().includes(q));
   });
+
+  // Lista ordenada de aplicativos vinculados atualmente ao parceiro
+  const orderedLinkedApps = useMemo(() => {
+    if (!editingPartner?.linkedAppIds) return [];
+    const list: ALXApp[] = [];
+    editingPartner.linkedAppIds.forEach((idOrSlug) => {
+      const found = (apps || []).find((a) => a.id === idOrSlug || a.slug === idOrSlug);
+      if (found && !list.some((x) => x.id === found.id)) {
+        list.push(found);
+      }
+    });
+    return list;
+  }, [editingPartner?.linkedAppIds, apps]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -698,76 +751,188 @@ Descreva aqui os detalhes da parceria, vantagens para os clientes da Alx⁺ e di
                 </div>
               </div>
 
-              {/* SEÇÃO 5: MAIS ABAIXO - VINCULAR APLICATIVOS DO SITE */}
+              {/* SEÇÃO 5: MAIS ABAIXO - VINCULAR E ORDENAR APLICATIVOS DO SITE */}
               <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 sm:p-5 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-200/80 pb-2.5">
                   <div>
                     <h4 className="text-xs font-black text-neutral-800 uppercase tracking-wider flex items-center gap-2">
                       <Smartphone className="w-4 h-4 text-[#ebbf01]" />
-                      <span>5. Mais Abaixo: Vincular Aplicativos Já Cadastrados no Site</span>
+                      <span>5. Mais Abaixo: Vincular e Ordenar Aplicativos Homologados</span>
                     </h4>
                     <p className="text-[11px] text-neutral-500 mt-1">
-                      Marque quais aplicativos do catálogo da ALX Store serão exibidos dentro do banner deste parceiro.
+                      Escolha quais aplicativos aparecerão no card do parceiro e organize a ordem exata de exibição.
                     </p>
                   </div>
 
-                  <span className="text-xs font-mono font-bold text-neutral-700">
-                    {(editingPartner.linkedAppIds || []).length} selecionado(s)
+                  <span className="text-xs font-mono font-bold text-neutral-700 bg-white border border-neutral-200 px-2.5 py-1 rounded-lg">
+                    {orderedLinkedApps.length} selecionado(s)
                   </span>
                 </div>
 
-                {/* Busca rápida de aplicativo */}
-                <div className="relative">
-                  <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={appSearchQuery}
-                    onChange={(e) => setAppSearchQuery(e.target.value)}
-                    placeholder="Filtrar aplicativos por nome ou categoria..."
-                    className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-none"
-                  />
-                </div>
+                {/* 5.1 LISTA DE ORDENAÇÃO DOS APPS VINCULADOS */}
+                {orderedLinkedApps.length > 0 ? (
+                  <div className="bg-white border border-neutral-200 rounded-xl p-3 sm:p-4 space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-neutral-800 uppercase tracking-wider font-mono">
+                        Ordem Atual de Exibição no Parceiro
+                      </span>
+                      <span className="text-[10px] text-neutral-500 font-mono">
+                        (Mova para cima ou para baixo)
+                      </span>
+                    </div>
 
-                {/* Lista de Seleção de Apps */}
-                <div className="max-h-56 overflow-y-auto space-y-2 border border-neutral-200 rounded-xl p-2 bg-white">
-                  {filteredApps.length > 0 ? (
-                    filteredApps.map((app) => {
-                      const isSelected = (editingPartner.linkedAppIds || []).includes(app.id);
+                    <div className="space-y-2">
+                      {orderedLinkedApps.map((app, index) => {
+                        const isFirst = index === 0;
+                        const isLast = index === orderedLinkedApps.length - 1;
 
-                      return (
-                        <div
-                          key={app.id}
-                          onClick={() => handleToggleLinkedApp(app.id)}
-                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
-                            isSelected 
-                              ? 'bg-[#ebbf01]/10 border-[#ebbf01] text-neutral-900' 
-                              : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200 text-neutral-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {}} // tratado no wrapper
-                              className="w-4 h-4 rounded text-[#ebbf01] focus:ring-[#ebbf01] pointer-events-none"
-                            />
-                            <div className="truncate">
-                              <span className="text-xs font-bold block truncate">{app.name}</span>
-                              <span className="text-[10px] text-neutral-500 block truncate">
-                                {app.category || 'Geral'} • {app.version || 'v1.0'}
+                        return (
+                          <div
+                            key={app.id}
+                            className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-neutral-50 hover:bg-neutral-100/80 border border-neutral-200 transition-colors"
+                          >
+                            {/* Posição + Miniatura + Título */}
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-6 h-6 rounded-lg bg-[#ebbf01] text-black text-[11px] font-mono font-black flex items-center justify-center shrink-0 shadow-xs">
+                                {index + 1}º
+                              </span>
+                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/10 border border-neutral-200 shrink-0">
+                                <img
+                                  src={getMediaPreviewUrl(app.coverImage || app.iconUrl)}
+                                  alt={app.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/imagens/apps/byd-cockpit.jpg';
+                                  }}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-neutral-900 truncate">{app.name}</span>
+                                  {app.isVipExclusive && (
+                                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                                      VIP
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-neutral-500 font-mono block truncate">
+                                  {app.category || 'Geral'} • {app.version || 'v1.0'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Botões de Ação: Subir, Descer e Remover */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                disabled={isFirst}
+                                onClick={() => handleMoveLinkedApp(index, 'up')}
+                                title="Mover para cima (exibir antes)"
+                                className="w-8 h-8 rounded-lg border border-neutral-300 bg-white flex items-center justify-center text-neutral-700 hover:text-black hover:border-neutral-400 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isLast}
+                                onClick={() => handleMoveLinkedApp(index, 'down')}
+                                title="Mover para baixo (exibir depois)"
+                                className="w-8 h-8 rounded-lg border border-neutral-300 bg-white flex items-center justify-center text-neutral-700 hover:text-black hover:border-neutral-400 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveLinkedApp(app.id)}
+                                title="Desvincular aplicativo deste parceiro"
+                                className="w-8 h-8 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 flex items-center justify-center transition-colors ml-1 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-white border border-dashed border-neutral-300 rounded-xl text-center space-y-1">
+                    <p className="text-xs font-medium text-neutral-600">Nenhum aplicativo vinculado a este parceiro no momento.</p>
+                    <p className="text-[11px] text-neutral-400">Marque os aplicativos no catálogo abaixo para incluí-los e escolher a ordem.</p>
+                  </div>
+                )}
+
+                {/* 5.2 SELETOR DE APPS DO CATÁLOGO COM BUSCA */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-neutral-700 uppercase tracking-wider font-mono">
+                      Selecionar ou Remover Apps do Catálogo
+                    </label>
+                  </div>
+
+                  {/* Busca rápida de aplicativo */}
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={appSearchQuery}
+                      onChange={(e) => setAppSearchQuery(e.target.value)}
+                      placeholder="Filtrar aplicativos por nome ou categoria..."
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-none focus:border-[#ebbf01]"
+                    />
+                  </div>
+
+                  {/* Lista de Seleção de Apps */}
+                  <div className="max-h-56 overflow-y-auto space-y-1.5 border border-neutral-200 rounded-xl p-2 bg-white">
+                    {filteredApps.length > 0 ? (
+                      filteredApps.map((app) => {
+                        const orderIndex = (editingPartner.linkedAppIds || []).findIndex(
+                          (id) => id === app.id || id === app.slug
+                        );
+                        const isSelected = orderIndex !== -1;
+
+                        return (
+                          <div
+                            key={app.id}
+                            onClick={() => handleToggleLinkedApp(app.id)}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                              isSelected 
+                                ? 'bg-[#ebbf01]/10 border-[#ebbf01] text-neutral-900' 
+                                : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200 text-neutral-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {}} // tratado no wrapper
+                                className="w-4 h-4 rounded text-[#ebbf01] focus:ring-[#ebbf01] pointer-events-none"
+                              />
+                              <div className="truncate">
+                                <span className="text-xs font-bold block truncate">{app.name}</span>
+                                <span className="text-[10px] text-neutral-500 block truncate">
+                                  {app.category || 'Geral'} • {app.version || 'v1.0'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isSelected && (
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-[#ebbf01] text-black shadow-xs">
+                                  {orderIndex + 1}º na ordem
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-neutral-200">
+                                {app.isVipExclusive ? 'VIP' : 'Público'}
                               </span>
                             </div>
                           </div>
-
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-neutral-200 shrink-0">
-                            {app.isVipExclusive ? 'VIP' : 'Público'}
-                          </span>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-xs text-neutral-500 p-4 text-center">Nenhum aplicativo encontrado.</p>
-                  )}
+                        );
+                      })
+                    ) : (
+                      <p className="text-xs text-neutral-500 p-4 text-center">Nenhum aplicativo encontrado.</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
