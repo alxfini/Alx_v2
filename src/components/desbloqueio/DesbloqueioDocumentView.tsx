@@ -18,7 +18,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { UnlockServiceItem } from '../../types';
-import { getMediaPreviewUrl } from '../../utils/mediaUrl';
+import { getMediaPreviewUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/mediaUrl';
 import { SocialIcon } from '../common/SocialIcon';
 
 interface DesbloqueioDocumentViewProps {
@@ -44,17 +44,6 @@ export const DesbloqueioDocumentView: React.FC<DesbloqueioDocumentViewProps> = (
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
     }
-  };
-
-  // Helper para incorporar player do YouTube
-  const getYouTubeEmbedUrl = (url?: string, loop: boolean = true): string | null => {
-    if (!url) return null;
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-    if (!match) return null;
-    const vidId = match[1];
-    return loop
-      ? `https://www.youtube-nocookie.com/embed/${vidId}?autoplay=0&loop=1&playlist=${vidId}`
-      : `https://www.youtube-nocookie.com/embed/${vidId}`;
   };
 
   const CALLOUT_COLOR_MAP: Record<string, string> = {
@@ -168,7 +157,7 @@ export const DesbloqueioDocumentView: React.FC<DesbloqueioDocumentViewProps> = (
       // Renderiza Vídeo
       if (detectedVideoUrl) {
         const cleanVideoCaption = (detectedVideoCaption || '').replace(/^(?:vídeo|video)\s*\d+\s*:\s*/i, '').trim();
-        const ytEmbed = getYouTubeEmbedUrl(detectedVideoUrl, isVideoLoop);
+        const ytEmbed = getYouTubeEmbedUrl(detectedVideoUrl, { loop: isVideoLoop });
 
         elements.push(
           <figure key={`vid-${i}`} className="my-6 rounded-2xl overflow-hidden border border-white/[0.1] bg-[#121217] shadow-xl">
@@ -178,8 +167,9 @@ export const DesbloqueioDocumentView: React.FC<DesbloqueioDocumentViewProps> = (
                   src={ytEmbed}
                   title={cleanVideoCaption || 'Demonstração em vídeo'}
                   className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               ) : (
                 <video

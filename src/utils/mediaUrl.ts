@@ -84,3 +84,64 @@ export function getMediaDownloadUrl(url?: string | null, customFileName?: string
   return trimmed;
 }
 
+/**
+ * Extrai o ID de 11 caracteres de um vídeo do YouTube a partir de qualquer formato de link ou ID bruto.
+ */
+export function extractYouTubeVideoId(urlOrId?: string | null): string {
+  if (!urlOrId || typeof urlOrId !== 'string') return '';
+  const clean = urlOrId.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) {
+    return clean;
+  }
+  const match = clean.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/\s]{11})/);
+  return match && match[1] ? match[1] : '';
+}
+
+/**
+ * Converte um link ou ID do YouTube em URL de embed oficial e segura,
+ * configurada para evitar a mensagem "Faça login para confirmar que você não é um bot".
+ * 
+ * Motivo do problema:
+ * O domínio 'youtube-nocookie.com' é agressivamente bloqueado pelos filtros anti-bot do YouTube.
+ * A solução recomendada pela documentação oficial da Google é utilizar 'www.youtube.com/embed/'
+ * com os parâmetros de 'origin', 'enablejsapi=1' e 'playsinline=1', permitindo validar sessões legítimas.
+ */
+export function getYouTubeEmbedUrl(urlOrId?: string | null, options?: { loop?: boolean; autoplay?: boolean }): string | null {
+  if (!urlOrId || typeof urlOrId !== 'string') return null;
+  const vidId = extractYouTubeVideoId(urlOrId);
+  if (!vidId) return null;
+
+  const params = new URLSearchParams();
+  params.set('rel', '0');
+  params.set('modestbranding', '1');
+  params.set('playsinline', '1');
+  params.set('enablejsapi', '1');
+
+  if (typeof window !== 'undefined' && window.location.origin) {
+    try {
+      params.set('origin', window.location.origin);
+    } catch {}
+  }
+
+  if (options?.autoplay) {
+    params.set('autoplay', '1');
+  }
+
+  if (options?.loop) {
+    params.set('loop', '1');
+    params.set('playlist', vidId);
+  }
+
+  return `https://www.youtube.com/embed/${vidId}?${params.toString()}`;
+}
+
+/**
+ * Retorna o link direto para assistir no site ou app do YouTube (fallback de alta conveniência).
+ */
+export function getYouTubeWatchUrl(urlOrId?: string | null): string {
+  if (!urlOrId || typeof urlOrId !== 'string') return '';
+  const vidId = extractYouTubeVideoId(urlOrId);
+  return vidId ? `https://www.youtube.com/watch?v=${vidId}` : urlOrId;
+}
+
+

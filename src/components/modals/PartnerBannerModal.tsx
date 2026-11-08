@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { PartnerItem, ALXApp } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
-import { getMediaPreviewUrl } from '../../utils/mediaUrl';
+import { getMediaPreviewUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/mediaUrl';
 import { isItemVip } from '../../utils/vip';
 
 interface PartnerBannerModalProps {
@@ -71,19 +71,6 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
   }, [isOpen, onClose, enlargedImage]);
 
   if (!isOpen || !partner) return null;
-
-  // Extrai embed seguro de vídeo do YouTube
-  const getYouTubeEmbedUrl = (url?: string): string | null => {
-    if (!url || typeof url !== 'string') return null;
-    const trimmed = url.trim();
-    if (!trimmed) return null;
-    if (trimmed.includes('youtube.com/embed/')) return trimmed;
-    const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|watch\?.+&v=))([\w-]{11})/);
-    if (match && match[1]) {
-      return `https://www.youtube-nocookie.com/embed/${match[1]}`;
-    }
-    return null;
-  };
 
   const youtubeEmbedUrl = getYouTubeEmbedUrl(partner.youtubeUrl);
 
@@ -340,13 +327,28 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
             <div className="bg-gradient-to-b from-[#111116] via-[#0c0c10] to-[#060608] border border-white/[0.08] hover:border-red-500/30 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5 relative overflow-hidden transition-colors duration-300">
               <div className="absolute -right-12 -top-12 w-48 h-48 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
 
-              <div className="flex items-center justify-center sm:justify-start gap-2.5 border-b border-white/[0.08] pb-3.5 relative z-10">
-                <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center font-bold border border-red-500/30">
-                  <Play className="w-4 h-4 fill-red-400 text-red-400" />
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5 relative z-10 flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center font-bold border border-red-500/30">
+                    <Play className="w-4 h-4 fill-red-400 text-red-400" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-white font-heading tracking-wide">
+                    Vídeos
+                  </h3>
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-white font-heading tracking-wide">
-                  Vídeos
-                </h3>
+
+                {partner.youtubeUrl && (
+                  <a
+                    href={getYouTubeWatchUrl(partner.youtubeUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-500/30 text-xs font-mono font-bold transition-all shadow-sm"
+                    title="Assistir diretamente no site/app do YouTube"
+                  >
+                    <span>Assistir no YouTube</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
               </div>
 
               <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-red-500/30 shadow-2xl bg-black relative z-10">
@@ -354,10 +356,26 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
                   src={youtubeEmbedUrl}
                   title={`Vídeo Parceria ${partner.name}`}
                   className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; webshare"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
                   allowFullScreen
                 />
               </div>
+
+              {partner.youtubeUrl && (
+                <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] font-mono text-neutral-400">
+                  <span>Vídeo demonstrativo oficial</span>
+                  <a
+                    href={getYouTubeWatchUrl(partner.youtubeUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-red-400 hover:text-red-300 underline font-bold flex items-center gap-1"
+                  >
+                    <span>Assistir direto no YouTube sem restrições</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

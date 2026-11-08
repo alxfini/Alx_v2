@@ -31,20 +31,9 @@ import {
 import { useSiteData } from '../../context/SiteDataContext';
 import { ALXApp, NewsArticle, ProductItem } from '../../types';
 
-const getYouTubeEmbedUrl = (url?: string): string | null => {
-  if (!url || typeof url !== 'string') return null;
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-  if (trimmed.includes('youtube.com/embed/')) return trimmed;
-  const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|watch\?.+&v=))([\w-]{11})/);
-  if (match && match[1]) {
-    return `https://www.youtube-nocookie.com/embed/${match[1]}`;
-  }
-  return null;
-};
 import { newsArticles as defaultNewsArticles } from '../../data/news';
 import { getPageThemeHex } from '../../utils/pageColors';
-import { getMediaPreviewUrl } from '../../utils/mediaUrl';
+import { getMediaPreviewUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/mediaUrl';
 import { isItemVip } from '../../utils/vip';
 import { doesLinkGrantDirectAccess } from '../../utils/visibility';
 
@@ -481,11 +470,24 @@ export const CardDetailPage: React.FC<CardDetailPageProps> = ({
                 }}
               />
 
-              <div className="flex items-center gap-2">
-                <Youtube className="w-5 h-5 text-red-500 fill-current shrink-0" />
-                <h3 className="text-xs sm:text-sm font-extrabold font-heading tracking-wider uppercase text-white">
-                  Vídeo Demonstrativo & Tutorial
-                </h3>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Youtube className="w-5 h-5 text-red-500 fill-current shrink-0" />
+                  <h3 className="text-xs sm:text-sm font-extrabold font-heading tracking-wider uppercase text-white">
+                    Vídeo Demonstrativo & Tutorial
+                  </h3>
+                </div>
+
+                <a
+                  href={getYouTubeWatchUrl(app.youtubeUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-500/30 text-xs font-mono font-bold transition-all shadow-sm"
+                  title="Assistir diretamente no site/app do YouTube"
+                >
+                  <span>Assistir no YouTube</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               </div>
 
               <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/[0.08] shadow-2xl">
@@ -493,9 +495,23 @@ export const CardDetailPage: React.FC<CardDetailPageProps> = ({
                   src={getYouTubeEmbedUrl(app.youtubeUrl)!}
                   title={`Vídeo do aplicativo ${app.name}`}
                   className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
                   allowFullScreen
                 />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] font-mono text-neutral-400">
+                <span>Vídeo oficial do aplicativo</span>
+                <a
+                  href={getYouTubeWatchUrl(app.youtubeUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-red-400 hover:text-red-300 underline font-bold flex items-center gap-1"
+                >
+                  <span>Assistir direto no YouTube sem restrições</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             </div>
           )}

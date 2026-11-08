@@ -31,6 +31,7 @@ import { Tutorial } from '../../types';
 import { useSiteData } from '../../context/SiteDataContext';
 import { isItemVip } from '../../utils/vip';
 import { doesLinkGrantDirectAccess } from '../../utils/visibility';
+import { getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/mediaUrl';
 
 interface TutorialDocumentViewProps {
   tutorial: Tutorial;
@@ -121,17 +122,6 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
 
   const handlePrint = () => {
     window.print();
-  };
-
-  // Helper to extract YouTube video ID for embedded player
-  const getYouTubeEmbedUrl = (url?: string, loop: boolean = true): string | null => {
-    if (!url) return null;
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-    if (!match) return null;
-    const vidId = match[1];
-    return loop
-      ? `https://www.youtube-nocookie.com/embed/${vidId}?autoplay=0&loop=1&playlist=${vidId}`
-      : `https://www.youtube-nocookie.com/embed/${vidId}`;
   };
 
   const youtubeEmbedUrl = getYouTubeEmbedUrl(tutorial.videoUrl);
@@ -248,7 +238,7 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
 
       if (detectedVideoUrl) {
         const cleanVideoCaption = (detectedVideoCaption || '').replace(/^(?:vídeo|video)\s*\d+\s*:\s*/i, '').trim();
-        const ytEmbed = getYouTubeEmbedUrl(detectedVideoUrl, isVideoLoop);
+        const ytEmbed = getYouTubeEmbedUrl(detectedVideoUrl, { loop: isVideoLoop });
 
         elements.push(
           <figure key={`vid-${i}`} className="my-6 rounded-2xl overflow-hidden border border-white/[0.1] bg-[#121217] shadow-xl">
@@ -258,8 +248,9 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
                   src={ytEmbed}
                   title={cleanVideoCaption || 'Demonstração em vídeo'}
                   className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               ) : (
                 <video
@@ -624,10 +615,10 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
                       <span>VÍDEO EXPLICATIVO DO TUTORIAL (DEMONSTRAÇÃO EM VÍDEO)</span>
                     </div>
                     <a
-                      href={tutorial.videoUrl}
+                      href={getYouTubeWatchUrl(tutorial.videoUrl) || tutorial.videoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs font-mono text-neutral-400 hover:text-white underline inline-flex items-center gap-1"
+                      className="text-xs font-mono text-neutral-400 hover:text-white underline inline-flex items-center gap-1 transition-colors"
                     >
                       <span>Abrir no YouTube</span>
                       <ExternalLink className="w-3 h-3" />
@@ -635,14 +626,28 @@ export const TutorialDocumentView: React.FC<TutorialDocumentViewProps> = ({ tuto
                   </div>
 
                   {youtubeEmbedUrl ? (
-                    <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-black shadow-lg">
-                      <iframe
-                        src={youtubeEmbedUrl}
-                        title={tutorial.title}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="w-full h-full"
-                      />
+                    <div className="space-y-2">
+                      <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-black shadow-lg">
+                        <iframe
+                          src={youtubeEmbedUrl}
+                          title={tutorial.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          className="w-full h-full"
+                        />
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <a
+                          href={getYouTubeWatchUrl(tutorial.videoUrl) || tutorial.videoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-mono text-neutral-400 hover:text-[#1EFF00] inline-flex items-center gap-1 transition-colors"
+                        >
+                          <span>Problemas para reproduzir? Assistir diretamente no YouTube</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     </div>
                   ) : (
                     <a

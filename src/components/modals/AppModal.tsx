@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { ALXApp } from '../../types';
-import { CheckCircle2, Download, ShoppingBag, ShieldCheck, Sparkles, Cpu, Layers, Smartphone, Share2, Check, Lock, Crown, Handshake, Youtube } from 'lucide-react';
+import { CheckCircle2, Download, ShoppingBag, ShieldCheck, Sparkles, Cpu, Layers, Smartphone, Share2, Check, Lock, Crown, Handshake, Youtube, ExternalLink } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
-import { getMediaPreviewUrl } from '../../utils/mediaUrl';
+import { getMediaPreviewUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/mediaUrl';
 import { isItemVip } from '../../utils/vip';
 
 interface AppModalProps {
@@ -11,18 +11,6 @@ interface AppModalProps {
   onClose: () => void;
   onOpenVipModal: () => void;
 }
-
-const getYouTubeEmbedUrl = (url?: string): string | null => {
-  if (!url || typeof url !== 'string') return null;
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-  if (trimmed.includes('youtube.com/embed/')) return trimmed;
-  const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/|watch\?.+&v=))([\w-]{11})/);
-  if (match && match[1]) {
-    return `https://www.youtube-nocookie.com/embed/${match[1]}`;
-  }
-  return null;
-};
 
 export const AppModal: React.FC<AppModalProps> = ({ app, onClose, onOpenVipModal }) => {
   const { openDownloadGateway, isVipLoggedIn, isAdminAuthenticated, setActivePage } = useSiteData();
@@ -143,19 +131,48 @@ export const AppModal: React.FC<AppModalProps> = ({ app, onClose, onOpenVipModal
         {/* Vídeo do YouTube do Aplicativo */}
         {youtubeEmbedUrl && (
           <div className="space-y-2 p-4 rounded-2xl bg-[#141414] border border-[#222222]">
-            <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Youtube className="w-4 h-4 text-red-500 fill-current" />
-              <span>Vídeo Demonstrativo & Tutorial:</span>
+            <div className="flex items-center justify-between text-xs font-bold text-white uppercase tracking-wider flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Youtube className="w-4 h-4 text-red-500 fill-current" />
+                <span>Vídeo Demonstrativo & Tutorial:</span>
+              </div>
+              {app.youtubeUrl && (
+                <a
+                  href={getYouTubeWatchUrl(app.youtubeUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-500/30 text-[11px] font-mono font-bold transition-all shadow-sm"
+                  title="Assistir diretamente no site/app do YouTube"
+                >
+                  <span>Assistir no YouTube</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
             <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-white/[0.08] shadow-2xl">
               <iframe
                 src={youtubeEmbedUrl}
                 title={`Vídeo do aplicativo ${app.name}`}
                 className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
               />
             </div>
+            {app.youtubeUrl && (
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] font-mono text-neutral-400 pt-1">
+                <span>Vídeo demonstrativo oficial</span>
+                <a
+                  href={getYouTubeWatchUrl(app.youtubeUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-red-400 hover:text-red-300 underline font-bold flex items-center gap-1"
+                >
+                  <span>Assistir direto no YouTube sem restrições</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
           </div>
         )}
 

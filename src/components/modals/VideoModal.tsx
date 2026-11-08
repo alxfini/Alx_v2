@@ -3,6 +3,7 @@ import { Modal } from '../ui/Modal';
 import { YouTubeVideo } from '../../types';
 import { Youtube, ExternalLink, Calendar, Clock, Eye, Share2 } from 'lucide-react';
 import { siteConfig } from '../../data/siteConfig';
+import { getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/mediaUrl';
 
 interface VideoModalProps {
   video: YouTubeVideo | null;
@@ -20,10 +21,11 @@ export const VideoModal: React.FC<VideoModalProps> = ({ video, onClose }) => {
         <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-[#222222]">
           {video.youtubeId && video.youtubeId !== 'dQw4w9WgXcQ' ? (
             <iframe
-              src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1&rel=0`}
+              src={getYouTubeEmbedUrl(video.youtubeId, { autoplay: true }) || `https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&rel=0`}
               title={video.title}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
               allowFullScreen
             />
           ) : (
@@ -86,15 +88,30 @@ export const VideoModal: React.FC<VideoModalProps> = ({ video, onClose }) => {
             Fechar
           </button>
 
-          <a
-            href={siteConfig.links.youtube}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#ebbf01] text-black font-bold text-xs hover:bg-[#f5cc14] transition-all"
-          >
-            <Youtube className="w-4 h-4 text-red-600" />
-            <span>Inscrever-se no Canal ALX</span>
-          </a>
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            {video.youtubeId && (
+              <a
+                href={getYouTubeWatchUrl(video.youtubeId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1f1f23] text-neutral-200 hover:text-white hover:bg-[#2a2a30] font-bold text-xs border border-white/10 transition-all"
+              >
+                <Youtube className="w-4 h-4 text-red-500" />
+                <span>Assistir no YouTube</span>
+                <ExternalLink className="w-3 h-3 text-neutral-400" />
+              </a>
+            )}
+
+            <a
+              href={siteConfig.links.youtube}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#ebbf01] text-black font-bold text-xs hover:bg-[#f5cc14] transition-all"
+            >
+              <Youtube className="w-4 h-4 text-red-600" />
+              <span>Canal ALX</span>
+            </a>
+          </div>
         </div>
 
       </div>
