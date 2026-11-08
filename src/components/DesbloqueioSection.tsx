@@ -6,6 +6,7 @@ import { UnlockServiceItem } from '../types';
 import { initialUnlockServices } from '../data/unlockServices';
 import { KeyRound, Search, ArrowRight, ArrowLeft, Share2, Check, ShieldCheck, ChevronDown, ExternalLink, Play, FileText, Eye } from 'lucide-react';
 import { SocialIcon } from './common/SocialIcon';
+import { DesbloqueioDocumentView } from './desbloqueio/DesbloqueioDocumentView';
 
 interface DesbloqueioSectionProps {
   isStandalone?: boolean;
@@ -87,110 +88,22 @@ export const DesbloqueioSection: React.FC<DesbloqueioSectionProps> = ({ isStanda
 
   // Detailed View for a Selected Unlock Service
   if (activeService) {
-    const directUrl = typeof window !== 'undefined' ? `${window.location.origin}/desbloqueio/${activeService.slug || activeService.id}` : '';
-
     return (
       <section id="desbloqueio" className={`${isStandalone ? 'pt-0 pb-8 sm:pb-10' : 'py-10 sm:py-14'} bg-[#070709] relative`}>
         {/* Ambient lighting glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[#ebbf01]/4 blur-[160px] pointer-events-none rounded-full" />
 
         <div className="w-full max-w-[96%] sm:max-w-[90%] lg:w-[70%] lg:max-w-[70vw] mx-auto px-2 sm:px-4 relative z-10 space-y-6">
-          {/* Document / Service Specification Sheet (70% width matching other pages) */}
-          <article className="w-full bg-[#111115] border border-white/[0.08] rounded-3xl overflow-hidden shadow-2xl relative text-neutral-100 p-6 sm:p-10 lg:p-14 space-y-8">
-            
-            {/* Header Info */}
-            <header className="space-y-4 pb-6 border-b border-white/[0.08]">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="px-3 py-1 rounded-lg bg-[#ebbf01]/10 border border-[#ebbf01]/30 text-[#ebbf01] text-xs font-mono font-bold uppercase">
-                  {activeService.category}
-                </span>
-                {activeService.badge && (
-                  <span
-                    className="px-3 py-1 rounded-lg text-black text-xs font-mono font-bold uppercase shadow-md"
-                    style={{ backgroundColor: activeService.badgeColor || '#10B981' }}
-                  >
-                    {activeService.badge}
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight font-heading leading-tight">
-                {activeService.title}
-              </h1>
-
-              <p className="text-neutral-300 text-sm sm:text-base leading-relaxed font-sans">
-                {activeService.summary}
-              </p>
-            </header>
-
-            {/* Main Service Image with Card Effect */}
-            {activeService.imageUrl && (
-              <div className="relative aspect-[16/10] rounded-3xl overflow-hidden bg-[#16161D] border border-white/[0.08] hover:border-[#ebbf01]/40 shadow-2xl group transition-all duration-300">
-                <img
-                  src={getMediaPreviewUrl(activeService.imageUrl)}
-                  alt={activeService.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e13] via-transparent to-black/30 pointer-events-none" />
-              </div>
-            )}
-
-            {/* Content Details */}
-            <div className="space-y-6 pt-2 text-sm text-neutral-300 leading-relaxed font-sans whitespace-pre-line">
-              {activeService.content}
-            </div>
-
-            {/* Applicable Vehicles Badge */}
-            {activeService.applicableCars && (
-              <div className="p-4 rounded-2xl bg-[#14141c] border border-white/[0.08] space-y-1">
-                <div className="text-xs font-mono text-neutral-400 font-bold uppercase tracking-wider">
-                  Veículos Compatíveis:
-                </div>
-                <div className="text-sm font-bold text-white">
-                  {activeService.applicableCars}
-                </div>
-              </div>
-            )}
-
-            {/* Copyright & Security Notice / Warranty */}
-            {((activeService.warrantyTitle === undefined && activeService.warrantyText === undefined) ||
-              (activeService.warrantyTitle && activeService.warrantyTitle.trim() !== '') ||
-              (activeService.warrantyText && activeService.warrantyText.trim() !== '')) && (
-              <div className="p-4 rounded-2xl bg-[#14141c] border border-amber-500/20 flex items-start gap-3 text-xs font-mono text-neutral-300">
-                <ShieldCheck className="w-4 h-4 text-[#ebbf01] shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <div className="text-white font-bold flex items-center gap-2">
-                    <span>{activeService.warrantyTitle !== undefined && activeService.warrantyTitle.trim() !== '' ? activeService.warrantyTitle : 'Garantia & Execução de Serviços'}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-[#ebbf01] uppercase font-bold">Oficial</span>
-                  </div>
-                  <p className="text-neutral-400 leading-relaxed text-[11px]">
-                    {activeService.warrantyText !== undefined && activeService.warrantyText.trim() !== '' ? activeService.warrantyText : 'Todos os serviços são executados com ferramentas de nível profissional, garantindo integridade dos sistemas originais do veículo.'}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Hire / Contact Banner */}
-            <div className="p-6 rounded-2xl bg-[#14141c] border border-[#25D366]/30 space-y-4 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h4 className="text-white font-bold text-base">Gostaria de contratar este serviço?</h4>
-                <p className="text-xs text-neutral-400">
-                  Fale diretamente via WhatsApp para agendamento presencial ou atendimento remoto.
-                </p>
-              </div>
-              <a
-                href="https://alx.short.gy/desbloqueio_alx"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-mono font-extrabold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#25D366]/20 shrink-0 cursor-pointer"
-              >
-                <SocialIcon platform="whatsapp" className="w-4 h-4 text-white" />
-                <span>Solicitar Orçamento</span>
-              </a>
-            </div>
-
-          </article>
-
+          <DesbloqueioDocumentView
+            service={activeService}
+            onBack={() => {
+              setActiveService(null);
+              if (activePage.type === 'servico-desbloqueio') {
+                setActivePage({ type: 'desbloqueio' });
+              }
+            }}
+            isStandalone={isStandalone}
+          />
         </div>
       </section>
     );

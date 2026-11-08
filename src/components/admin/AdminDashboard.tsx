@@ -73,6 +73,7 @@ import {
   Film
 } from 'lucide-react';
 import { TutorialDocumentView } from '../tutorials/TutorialDocumentView';
+import { DesbloqueioDocumentView } from '../desbloqueio/DesbloqueioDocumentView';
 import { useSiteData } from '../../context/SiteDataContext';
 import { ImageUploadField } from './ImageUploadField';
 import { FileUploadField } from './FileUploadField';
@@ -476,6 +477,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const [editingUnlockService, setEditingUnlockService] = useState<UnlockServiceItem | null>(null);
   const [isCreatingUnlockService, setIsCreatingUnlockService] = useState(false);
+  const [unlockEditorTab, setUnlockEditorTab] = useState<'editor' | 'preview'>('editor');
+  const [showUnlockCalloutPrompt, setShowUnlockCalloutPrompt] = useState(false);
+  const [unlockCalloutColor, setUnlockCalloutColor] = useState('#ef4444');
+  const [unlockCalloutTitle, setUnlockCalloutTitle] = useState('Observação');
+  const [unlockCalloutText, setUnlockCalloutText] = useState('Importante verificar a versão e compatibilidade antes de prosseguir.');
+  const [showUnlockImagePrompt, setShowUnlockImagePrompt] = useState(false);
+  const [inlineUnlockImgUrl, setInlineUnlockImgUrl] = useState('');
+  const [inlineUnlockImgCaption, setInlineUnlockImgCaption] = useState('');
+  const [isUploadingInlineUnlockImg, setIsUploadingInlineUnlockImg] = useState(false);
+  const [showUnlockVideoPrompt, setShowUnlockVideoPrompt] = useState(false);
+  const [inlineUnlockVideoUrl, setInlineUnlockVideoUrl] = useState('');
+  const [inlineUnlockVideoCaption, setInlineUnlockVideoCaption] = useState('');
+  const [inlineUnlockVideoLoop, setInlineUnlockVideoLoop] = useState(true);
+  const [convertUnlockVideoToWebm, setConvertUnlockVideoToWebm] = useState(false);
+  const [isUploadingInlineUnlockVideo, setIsUploadingInlineUnlockVideo] = useState(false);
+  const [isUploadingGalleryUnlockImgs, setIsUploadingGalleryUnlockImgs] = useState(false);
+  const [isUploadingGalleryUnlockVideo, setIsUploadingGalleryUnlockVideo] = useState(false);
+  const [newAttachedUnlockImgUrl, setNewAttachedUnlockImgUrl] = useState('');
+  const [newAttachedUnlockVideoUrl, setNewAttachedUnlockVideoUrl] = useState('');
+  const [newAttachedUnlockVideoCaption, setNewAttachedUnlockVideoCaption] = useState('');
+  const [unlockImageCaptions, setUnlockImageCaptions] = useState<Record<string, string>>({});
 
   const [editingSocialLink, setEditingSocialLink] = useState<CustomSocialLink | null>(null);
   const [isAddingSocialLink, setIsAddingSocialLink] = useState(false);
@@ -4539,6 +4561,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     slug: `desbloqueio-servico-${Date.now()}`
                   });
                   setIsCreatingUnlockService(true);
+                  setUnlockEditorTab('editor');
+                  setShowUnlockCalloutPrompt(false);
+                  setShowUnlockImagePrompt(false);
+                  setShowUnlockVideoPrompt(false);
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase hover:bg-[#f5cc14] transition-all shadow-md shadow-[#ebbf01]/20 cursor-pointer"
               >
@@ -4658,6 +4684,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         onClick={() => {
                           setEditingUnlockService(service);
                           setIsCreatingUnlockService(false);
+                          setUnlockEditorTab('editor');
+                          setShowUnlockCalloutPrompt(false);
+                          setShowUnlockImagePrompt(false);
+                          setShowUnlockVideoPrompt(false);
                         }}
                         className="px-3 py-1.5 rounded-lg bg-neutral-100 text-neutral-900 hover:bg-neutral-200 border border-neutral-200 text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                       >
@@ -10628,9 +10658,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* ================= MODAL: EDIT/CREATE UNLOCK SERVICE ================= */}
       {editingUnlockService && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white border border-neutral-200 rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-5 sm:p-8 space-y-6 shadow-2xl animate-in zoom-in-95 text-neutral-900">
+          <div className="bg-white border border-neutral-200 rounded-3xl max-w-5xl w-full max-h-[92vh] overflow-y-auto p-5 sm:p-8 space-y-6 shadow-2xl animate-in zoom-in-95 text-neutral-900">
             
-            <div className="flex items-center justify-between pb-4 border-b border-neutral-200">
+            {/* Header & Mode Tabs */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-neutral-200 gap-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-[#ebbf01]/10 text-[#ebbf01] flex items-center justify-center font-bold">
                   <KeyRound className="w-5 h-5 text-[#ebbf01]" />
@@ -10640,286 +10671,1700 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {isCreatingUnlockService ? 'Cadastrar Novo Serviço de Desbloqueio' : `Editar Serviço • ${editingUnlockService.title}`}
                   </h3>
                   <p className="text-xs text-neutral-500 font-mono mt-0.5">
-                    Preencha os detalhes do serviço prestado e configure os valores e canais de contratação.
+                    Formate o manual técnico com fotos, vídeos em looping contínuo, caixas com cores personalizadas e visualize a prévia fiel em tempo real.
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setEditingUnlockService(null)}
-                className="p-2 text-neutral-500 hover:text-neutral-900 rounded-xl bg-neutral-100 hover:bg-neutral-200 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+
+              {/* Top Action Buttons: Tab Switcher & Close */}
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <div className="flex items-center bg-neutral-100 p-1 rounded-xl border border-neutral-200 text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={() => setUnlockEditorTab('editor')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      unlockEditorTab === 'editor'
+                        ? 'bg-neutral-900 text-[#ebbf01] shadow-xs'
+                        : 'text-neutral-600 hover:text-black'
+                    }`}
+                  >
+                    Editor & Mídias
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUnlockEditorTab('preview')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      unlockEditorTab === 'preview'
+                        ? 'bg-neutral-900 text-[#ebbf01] shadow-xs'
+                        : 'text-neutral-600 hover:text-black'
+                    }`}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Visualizar Prévia</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingUnlockService(null);
+                    setUnlockEditorTab('editor');
+                  }}
+                  className="p-2 text-neutral-500 hover:text-neutral-900 rounded-xl bg-neutral-100 hover:bg-neutral-200 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-5">
-              {/* Title & Category */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Título do Serviço *
-                  </label>
-                  <input
-                    type="text"
-                    value={editingUnlockService.title}
-                    onChange={(e) => setEditingUnlockService({ ...editingUnlockService, title: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none"
-                    placeholder="Ex: Desbloqueio de Multimídia BYD DiLink"
-                  />
+            {/* PREVIEW TAB: Visualizar Documento Estilo Site/PDF */}
+            {unlockEditorTab === 'preview' ? (
+              <div className="space-y-4">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs font-mono text-amber-900">
+                  <span>Pré-visualização fiel do serviço como seus clientes verão no portal com vídeos e fotos interativos:</span>
+                  <button
+                    type="button"
+                    onClick={() => setUnlockEditorTab('editor')}
+                    className="font-bold underline cursor-pointer text-amber-950"
+                  >
+                    Voltar para Edição
+                  </button>
                 </div>
-
-                <div>
-                  <CategorySelect
-                    label="Categoria do Serviço"
-                    value={editingUnlockService.category || ''}
-                    onChange={(val) => setEditingUnlockService({ ...editingUnlockService, category: val })}
-                    existingCategories={Array.from(new Set(unlockServices.map(s => s.category).filter(Boolean)))}
-                    placeholder="Selecione ou crie uma categoria..."
-                    helperText="Escolha uma categoria existente ou crie uma nova."
-                    required
+                <div className="border border-neutral-300 rounded-3xl overflow-hidden shadow-inner p-1 sm:p-3 bg-[#070709]">
+                  <DesbloqueioDocumentView
+                    service={editingUnlockService}
+                    onBack={() => setUnlockEditorTab('editor')}
                   />
                 </div>
               </div>
+            ) : (
+              /* EDITOR TAB */
+              <div className="space-y-6">
+                
+                {/* 1. Direct Page Link & Slug Box */}
+                <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-2xl space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-[#ebbf01]" />
+                      <span>Link Próprio da Página deste Desbloqueio</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const directUrl = `${window.location.origin}/desbloqueio/${editingUnlockService.slug || editingUnlockService.id}`;
+                        navigator.clipboard.writeText(directUrl);
+                        triggerSuccess('Link direto copiado para a área de transferência!');
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-neutral-800 hover:text-black hover:underline cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-[#ebbf01]" />
+                      <span>Copiar Link Completo</span>
+                    </button>
+                  </div>
 
-              {/* Price & Badge */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Preço / Cobrança
-                  </label>
-                  <input
-                    type="text"
-                    value={editingUnlockService.price || ''}
-                    onChange={(e) => setEditingUnlockService({ ...editingUnlockService, price: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none"
-                    placeholder="Ex: R$ 250,00 ou Sob Consulta"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Destaque / Badge
-                  </label>
-                  <input
-                    type="text"
-                    value={editingUnlockService.badge || ''}
-                    onChange={(e) => setEditingUnlockService({ ...editingUnlockService, badge: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none"
-                    placeholder="Ex: Mais Solicitado, Exclusivo"
-                  />
-                </div>
-              </div>
-
-              {/* Badge Color Selector */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                  Cor do Badge / Destaque
-                </label>
-                <div className="flex flex-wrap items-center gap-3 bg-neutral-50 p-3 rounded-2xl border border-neutral-200">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={editingUnlockService.badgeColor || '#10B981'}
-                      onChange={(e) => setEditingUnlockService({ ...editingUnlockService, badgeColor: e.target.value })}
-                      className="w-10 h-10 p-1 rounded-xl border border-neutral-300 cursor-pointer bg-white"
-                      title="Escolher cor personalizada"
-                    />
+                  <div className="flex items-center gap-2 bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs font-mono shadow-xs">
+                    <span className="text-neutral-500 shrink-0 select-none">alx.7f.com.br/desbloqueio/</span>
                     <input
                       type="text"
-                      value={editingUnlockService.badgeColor || '#10B981'}
-                      onChange={(e) => setEditingUnlockService({ ...editingUnlockService, badgeColor: e.target.value })}
-                      className="w-28 px-3 py-2 rounded-xl border border-neutral-300 focus:border-[#ebbf01] text-xs font-mono font-bold text-neutral-900 bg-white"
-                      placeholder="#10B981"
+                      value={editingUnlockService.slug || ''}
+                      onChange={(e) => {
+                        const cleanSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '');
+                        setEditingUnlockService({ ...editingUnlockService, slug: cleanSlug });
+                      }}
+                      placeholder="slug-do-desbloqueio"
+                      className="flex-1 font-bold text-neutral-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Foto de Capa do Serviço */}
+                <ImageUploadField
+                  label="Foto de Capa do Serviço (Banner Principal)"
+                  value={editingUnlockService.imageUrl || ''}
+                  onChange={(val) => setEditingUnlockService({ ...editingUnlockService, imageUrl: val })}
+                  previewAspect="video"
+                />
+
+                {/* 3. Form Grid: Título, Categoria, Preço, Badge, etc. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider">Título do Serviço *</label>
+                    <input
+                      type="text"
+                      value={editingUnlockService.title}
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        const autoSlug = newTitle
+                          .toLowerCase()
+                          .normalize('NFD')
+                          .replace(/[\u0300-\u036f]/g, '')
+                          .replace(/[^a-z0-9]+/g, '-')
+                          .replace(/^-|-$/g, '');
+                        setEditingUnlockService({
+                          ...editingUnlockService,
+                          title: newTitle,
+                          slug: isCreatingUnlockService || !editingUnlockService.slug ? autoSlug : editingUnlockService.slug
+                        });
+                      }}
+                      placeholder="Ex: Desbloqueio de Multimídia BYD DiLink"
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 font-medium placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
                     />
                   </div>
 
-                  <div className="flex items-center gap-1.5 pl-2 border-l border-neutral-200">
-                    <span className="text-[10px] font-bold text-neutral-500 uppercase mr-1">Paleta:</span>
-                    {[
-                      { name: 'Verde Esmeralda', hex: '#10B981' },
-                      { name: 'Dourado ALX', hex: '#EAB308' },
-                      { name: 'Vermelho Destaque', hex: '#EF4444' },
-                      { name: 'Azul Elétrico', hex: '#3B82F6' },
-                      { name: 'Roxo VIP', hex: '#8B5CF6' },
-                      { name: 'Laranja Vivo', hex: '#F97316' },
-                      { name: 'Preto Grafite', hex: '#111827' },
-                    ].map((c) => (
-                      <button
-                        key={c.hex}
-                        type="button"
-                        onClick={() => setEditingUnlockService({ ...editingUnlockService, badgeColor: c.hex })}
-                        className={`w-7 h-7 rounded-full border border-black/20 transition-all cursor-pointer ${
-                          (editingUnlockService.badgeColor || '#10B981').toUpperCase() === c.hex.toUpperCase()
-                            ? 'scale-110 ring-2 ring-[#ebbf01] shadow-md'
-                            : 'hover:scale-105 opacity-80 hover:opacity-100'
-                        }`}
-                        style={{ backgroundColor: c.hex }}
-                        title={`${c.name} (${c.hex})`}
-                      />
-                    ))}
+                  <div>
+                    <CategorySelect
+                      label="Categoria do Serviço"
+                      value={editingUnlockService.category || ''}
+                      onChange={(val) => setEditingUnlockService({ ...editingUnlockService, category: val })}
+                      existingCategories={Array.from(new Set(unlockServices.map(s => s.category).filter(Boolean)))}
+                      placeholder="Selecione ou crie uma categoria..."
+                      helperText="Escolha uma categoria existente ou crie uma nova."
+                      required
+                    />
                   </div>
 
-                  {/* Visual Preview */}
-                  {editingUnlockService.badge && (
-                    <div className="ml-auto flex items-center gap-1.5">
-                      <span className="text-[10px] text-neutral-500 font-bold uppercase">Prévia:</span>
-                      <span
-                        className="text-[10px] font-black px-2.5 py-1 rounded-lg font-mono uppercase text-black shadow-sm"
-                        style={{ backgroundColor: editingUnlockService.badgeColor || '#10B981' }}
-                      >
-                        {editingUnlockService.badge}
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                      Preço / Cobrança
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUnlockService.price || ''}
+                      onChange={(e) => setEditingUnlockService({ ...editingUnlockService, price: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none bg-neutral-50 hover:bg-white focus:bg-white shadow-xs"
+                      placeholder="Ex: R$ 250,00 ou Sob Consulta"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                      Destaque / Badge
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUnlockService.badge || ''}
+                      onChange={(e) => setEditingUnlockService({ ...editingUnlockService, badge: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none bg-neutral-50 hover:bg-white focus:bg-white shadow-xs"
+                      placeholder="Ex: Mais Solicitado, Exclusivo"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                      Veículos Compatíveis
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUnlockService.applicableCars || ''}
+                      onChange={(e) => setEditingUnlockService({ ...editingUnlockService, applicableCars: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none bg-neutral-50 hover:bg-white focus:bg-white shadow-xs"
+                      placeholder="Ex: Dolphin, Dolphin Mini, Seal, Song Plus, Yuan Plus"
+                    />
+                  </div>
+
+                  {/* Badge Color Selector */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                      Cor do Badge / Destaque
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3 bg-neutral-50 p-3 rounded-2xl border border-neutral-200">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={editingUnlockService.badgeColor || '#10B981'}
+                          onChange={(e) => setEditingUnlockService({ ...editingUnlockService, badgeColor: e.target.value })}
+                          className="w-10 h-10 p-1 rounded-xl border border-neutral-300 cursor-pointer bg-white"
+                          title="Escolher cor personalizada"
+                        />
+                        <input
+                          type="text"
+                          value={editingUnlockService.badgeColor || '#10B981'}
+                          onChange={(e) => setEditingUnlockService({ ...editingUnlockService, badgeColor: e.target.value })}
+                          className="w-28 px-3 py-2 rounded-xl border border-neutral-300 focus:border-[#ebbf01] text-xs font-mono font-bold text-neutral-900 bg-white"
+                          placeholder="#10B981"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-1.5 pl-2 border-l border-neutral-200">
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase mr-1">Paleta:</span>
+                        {[
+                          { name: 'Verde Esmeralda', hex: '#10B981' },
+                          { name: 'Dourado ALX', hex: '#EAB308' },
+                          { name: 'Vermelho Destaque', hex: '#EF4444' },
+                          { name: 'Azul Elétrico', hex: '#3B82F6' },
+                          { name: 'Roxo VIP', hex: '#8B5CF6' },
+                          { name: 'Laranja Vivo', hex: '#F97316' },
+                          { name: 'Preto Grafite', hex: '#111827' },
+                        ].map((c) => (
+                          <button
+                            key={c.hex}
+                            type="button"
+                            onClick={() => setEditingUnlockService({ ...editingUnlockService, badgeColor: c.hex })}
+                            className={`w-7 h-7 rounded-full border border-black/20 transition-all cursor-pointer ${
+                              (editingUnlockService.badgeColor || '#10B981').toUpperCase() === c.hex.toUpperCase()
+                                ? 'scale-110 ring-2 ring-[#ebbf01] shadow-md'
+                                : 'hover:scale-105 opacity-80 hover:opacity-100'
+                            }`}
+                            style={{ backgroundColor: c.hex }}
+                            title={`${c.name} (${c.hex})`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Visual Preview */}
+                      {editingUnlockService.badge && (
+                        <div className="ml-auto flex items-center gap-1.5">
+                          <span className="text-[10px] text-neutral-500 font-bold uppercase">Prévia:</span>
+                          <span
+                            className="text-[10px] font-black px-2.5 py-1 rounded-lg font-mono uppercase text-black shadow-sm"
+                            style={{ backgroundColor: editingUnlockService.badgeColor || '#10B981' }}
+                          >
+                            {editingUnlockService.badge}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider">
+                      Resumo Curto (Exibido no Card da Listagem) *
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={editingUnlockService.summary}
+                      onChange={(e) => setEditingUnlockService({ ...editingUnlockService, summary: e.target.value })}
+                      placeholder="Breve descrição dos benefícios e escopo do serviço."
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl p-3 text-xs text-neutral-900 font-medium placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
+                    />
+                  </div>
+
+                  {/* 4. Rich Content Writer Toolbar & Textarea */}
+                  <div className="sm:col-span-2 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-neutral-700" />
+                        <span>Conteúdo Passo a Passo & Detalhamento Técnico (Estilo Manual)</span>
+                      </label>
+                      <span className="text-[11px] font-mono text-neutral-500">
+                        Suporta Títulos, Passos 1. 2., Avisos e Imagens
                       </span>
                     </div>
-                  )}
+
+                    {/* Toolbar de Formatação Rápida */}
+                    <div className="p-2 bg-neutral-100 border border-neutral-300 rounded-xl flex flex-wrap items-center gap-1.5 text-xs font-mono">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = editingUnlockService.content || '';
+                          setEditingUnlockService({ ...editingUnlockService, content: `${current}\n\n## Novo Título de Seção\n` });
+                        }}
+                        className="px-2.5 py-1 rounded bg-white hover:bg-neutral-200 border border-neutral-300 font-bold text-neutral-800 cursor-pointer shadow-2xs"
+                        title="Adicionar Título de Seção (H2)"
+                      >
+                        + Título H2
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = editingUnlockService.content || '';
+                          setEditingUnlockService({ ...editingUnlockService, content: `${current}\n\n### Subtítulo\n` });
+                        }}
+                        className="px-2.5 py-1 rounded bg-white hover:bg-neutral-200 border border-neutral-300 font-bold text-neutral-800 cursor-pointer shadow-2xs"
+                        title="Adicionar Subtítulo (H3)"
+                      >
+                        + Subtítulo
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = editingUnlockService.content || '';
+                          setEditingUnlockService({ ...editingUnlockService, content: `${current}\n1. Primeiro passo do procedimento...\n2. Segundo passo...\n` });
+                        }}
+                        className="px-2.5 py-1 rounded bg-white hover:bg-neutral-200 border border-neutral-300 font-bold text-neutral-800 cursor-pointer shadow-2xs"
+                        title="Adicionar Lista Numerada de Passos"
+                      >
+                        1. 2. Passos
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = editingUnlockService.content || '';
+                          setEditingUnlockService({ ...editingUnlockService, content: `${current}\n- Item do escopo\n- Outro diferencial\n` });
+                        }}
+                        className="px-2.5 py-1 rounded bg-white hover:bg-neutral-200 border border-neutral-300 font-bold text-neutral-800 cursor-pointer shadow-2xs"
+                        title="Adicionar Lista com Marcadores"
+                      >
+                        • Marcadores
+                      </button>
+
+                      {/* Seletor & Criador de Caixa com Qualquer Cor */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowUnlockCalloutPrompt(!showUnlockCalloutPrompt);
+                          setShowUnlockImagePrompt(false);
+                          setShowUnlockVideoPrompt(false);
+                        }}
+                        className={`px-3 py-1 rounded font-bold cursor-pointer shadow-2xs flex items-center gap-1.5 transition-all border ${
+                          showUnlockCalloutPrompt 
+                            ? 'bg-purple-600 text-white border-purple-400 ring-2 ring-purple-300' 
+                            : 'bg-white hover:bg-neutral-100 text-neutral-900 border-neutral-300'
+                        }`}
+                        title="Personalizar e Inserir Caixa com Qualquer Cor"
+                      >
+                        <Palette className="w-3.5 h-3.5 text-purple-600" />
+                        <span>🎨 Caixa Colorida (Escolher Cor)</span>
+                        <span 
+                          className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-2xs shrink-0" 
+                          style={{ backgroundColor: unlockCalloutColor }}
+                        />
+                      </button>
+
+                      {/* Botões rápidos de 1-clique para cores frequentes */}
+                      <div className="hidden sm:flex items-center gap-1 border-l border-neutral-300 pl-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUnlockCalloutColor('#ef4444');
+                            setUnlockCalloutTitle('Observação');
+                            const current = editingUnlockService.content || '';
+                            setEditingUnlockService({ 
+                              ...editingUnlockService, 
+                              content: `${current}\n\n> [cor: #ef4444] **Observação:** Importante verificar a versão e compatibilidade antes de prosseguir.\n` 
+                            });
+                            triggerSuccess('Caixa Vermelha (Observação) inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-red-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Vermelha rápida (Observação)"
+                        >
+                          🛑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUnlockCalloutColor('#eab308');
+                            setUnlockCalloutTitle('Atenção');
+                            const current = editingUnlockService.content || '';
+                            setEditingUnlockService({ 
+                              ...editingUnlockService, 
+                              content: `${current}\n\n> [cor: #eab308] **Atenção:** Mantenha a ignição ligada durante todo o procedimento.\n` 
+                            });
+                            triggerSuccess('Caixa Amarela (Atenção) inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-amber-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Amarela rápida (Atenção)"
+                        >
+                          ⚠️
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUnlockCalloutColor('#3b82f6');
+                            setUnlockCalloutTitle('Dica');
+                            const current = editingUnlockService.content || '';
+                            setEditingUnlockService({ 
+                              ...editingUnlockService, 
+                              content: `${current}\n\n> [cor: #3b82f6] **Dica:** Atendimento remoto disponível via conexão segura.\n` 
+                            });
+                            triggerSuccess('Caixa Azul (Dica) inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-blue-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Azul rápida (Dica)"
+                        >
+                          💡
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUnlockCalloutColor('#10b981');
+                            setUnlockCalloutTitle('Garantia');
+                            const current = editingUnlockService.content || '';
+                            setEditingUnlockService({ 
+                              ...editingUnlockService, 
+                              content: `${current}\n\n> [cor: #10b981] **Garantia:** Todos os recursos originais continuam intactos após o desbloqueio.\n` 
+                            });
+                            triggerSuccess('Caixa Verde inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-emerald-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Verde rápida"
+                        >
+                          ✅
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUnlockCalloutColor('#8b5cf6');
+                            setUnlockCalloutTitle('Exclusivo');
+                            const current = editingUnlockService.content || '';
+                            setEditingUnlockService({ 
+                              ...editingUnlockService, 
+                              content: `${current}\n\n> [cor: #8b5cf6] **Exclusivo:** Suporte VIP com acompanhamento em tempo real.\n` 
+                            });
+                            triggerSuccess('Caixa Roxa inserida!');
+                          }}
+                          className="w-6 h-6 rounded-full bg-purple-500 hover:scale-110 transition-transform shadow-2xs cursor-pointer border border-white/40 flex items-center justify-center text-[10px]"
+                          title="Inserir Caixa Roxa rápida"
+                        >
+                          👑
+                        </button>
+                      </div>
+
+                      {/* Botão Inserir Foto no Texto */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowUnlockImagePrompt(!showUnlockImagePrompt);
+                          setShowUnlockVideoPrompt(false);
+                          setShowUnlockCalloutPrompt(false);
+                        }}
+                        className={`px-3 py-1 rounded font-bold cursor-pointer shadow-2xs flex items-center gap-1.5 ml-auto transition-colors ${
+                          showUnlockImagePrompt ? 'bg-[#ebbf01] text-black' : 'bg-neutral-900 hover:bg-black text-[#ebbf01]'
+                        }`}
+                        title="Inserir Foto ou Imagem com Legenda no Texto (Upload direto ou Link)"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>📷 Inserir Foto no Texto</span>
+                      </button>
+
+                      {/* Botão Inserir Vídeo no Texto */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowUnlockVideoPrompt(!showUnlockVideoPrompt);
+                          setShowUnlockImagePrompt(false);
+                          setShowUnlockCalloutPrompt(false);
+                        }}
+                        className={`px-3 py-1 rounded font-bold cursor-pointer shadow-2xs flex items-center gap-1.5 transition-colors ${
+                          showUnlockVideoPrompt ? 'bg-[#1EFF00] text-black' : 'bg-neutral-900 hover:bg-black text-[#1EFF00]'
+                        }`}
+                        title="Inserir Vídeo no Corpo do Texto (Upload direto ou YouTube)"
+                      >
+                        <Film className="w-3.5 h-3.5" />
+                        <span>🎬 Inserir Vídeo no Texto</span>
+                      </button>
+                    </div>
+
+                    {/* Popover / Form para Escolher Qualquer Cor de Caixa */}
+                    {showUnlockCalloutPrompt && (
+                      <div className="p-4 bg-neutral-900 text-white rounded-2xl border border-purple-500/50 shadow-2xl space-y-4 animate-in fade-in">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                          <span className="text-xs font-mono font-bold text-purple-300 flex items-center gap-2">
+                            <Palette className="w-4 h-4 text-purple-400" />
+                            <span>Personalizar Caixa de Destaque / Aviso (Escolha Qualquer Cor)</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowUnlockCalloutPrompt(false)}
+                            className="text-neutral-400 hover:text-white p-1 cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Paleta de Cores Pré-definidas */}
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            1. Escolha uma Cor da Paleta ou Personalize no Seletor Livre:
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                            {PRESET_CALLOUT_COLORS.map((preset) => {
+                              const isSelected = unlockCalloutColor.toLowerCase() === preset.hex.toLowerCase();
+                              return (
+                                <button
+                                  key={preset.hex}
+                                  type="button"
+                                  onClick={() => {
+                                    setUnlockCalloutColor(preset.hex);
+                                    if (!unlockCalloutTitle || PRESET_CALLOUT_COLORS.some(p => p.defaultTitle === unlockCalloutTitle)) {
+                                      setUnlockCalloutTitle(preset.defaultTitle);
+                                    }
+                                  }}
+                                  className={`flex items-center gap-2 p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                    isSelected 
+                                      ? 'bg-white/15 border-white ring-2 ring-white/50 text-white scale-[1.02]' 
+                                      : 'bg-black/30 border-white/10 text-neutral-300 hover:bg-white/5 hover:border-white/30'
+                                  }`}
+                                >
+                                  <span 
+                                    className="w-4 h-4 rounded-full border border-black/30 shadow-2xs shrink-0 flex items-center justify-center text-[10px]"
+                                    style={{ backgroundColor: preset.hex }}
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold truncate leading-tight flex items-center gap-1">
+                                      <span>{preset.icon}</span>
+                                      <span>{preset.name}</span>
+                                    </div>
+                                    <div className="text-[9px] font-mono text-neutral-400 truncate">{preset.hex}</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Seletor Livre de Cor HEX */}
+                        <div className="p-3 rounded-xl bg-black/40 border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs font-mono font-bold text-neutral-300 flex items-center gap-2 cursor-pointer">
+                              <span>Ou escolha literalmente qualquer cor:</span>
+                              <input
+                                type="color"
+                                value={unlockCalloutColor}
+                                onChange={(e) => setUnlockCalloutColor(e.target.value)}
+                                className="w-8 h-8 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0.5"
+                                title="Seletor de cor livre"
+                              />
+                            </label>
+                            <input
+                              type="text"
+                              value={unlockCalloutColor}
+                              onChange={(e) => setUnlockCalloutColor(e.target.value)}
+                              placeholder="#HEX"
+                              className="w-24 px-2.5 py-1 text-xs font-mono font-bold bg-neutral-800 border border-white/20 rounded-lg text-white uppercase focus:border-purple-400 focus:outline-none"
+                            />
+                          </div>
+                          <div className="text-[11px] font-mono text-neutral-300">
+                            Cor selecionada: <strong style={{ color: unlockCalloutColor }}>{unlockCalloutColor}</strong>
+                          </div>
+                        </div>
+
+                        {/* Título e Texto */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="space-y-1 sm:col-span-1">
+                            <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                              2. Título / Destaque:
+                            </label>
+                            <input
+                              type="text"
+                              value={unlockCalloutTitle}
+                              onChange={(e) => setUnlockCalloutTitle(e.target.value)}
+                              placeholder="Ex: Observação, Atenção..."
+                              className="w-full bg-neutral-800 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-purple-400"
+                            />
+                            {/* Chips de títulos rápidos */}
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {['Observação', 'Atenção', 'Dica', 'Cuidado', 'Garantia', 'Requisito'].map(chip => (
+                                <button
+                                  key={chip}
+                                  type="button"
+                                  onClick={() => setUnlockCalloutTitle(chip)}
+                                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-neutral-300 cursor-pointer"
+                                >
+                                  {chip}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1 sm:col-span-2">
+                            <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                              3. Texto que aparecerá dentro da caixa:
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={unlockCalloutText}
+                              onChange={(e) => setUnlockCalloutText(e.target.value)}
+                              placeholder="Digite a mensagem ou aviso da caixa..."
+                              className="w-full bg-neutral-800 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-purple-400"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Visual Preview da Caixa */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Prévia de como a caixa ficará no documento:
+                          </label>
+                          <div 
+                            className="p-3 rounded-xl border bg-black/50 text-xs font-mono leading-relaxed"
+                            style={{ 
+                              borderColor: `${unlockCalloutColor}50`,
+                              borderLeftWidth: '4px',
+                              borderLeftColor: unlockCalloutColor,
+                              color: '#fff'
+                            }}
+                          >
+                            {unlockCalloutTitle && (
+                              <strong style={{ color: unlockCalloutColor }} className="mr-1.5 uppercase font-bold tracking-wide">
+                                {unlockCalloutTitle}:
+                              </strong>
+                            )}
+                            <span className="text-neutral-200">
+                              {unlockCalloutText || 'O texto da sua mensagem personalizada aparecerá aqui com a cor escolhida.'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Botões de Ação */}
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setShowUnlockCalloutPrompt(false)}
+                            className="px-3 py-1.5 rounded-xl border border-white/20 hover:bg-white/10 text-neutral-300 text-xs font-mono cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = editingUnlockService.content || '';
+                              const title = unlockCalloutTitle.trim();
+                              const body = unlockCalloutText.trim() || 'Digite seu texto aqui.';
+                              const formattedTag = `\n\n> [cor: ${unlockCalloutColor}] ${title ? `**${title}:** ` : ''}${body}\n`;
+                              
+                              setEditingUnlockService({
+                                ...editingUnlockService,
+                                content: `${current}${formattedTag}`,
+                              });
+                              setShowUnlockCalloutPrompt(false);
+                              triggerSuccess(`Caixa personalizada (${unlockCalloutColor}) inserida com sucesso!`);
+                            }}
+                            className="px-4 py-1.5 rounded-xl text-black font-extrabold text-xs font-mono cursor-pointer transition-all shadow-md hover:scale-[1.02]"
+                            style={{ backgroundColor: unlockCalloutColor }}
+                          >
+                            + Inserir Caixa no Serviço
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Popover / Form para Inserir Foto com Legenda e Upload Direto */}
+                    {showUnlockImagePrompt && (
+                      <div className="p-4 bg-neutral-900 text-white rounded-2xl border border-[#ebbf01]/40 shadow-2xl space-y-3.5 animate-in fade-in">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <span className="text-xs font-mono font-bold text-[#ebbf01] flex items-center gap-1.5">
+                            <ImageIcon className="w-4 h-4 text-[#ebbf01]" />
+                            <span>Inserir Imagem / Foto no Serviço</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowUnlockImagePrompt(false)}
+                            className="text-neutral-400 hover:text-white p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Upload Direto da Foto */}
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Opção 1: Selecionar Foto do Computador / Celular
+                          </label>
+                          <label className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#ebbf01]/40 hover:border-[#ebbf01] bg-neutral-800/80 hover:bg-neutral-800 cursor-pointer text-xs font-mono transition-colors">
+                            {isUploadingInlineUnlockImg ? (
+                              <span className="flex items-center gap-2 text-[#ebbf01]">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Enviando foto para o servidor...</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2 text-neutral-200">
+                                <Upload className="w-4 h-4 text-[#ebbf01]" />
+                                <span className="font-bold text-[#ebbf01]">Clique aqui para subir imagem do dispositivo</span>
+                              </span>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={isUploadingInlineUnlockImg}
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  setIsUploadingInlineUnlockImg(true);
+                                  const url = await uploadTutorialMediaFile(file);
+                                  setInlineUnlockImgUrl(url);
+                                  if (!inlineUnlockImgCaption) {
+                                    setInlineUnlockImgCaption(file.name.replace(/\.[^/.]+$/, ''));
+                                  }
+                                  if (editingUnlockService) {
+                                    const currentImages = editingUnlockService.images || [];
+                                    if (!currentImages.includes(url)) {
+                                      setEditingUnlockService({
+                                        ...editingUnlockService,
+                                        images: [...currentImages, url]
+                                      });
+                                    }
+                                  }
+                                  triggerSuccess('Foto enviada com sucesso!');
+                                } catch (err: any) {
+                                  alert(err.message || 'Erro ao enviar imagem');
+                                } finally {
+                                  setIsUploadingInlineUnlockImg(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Prévia da imagem se tiver url */}
+                        {inlineUnlockImgUrl && (
+                          <div className="flex items-center gap-3 p-2 bg-neutral-800/80 rounded-xl border border-white/10">
+                            <img src={inlineUnlockImgUrl} alt="Prévia" className="w-16 h-12 object-cover rounded-lg border border-white/20 shrink-0 bg-black/40" />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[10px] font-mono text-[#1EFF00] block truncate">✓ Imagem pronta</span>
+                              <span className="text-[10px] font-mono text-neutral-400 block truncate">{inlineUnlockImgUrl}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setInlineUnlockImgUrl('')}
+                              className="text-neutral-400 hover:text-red-400 p-1"
+                              title="Remover"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Campo de URL manual (caso queira colar link) */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Opção 2: Ou digite a URL da Imagem
+                          </label>
+                          <input
+                            type="text"
+                            value={inlineUnlockImgUrl}
+                            onChange={(e) => setInlineUnlockImgUrl(e.target.value)}
+                            placeholder="URL da Imagem (ex: https://... ou /uploads/...)"
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ebbf01]"
+                          />
+                        </div>
+
+                        {/* Legenda */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Legenda da Foto (aparecerá abaixo da imagem no documento)
+                          </label>
+                          <input
+                            type="text"
+                            value={inlineUnlockImgCaption}
+                            onChange={(e) => setInlineUnlockImgCaption(e.target.value)}
+                            placeholder="Ex: Tela de ativação no sistema multimídia"
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#ebbf01]"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1 border-t border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setShowUnlockImagePrompt(false)}
+                            className="px-3 py-1.5 rounded-xl text-neutral-400 hover:text-white text-xs font-mono cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!inlineUnlockImgUrl.trim()) return;
+                              const current = editingUnlockService.content || '';
+                              const caption = inlineUnlockImgCaption.trim() || 'Foto ilustrativa do procedimento';
+                              const tag = `\n\n![${caption}](${inlineUnlockImgUrl.trim()})\n\n`;
+                              setEditingUnlockService({ ...editingUnlockService, content: `${current}${tag}` });
+                              setInlineUnlockImgUrl('');
+                              setInlineUnlockImgCaption('');
+                              setShowUnlockImagePrompt(false);
+                              triggerSuccess('Imagem inserida no texto!');
+                            }}
+                            disabled={!inlineUnlockImgUrl.trim()}
+                            className="px-4 py-1.5 rounded-xl bg-[#ebbf01] disabled:opacity-40 text-black font-extrabold text-xs font-mono cursor-pointer hover:bg-[#f5cc14] transition-all"
+                          >
+                            Inserir no Texto
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Popover / Form para Inserir Vídeo com Legenda e Upload Direto */}
+                    {showUnlockVideoPrompt && (
+                      <div className="p-4 bg-neutral-900 text-white rounded-2xl border border-[#1EFF00]/40 shadow-2xl space-y-3.5 animate-in fade-in">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <span className="text-xs font-mono font-bold text-[#1EFF00] flex items-center gap-1.5">
+                            <Film className="w-4 h-4 text-[#1EFF00]" />
+                            <span>Inserir Vídeo no Corpo do Serviço</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowUnlockVideoPrompt(false)}
+                            className="text-neutral-400 hover:text-white p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Opção de Conversão Automática para WebM */}
+                        <div className="flex items-center gap-2.5 p-2.5 bg-neutral-800/80 rounded-xl border border-[#1EFF00]/30 shadow-xs">
+                          <input
+                            type="checkbox"
+                            id="convertUnlockWebmCheck"
+                            checked={convertUnlockVideoToWebm}
+                            onChange={(e) => setConvertUnlockVideoToWebm(e.target.checked)}
+                            className="rounded accent-[#1EFF00] w-4 h-4 cursor-pointer shrink-0"
+                          />
+                          <label htmlFor="convertUnlockWebmCheck" className="text-xs font-mono text-neutral-200 cursor-pointer select-none leading-tight">
+                            <span>Converter automaticamente para <strong className="text-[#1EFF00]">WebM</strong> ao subir</span>
+                            <span className="block text-[10px] text-neutral-400 mt-0.5">Formato de vídeo ultraleve que carrega instantâneo e executa em <strong>looping contínuo</strong>.</span>
+                          </label>
+                        </div>
+
+                        {/* Upload Direto de Vídeo */}
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Opção 1: Selecionar Vídeo do Computador / Celular (MP4, WebM, MOV)
+                          </label>
+                          <label className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#1EFF00]/40 hover:border-[#1EFF00] bg-neutral-800/80 hover:bg-neutral-800 cursor-pointer text-xs font-mono transition-colors">
+                            {isUploadingInlineUnlockVideo ? (
+                              <span className="flex items-center gap-2 text-[#1EFF00]">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>{convertUnlockVideoToWebm ? 'Enviando e convertendo para WebM... Aguarde' : 'Enviando vídeo para o servidor (aguarde)...'}</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2 text-neutral-200">
+                                <Upload className="w-4 h-4 text-[#1EFF00]" />
+                                <span className="font-bold text-[#1EFF00]">Clique aqui para subir vídeo do dispositivo</span>
+                              </span>
+                            )}
+                            <input
+                              type="file"
+                              accept="video/mp4,video/webm,video/quicktime,video/*"
+                              disabled={isUploadingInlineUnlockVideo}
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const maxSizeBytes = 500 * 1024 * 1024; // 500 MB
+                                if (file.size > maxSizeBytes) {
+                                  alert(`O vídeo selecionado (${(file.size / (1024 * 1024)).toFixed(1)} MB) ultrapassa o limite máximo de 500 MB. Por favor, envie um vídeo mais leve.`);
+                                  e.target.value = '';
+                                  return;
+                                }
+                                try {
+                                  setIsUploadingInlineUnlockVideo(true);
+                                  const url = await uploadTutorialMediaFile(file, convertUnlockVideoToWebm);
+                                  setInlineUnlockVideoUrl(url);
+                                  if (!inlineUnlockVideoCaption) {
+                                    setInlineUnlockVideoCaption(file.name.replace(/\.[^/.]+$/, ''));
+                                  }
+                                  triggerSuccess(url.endsWith('.webm') ? 'Vídeo convertido em WebM e pronto para loop!' : 'Vídeo enviado com sucesso!');
+                                } catch (err: any) {
+                                  alert(err.message || 'Erro ao enviar vídeo para o servidor. Tente novamente ou desmarque a conversão automática.');
+                                } finally {
+                                  setIsUploadingInlineUnlockVideo(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Prévia do vídeo se tiver url */}
+                        {inlineUnlockVideoUrl && (
+                          <div className="p-2.5 bg-neutral-800/80 rounded-xl border border-white/10 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-[#1EFF00] flex items-center gap-1">
+                                <Check className="w-3 h-3 text-[#1EFF00]" />
+                                <span>Vídeo selecionado {inlineUnlockVideoUrl.endsWith('.webm') && '(WebM em Looping)'}:</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setInlineUnlockVideoUrl('')}
+                                className="text-neutral-400 hover:text-red-400 text-xs"
+                                title="Remover"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="max-h-36 overflow-hidden rounded-lg bg-black flex items-center justify-center">
+                              {inlineUnlockVideoUrl.includes('youtube.com') || inlineUnlockVideoUrl.includes('youtu.be') ? (
+                                <div className="p-3 text-xs font-mono text-neutral-300 flex items-center gap-2">
+                                  <Youtube className="w-4 h-4 text-red-500" />
+                                  <span>Vídeo do YouTube detectado</span>
+                                </div>
+                              ) : (
+                                <video src={inlineUnlockVideoUrl} controls loop playsInline preload="metadata" className="w-full max-h-36 object-contain" />
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400">
+                              <span className="truncate">{inlineUnlockVideoUrl}</span>
+                              <span className="text-[#1EFF00] shrink-0 font-bold ml-2">🔁 Repete em Loop</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Campo de URL manual (YouTube ou link direto de vídeo) */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Opção 2: Ou informe o Link do Vídeo (YouTube ou link direto MP4)
+                          </label>
+                          <input
+                            type="text"
+                            value={inlineUnlockVideoUrl}
+                            onChange={(e) => setInlineUnlockVideoUrl(e.target.value)}
+                            placeholder="Ex: https://www.youtube.com/watch?v=... ou /uploads/video.mp4"
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#1EFF00]"
+                          />
+                        </div>
+
+                        {/* Legenda do Vídeo */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-mono text-neutral-300 font-bold block">
+                            Legenda / Título do Vídeo no Serviço
+                          </label>
+                          <input
+                            type="text"
+                            value={inlineUnlockVideoCaption}
+                            onChange={(e) => setInlineUnlockVideoCaption(e.target.value)}
+                            placeholder="Ex: Demonstração da ativação do procedimento passo a passo"
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#1EFF00]"
+                          />
+                        </div>
+
+                        {/* Opção de Looping Contínuo */}
+                        <div className="flex items-center justify-between p-2.5 bg-neutral-800/80 rounded-xl border border-white/10">
+                          <span className="text-xs font-mono text-neutral-200">
+                            Repetição em Loop no Serviço:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setInlineUnlockVideoLoop(!inlineUnlockVideoLoop)}
+                            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                              inlineUnlockVideoLoop 
+                                ? 'bg-[#1EFF00]/20 text-[#1EFF00] border border-[#1EFF00]/40' 
+                                : 'bg-neutral-700 text-neutral-300 border border-neutral-600'
+                            }`}
+                          >
+                            <RotateCcw className={`w-3 h-3 ${inlineUnlockVideoLoop ? 'text-[#1EFF00]' : 'text-neutral-400'}`} />
+                            <span>{inlineUnlockVideoLoop ? '🔁 Looping Ativado' : '▶️ Tocar uma vez'}</span>
+                          </button>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1 border-t border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setShowUnlockVideoPrompt(false)}
+                            className="px-3 py-1.5 rounded-xl text-neutral-400 hover:text-white text-xs font-mono cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!inlineUnlockVideoUrl.trim()) return;
+                              const current = editingUnlockService.content || '';
+                              const caption = inlineUnlockVideoCaption.trim() || 'Vídeo demonstrativo do serviço';
+                              const loopTag = inlineUnlockVideoLoop ? 'loop' : 'noloop';
+                              const tag = `\n\n[video: ${inlineUnlockVideoUrl.trim()} | ${caption} | ${loopTag}]\n\n`;
+
+                              // Adiciona também na lista de vídeos anexados abaixo
+                              const currentVideos = editingUnlockService.videos || [];
+                              const newVidItem: TutorialVideoItem = {
+                                id: `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                                url: inlineUnlockVideoUrl.trim(),
+                                caption,
+                                loop: inlineUnlockVideoLoop,
+                              };
+                              const exists = currentVideos.some(v => v.url === newVidItem.url);
+                              const updatedVideos = exists 
+                                ? currentVideos.map(v => v.url === newVidItem.url ? { ...v, caption, loop: inlineUnlockVideoLoop } : v)
+                                : [...currentVideos, newVidItem];
+
+                              setEditingUnlockService({ 
+                                ...editingUnlockService, 
+                                content: `${current}${tag}`,
+                                videos: updatedVideos 
+                              });
+                              setInlineUnlockVideoUrl('');
+                              setInlineUnlockVideoCaption('');
+                              setShowUnlockVideoPrompt(false);
+                              triggerSuccess('Vídeo inserido no texto e salvo na lista abaixo!');
+                            }}
+                            disabled={!inlineUnlockVideoUrl.trim()}
+                            className="px-4 py-1.5 rounded-xl bg-[#1EFF00] disabled:opacity-40 text-black font-extrabold text-xs font-mono cursor-pointer hover:bg-[#25ff08] transition-all"
+                          >
+                            Inserir Vídeo no Texto
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <textarea
+                      rows={10}
+                      value={editingUnlockService.content}
+                      onChange={(e) => setEditingUnlockService({ ...editingUnlockService, content: e.target.value })}
+                      placeholder={`Escreva as instruções completas, procedimentos e detalhamento técnico do desbloqueio aqui...\n\nUse:\n## Título da Seção\n1. Passo um\n2. Passo dois\n![Legenda da Foto](/uploads/foto.jpg)\n[video: /uploads/video.mp4 | Legenda do Vídeo | loop]\n> [cor: #ef4444] **Observação:** Aviso vermelho\n> [cor: #1EFF00] **Destaque:** Caixa neon personalizada (ou escolha qualquer cor HEX!)`}
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl p-3.5 text-xs text-neutral-900 font-mono leading-relaxed placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
+                    />
+                  </div>
+
+                  {/* 5. Galeria de Fotos Anexadas ao Serviço */}
+                  <div className="sm:col-span-2 p-4 bg-neutral-50 border border-neutral-200 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-neutral-700" />
+                        <span>Galeria de Imagens & Figuras do Documento</span>
+                      </label>
+                      <span className="text-[11px] font-mono text-neutral-500">
+                        {(editingUnlockService.images || []).length} imagem(ns) anexada(s)
+                      </span>
+                    </div>
+
+                    {/* Lista de Imagens Anexadas com Preview, Edição de Legenda, Inserção no Texto e Exclusão do Servidor */}
+                    {editingUnlockService.images && editingUnlockService.images.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                        {editingUnlockService.images.map((img, idx) => {
+                          const isServerFile = img.startsWith('/uploads/') || img.includes('uploads/');
+                          const isInText = (editingUnlockService.content || '').includes(img);
+                          const currentCaption = unlockImageCaptions[img] !== undefined 
+                            ? unlockImageCaptions[img] 
+                            : '';
+
+                          return (
+                            <div key={idx} className="rounded-xl overflow-hidden border border-neutral-300 bg-white shadow-xs p-2.5 space-y-2">
+                              {/* Preview da Imagem com Badges de Status */}
+                              <div className="relative aspect-video bg-neutral-950 rounded-lg overflow-hidden flex items-center justify-center group">
+                                <img src={img} alt={`Anexo ${idx + 1}`} className="w-full h-full object-contain" />
+                                
+                                <div className="absolute top-2 left-2 flex items-center gap-1">
+                                  {isInText ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-600/95 text-white font-mono text-[9px] font-bold flex items-center gap-0.5 shadow-xs">
+                                      <Check className="w-2.5 h-2.5" />
+                                      <span>No Texto</span>
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-neutral-800/90 text-neutral-300 font-mono text-[9px]">
+                                      Não inserida
+                                    </span>
+                                  )}
+                                  {isServerFile ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-blue-600/90 text-white font-mono text-[9px] font-bold">
+                                      Servidor
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-amber-600/90 text-white font-mono text-[9px]">
+                                      Link Web
+                                    </span>
+                                  )}
+                                </div>
+
+                                <a 
+                                  href={img} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 cursor-pointer"
+                                  title="Ver imagem original em nova aba"
+                                >
+                                  <Eye className="w-3 h-3 text-[#1EFF00]" />
+                                  <span>Ampliar</span>
+                                </a>
+                              </div>
+
+                              {/* Campo de Legenda da Imagem */}
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-mono text-neutral-600 font-bold block">
+                                  Legenda da Imagem (somente o texto desejado):
+                                </label>
+                                <input
+                                  type="text"
+                                  value={currentCaption}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setUnlockImageCaptions(prev => ({ ...prev, [img]: val }));
+                                  }}
+                                  placeholder="Digite a legenda da foto..."
+                                  className="w-full bg-neutral-50 border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 font-mono placeholder:text-neutral-400 focus:outline-none focus:border-black"
+                                />
+                              </div>
+
+                              {/* Ações: Inserir / Atualizar no Texto, Desvincular e Excluir do Servidor */}
+                              <div className="flex flex-wrap items-center justify-between gap-1 pt-1.5 border-t border-neutral-200">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const rawCap = (currentCaption || '').replace(/^(?:figura|imagem)\s*\d+\s*:\s*/i, '').trim();
+                                    const current = editingUnlockService.content || '';
+                                    if (isInText) {
+                                      const escapedUrl = img.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const regex = new RegExp(`!\\[[^\\]]*\\]\\(${escapedUrl}\\)`, 'g');
+                                      const updatedContent = current.replace(regex, `![${rawCap}](${img})`);
+                                      setEditingUnlockService({ ...editingUnlockService, content: updatedContent });
+                                      triggerSuccess('Legenda da imagem atualizada no texto!');
+                                    } else {
+                                      const tag = `\n\n![${rawCap}](${img})\n\n`;
+                                      setEditingUnlockService({ ...editingUnlockService, content: `${current}${tag}` });
+                                      triggerSuccess(`Foto #${idx + 1} inserida no texto!`);
+                                    }
+                                  }}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition-all flex items-center gap-1 ${
+                                    isInText 
+                                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                                      : 'bg-neutral-900 hover:bg-black text-[#ebbf01]'
+                                  }`}
+                                  title={isInText ? 'Atualizar a legenda desta imagem no corpo do texto' : 'Inserir esta imagem no texto'}
+                                >
+                                  {isInText ? <span>🔄 Atualizar no Texto</span> : <span>+ Inserir no Texto</span>}
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                  {/* Desvincular do serviço */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedImages = (editingUnlockService.images || []).filter((_, i) => i !== idx);
+                                      let updatedContent = editingUnlockService.content || '';
+                                      const escapedUrl = img.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const regex = new RegExp(`\\n*!\\[[^\\]]*\\]\\(${escapedUrl}\\)\\n*`, 'gi');
+                                      updatedContent = updatedContent.replace(regex, '\n');
+                                      setEditingUnlockService({
+                                        ...editingUnlockService,
+                                        images: updatedImages,
+                                        content: updatedContent.trim(),
+                                      });
+                                      triggerSuccess('Foto desvinculada do serviço!');
+                                    }}
+                                    className="px-1.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-[10px] font-mono cursor-pointer border border-neutral-300"
+                                    title="Remover apenas deste serviço (mantém arquivo no servidor)"
+                                  >
+                                    Desvincular
+                                  </button>
+
+                                  {/* Excluir Definitivamente do Servidor */}
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const isServer = img.startsWith('/uploads/') || img.includes('uploads/');
+                                      const confirmPrompt = isServer
+                                        ? `Deseja excluir PERMANENTEMENTE esta imagem do servidor?\n\nArquivo: ${img}\nO arquivo físico será apagado do disco liberando espaço.`
+                                        : 'Deseja remover esta imagem do serviço?';
+
+                                      if (!window.confirm(confirmPrompt)) return;
+
+                                      if (isServer) {
+                                        await handleDeleteServerFile(img);
+                                      }
+
+                                      const updatedImages = (editingUnlockService.images || []).filter((_, i) => i !== idx);
+                                      let updatedContent = editingUnlockService.content || '';
+                                      const escapedUrl = img.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const regex = new RegExp(`\\n*!\\[[^\\]]*\\]\\(${escapedUrl}\\)\\n*`, 'gi');
+                                      updatedContent = updatedContent.replace(regex, '\n');
+                                      setEditingUnlockService({
+                                        ...editingUnlockService,
+                                        images: updatedImages,
+                                        content: updatedContent.trim(),
+                                      });
+                                      triggerSuccess(isServer ? 'Imagem excluída do servidor e do serviço com sucesso!' : 'Imagem removida!');
+                                    }}
+                                    className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 transition-colors cursor-pointer"
+                                    title="Excluir arquivo permanentemente do disco do servidor"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center bg-white rounded-xl border border-dashed border-neutral-300 text-xs font-mono text-neutral-500">
+                        Nenhuma imagem atribuída a este serviço ainda. Suba fotos do dispositivo abaixo ou cole uma URL.
+                      </div>
+                    )}
+
+                    {/* Opções para anexar fotos à galeria: Upload Direto e URL */}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Botão de Upload Direto do Dispositivo */}
+                        <label className="flex items-center gap-1.5 px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-[#ebbf01] rounded-xl text-xs font-bold font-mono cursor-pointer transition-colors shadow-xs">
+                          {isUploadingGalleryUnlockImgs ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Enviando fotos...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5 text-[#ebbf01]" />
+                              <span>📤 Subir Fotos do Dispositivo</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            disabled={isUploadingGalleryUnlockImgs}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const files: File[] = e.target.files ? Array.from(e.target.files) : [];
+                              if (files.length === 0) return;
+                              try {
+                                setIsUploadingGalleryUnlockImgs(true);
+                                const uploadedUrls: string[] = [];
+                                for (const file of files) {
+                                  const url = await uploadTutorialMediaFile(file);
+                                  uploadedUrls.push(url);
+                                }
+                                const current = editingUnlockService.images || [];
+                                const newSet = Array.from(new Set([...current, ...uploadedUrls]));
+                                setEditingUnlockService({ ...editingUnlockService, images: newSet });
+                                triggerSuccess(`${uploadedUrls.length} foto(s) adicionada(s) à galeria!`);
+                              } catch (err: any) {
+                                alert(err.message || 'Erro ao subir imagens');
+                              } finally {
+                                setIsUploadingGalleryUnlockImgs(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+
+                        {/* Campo para anexar via URL manual */}
+                        <div className="flex-1 min-w-[220px] flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newAttachedUnlockImgUrl}
+                            onChange={(e) => setNewAttachedUnlockImgUrl(e.target.value)}
+                            placeholder="Ou cole URL da foto (https://...)"
+                            className="flex-1 bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const trimmed = newAttachedUnlockImgUrl.trim();
+                              if (!trimmed) return;
+                              const currentImages = editingUnlockService.images || [];
+                              if (!currentImages.includes(trimmed)) {
+                                setEditingUnlockService({
+                                  ...editingUnlockService,
+                                  images: [...currentImages, trimmed]
+                                });
+                              }
+                              setNewAttachedUnlockImgUrl('');
+                            }}
+                            className="px-3 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 rounded-xl text-xs font-mono font-bold cursor-pointer"
+                          >
+                            + Anexar Link
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 6. Galeria de Vídeos & Clipes do Serviço */}
+                  <div className="sm:col-span-2 p-4 bg-neutral-50 border border-neutral-200 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <Film className="w-3.5 h-3.5 text-neutral-700" />
+                        <span>Galeria de Vídeos & Clipes do Serviço</span>
+                      </label>
+                      <span className="text-[11px] font-mono text-neutral-500">
+                        {(editingUnlockService.videos || []).length} vídeo(s) anexado(s)
+                      </span>
+                    </div>
+
+                    {/* Lista de Vídeos com Player, Looping e Controles */}
+                    {editingUnlockService.videos && editingUnlockService.videos.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                        {editingUnlockService.videos.map((vid, vIdx) => {
+                          const isServerFile = vid.url.startsWith('/uploads/') || vid.url.includes('uploads/');
+                          const isWebm = vid.url.endsWith('.webm');
+                          const isYouTube = vid.url.includes('youtube.com') || vid.url.includes('youtu.be');
+                          const isInText = (editingUnlockService.content || '').includes(vid.url);
+
+                          return (
+                            <div key={vid.id || vIdx} className="rounded-xl overflow-hidden border border-neutral-300 bg-white shadow-xs p-2.5 space-y-2">
+                              {/* Preview do Vídeo com Player / Badges */}
+                              <div className="relative aspect-video bg-neutral-950 rounded-lg overflow-hidden flex items-center justify-center group">
+                                {isYouTube ? (
+                                  <div className="flex flex-col items-center justify-center p-3 text-center gap-1">
+                                    <Youtube className="w-8 h-8 text-red-500" />
+                                    <span className="text-[10px] font-mono text-neutral-300 truncate max-w-full">{vid.url}</span>
+                                  </div>
+                                ) : (
+                                  <video 
+                                    src={vid.url} 
+                                    controls 
+                                    loop={vid.loop !== false} 
+                                    playsInline 
+                                    preload="metadata" 
+                                    className="w-full h-full object-contain"
+                                  />
+                                )}
+
+                                <div className="absolute top-2 left-2 flex items-center gap-1">
+                                  {isInText ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-emerald-600/95 text-white font-mono text-[9px] font-bold flex items-center gap-0.5 shadow-xs">
+                                      <Check className="w-2.5 h-2.5" />
+                                      <span>No Texto</span>
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-neutral-900/90 text-neutral-300 font-mono text-[9px]">
+                                      Não inserido
+                                    </span>
+                                  )}
+                                  <span className="px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[9px] font-mono text-white font-bold">
+                                    {isWebm ? 'WEBM' : isYouTube ? 'YOUTUBE' : 'MP4'}
+                                  </span>
+                                  {isServerFile && (
+                                    <span className="px-1.5 py-0.5 rounded bg-blue-600/90 text-white font-mono text-[9px] font-bold">
+                                      Servidor
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="absolute top-2 right-2 flex items-center gap-1">
+                                  {vid.loop !== false ? (
+                                    <span className="px-1.5 py-0.5 rounded bg-[#1EFF00]/95 backdrop-blur-md text-[9px] font-mono text-black font-extrabold flex items-center gap-0.5 shadow-xs">
+                                      <RotateCcw className="w-2.5 h-2.5" />
+                                      <span>LOOP</span>
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded bg-neutral-800/90 backdrop-blur-md text-[9px] font-mono text-neutral-300">
+                                      1x
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Campo de Legenda do Vídeo */}
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-mono text-neutral-600 font-bold block">
+                                  Legenda do Vídeo (somente o texto desejado):
+                                </label>
+                                <input
+                                  type="text"
+                                  value={vid.caption || ''}
+                                  onChange={(e) => {
+                                    const newCaption = e.target.value;
+                                    const updated = (editingUnlockService.videos || []).map((v, i) =>
+                                      i === vIdx ? { ...v, caption: newCaption } : v
+                                    );
+                                    setEditingUnlockService({ ...editingUnlockService, videos: updated });
+                                  }}
+                                  placeholder="Digite a legenda do vídeo..."
+                                  className="w-full bg-neutral-50 border border-neutral-300 rounded-lg px-2.5 py-1.5 text-xs text-neutral-900 font-mono placeholder:text-neutral-400 focus:outline-none focus:border-black"
+                                />
+                              </div>
+
+                              {/* Botões de Ação: Alternar Looping, Inserir/Atualizar no Texto, Desvincular e Excluir do Servidor */}
+                              <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-neutral-200">
+                                {/* Botão de Alternar Looping */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const currentLoop = vid.loop !== false;
+                                    const updated = (editingUnlockService.videos || []).map((v, i) =>
+                                      i === vIdx ? { ...v, loop: !currentLoop } : v
+                                    );
+                                    // Se já estiver no texto, sincroniza também a tag no texto
+                                    let contentUpdated = editingUnlockService.content || '';
+                                    if (isInText) {
+                                      const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const reg = new RegExp(`\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]`, 'gi');
+                                      const cleanCap = (vid.caption || '').replace(/^(?:vídeo|video)\s*\d+\s*:\s*/i, '').trim();
+                                      const loopParam = !currentLoop ? 'loop' : 'noloop';
+                                      contentUpdated = contentUpdated.replace(reg, `[video: ${vid.url} | ${cleanCap} | ${loopParam}]`);
+                                    }
+                                    setEditingUnlockService({ 
+                                      ...editingUnlockService, 
+                                      videos: updated,
+                                      content: contentUpdated 
+                                    });
+                                    triggerSuccess(`Looping do Vídeo #${vIdx + 1}: ${!currentLoop ? 'LIGADO' : 'DESLIGADO'}`);
+                                  }}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                                    vid.loop !== false
+                                      ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300'
+                                      : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border border-neutral-300'
+                                  }`}
+                                  title="Clique para alternar repetição contínua em looping"
+                                >
+                                  <RotateCcw className={`w-3 h-3 ${vid.loop !== false ? 'text-emerald-700' : 'text-neutral-500'}`} />
+                                  <span>{vid.loop !== false ? 'Looping: Ligado' : 'Looping: Desligado'}</span>
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                  {/* Inserir ou Atualizar no Texto */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = editingUnlockService.content || '';
+                                      const cleanCap = (vid.caption || '').replace(/^(?:vídeo|video)\s*\d+\s*:\s*/i, '').trim();
+                                      const loopParam = vid.loop !== false ? 'loop' : 'noloop';
+                                      if (isInText) {
+                                        const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                        const reg = new RegExp(`\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]`, 'gi');
+                                        const updatedContent = current.replace(reg, `[video: ${vid.url} | ${cleanCap} | ${loopParam}]`);
+                                        setEditingUnlockService({ ...editingUnlockService, content: updatedContent });
+                                        triggerSuccess(`Vídeo #${vIdx + 1} atualizado no texto!`);
+                                      } else {
+                                        const tag = `\n\n[video: ${vid.url} | ${cleanCap} | ${loopParam}]\n\n`;
+                                        setEditingUnlockService({ ...editingUnlockService, content: `${current}${tag}` });
+                                        triggerSuccess(`Vídeo #${vIdx + 1} inserido no texto!`);
+                                      }
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition-colors shadow-2xs ${
+                                      isInText
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                        : 'bg-neutral-900 hover:bg-black text-[#1EFF00]'
+                                    }`}
+                                    title={isInText ? 'Atualizar legenda e looping deste vídeo no texto' : 'Inserir este vídeo na posição do texto'}
+                                  >
+                                    {isInText ? <span>🔄 Atualizar no Texto</span> : <span>+ Inserir no Texto</span>}
+                                  </button>
+
+                                  {/* Desvincular do serviço */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = (editingUnlockService.videos || []).filter((_, i) => i !== vIdx);
+                                      let updatedContent = editingUnlockService.content || '';
+                                      const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const reg = new RegExp(`\\n*\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]\\n*`, 'gi');
+                                      updatedContent = updatedContent.replace(reg, '\n');
+                                      setEditingUnlockService({
+                                        ...editingUnlockService,
+                                        videos: updated,
+                                        content: updatedContent.trim(),
+                                      });
+                                      triggerSuccess('Vídeo desvinculado do serviço!');
+                                    }}
+                                    className="px-1.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-[10px] font-mono cursor-pointer border border-neutral-300"
+                                    title="Remover apenas deste serviço (mantém arquivo no servidor)"
+                                  >
+                                    Desvincular
+                                  </button>
+
+                                  {/* Excluir Definitivamente do Servidor */}
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const isServer = vid.url.startsWith('/uploads/') || vid.url.includes('uploads/');
+                                      const confirmPrompt = isServer
+                                        ? `Deseja excluir PERMANENTEMENTE este vídeo do servidor?\n\nArquivo: ${vid.url}\nO arquivo físico será apagado do disco liberando espaço.`
+                                        : 'Deseja remover este vídeo do serviço?';
+
+                                      if (!window.confirm(confirmPrompt)) return;
+
+                                      if (isServer) {
+                                        await handleDeleteServerFile(vid.url);
+                                      }
+
+                                      const updated = (editingUnlockService.videos || []).filter((_, i) => i !== vIdx);
+                                      let updatedContent = editingUnlockService.content || '';
+                                      const escapedUrl = vid.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                      const reg = new RegExp(`\\n*\\[(?:video|vídeo):\\s*${escapedUrl}[^\\]]*\\]\\n*`, 'gi');
+                                      updatedContent = updatedContent.replace(reg, '\n');
+                                      setEditingUnlockService({
+                                        ...editingUnlockService,
+                                        videos: updated,
+                                        content: updatedContent.trim(),
+                                      });
+                                      triggerSuccess(isServer ? 'Vídeo excluído do servidor com sucesso!' : 'Vídeo removido!');
+                                    }}
+                                    className="p-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 transition-colors cursor-pointer"
+                                    title="Excluir arquivo permanentemente do disco do servidor"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center bg-white rounded-xl border border-dashed border-neutral-300 text-xs font-mono text-neutral-500">
+                        Nenhum clipe de vídeo anexado a este serviço ainda. Suba arquivos do dispositivo ou adicione link abaixo.
+                      </div>
+                    )}
+
+                    {/* Controles para anexar novos vídeos à galeria */}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Botão de Upload de Vídeo com conversão opcional em WebM */}
+                        <label className="flex items-center gap-1.5 px-3.5 py-2 bg-neutral-900 hover:bg-black text-[#1EFF00] rounded-xl text-xs font-bold font-mono cursor-pointer transition-colors shadow-xs">
+                          {isUploadingGalleryUnlockVideo ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Enviando vídeo...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Film className="w-3.5 h-3.5 text-[#1EFF00]" />
+                              <span>🎬 Subir Vídeo do Dispositivo</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm,video/quicktime,video/*"
+                            disabled={isUploadingGalleryUnlockVideo}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const maxSizeBytes = 500 * 1024 * 1024;
+                              if (file.size > maxSizeBytes) {
+                                alert(`O vídeo selecionado ultrapassa 500 MB. Por favor selecione um arquivo menor.`);
+                                e.target.value = '';
+                                return;
+                              }
+                              try {
+                                setIsUploadingGalleryUnlockVideo(true);
+                                const url = await uploadTutorialMediaFile(file, convertUnlockVideoToWebm);
+                                const currentVideos = editingUnlockService.videos || [];
+                                const newVidItem: TutorialVideoItem = {
+                                  id: `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                                  url,
+                                  caption: file.name.replace(/\.[^/.]+$/, ''),
+                                  loop: true,
+                                };
+                                setEditingUnlockService({
+                                  ...editingUnlockService,
+                                  videos: [...currentVideos, newVidItem]
+                                });
+                                triggerSuccess('Vídeo anexado à galeria do serviço!');
+                              } catch (err: any) {
+                                alert(err.message || 'Erro ao subir vídeo');
+                              } finally {
+                                setIsUploadingGalleryUnlockVideo(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+
+                        {/* Campo para anexar via URL manual */}
+                        <div className="flex-1 min-w-[220px] flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newAttachedUnlockVideoUrl}
+                            onChange={(e) => setNewAttachedUnlockVideoUrl(e.target.value)}
+                            placeholder="Ou cole URL do vídeo (YouTube, MP4, WebM...)"
+                            className="flex-1 bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const trimmed = newAttachedUnlockVideoUrl.trim();
+                              if (!trimmed) return;
+                              const currentVideos = editingUnlockService.videos || [];
+                              const newVidItem: TutorialVideoItem = {
+                                id: `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                                url: trimmed,
+                                caption: newAttachedUnlockVideoCaption.trim() || 'Vídeo demonstrativo',
+                                loop: true,
+                              };
+                              setEditingUnlockService({
+                                ...editingUnlockService,
+                                videos: [...currentVideos, newVidItem]
+                              });
+                              setNewAttachedUnlockVideoUrl('');
+                              setNewAttachedUnlockVideoCaption('');
+                              triggerSuccess('Vídeo adicionado à lista do serviço!');
+                            }}
+                            className="px-3 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 rounded-xl text-xs font-mono font-bold cursor-pointer"
+                          >
+                            + Anexar Link
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Contact Message */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                      Mensagem Automática para Contratação no WhatsApp
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUnlockService.whatsappContactMessage || ''}
+                      onChange={(e) => setEditingUnlockService({ ...editingUnlockService, whatsappContactMessage: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none bg-neutral-50 hover:bg-white focus:bg-white shadow-xs"
+                      placeholder="Ex: Olá! Gostaria de informações sobre o serviço de Desbloqueio DiLink."
+                    />
+                  </div>
+
+                  {/* Garantia & Execução de Serviços */}
+                  <div className="sm:col-span-2 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-wider">
+                      <ShieldCheck className="w-4 h-4 text-[#ebbf01]" />
+                      <span>Garantia & Execução de Serviços (Aviso no Card)</span>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                        Título do Card de Garantia
+                      </label>
+                      <input
+                        type="text"
+                        value={editingUnlockService.warrantyTitle !== undefined ? editingUnlockService.warrantyTitle : 'Garantia & Execução de Serviços'}
+                        onChange={(e) => setEditingUnlockService({ ...editingUnlockService, warrantyTitle: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none bg-white"
+                        placeholder="Garantia & Execução de Serviços"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wider mb-1">
+                        Descrição / Texto da Garantia
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={editingUnlockService.warrantyText !== undefined ? editingUnlockService.warrantyText : 'Todos os serviços são executados com ferramentas de nível profissional, garantindo integridade dos sistemas originais do veículo.'}
+                        onChange={(e) => setEditingUnlockService({ ...editingUnlockService, warrantyText: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none bg-white"
+                        placeholder="Todos os serviços são executados com ferramentas de nível profissional, garantindo integridade dos sistemas originais do veículo."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Buttons inside Editor Tab */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingUnlockService(null);
+                      setUnlockEditorTab('editor');
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const title = editingUnlockService.title?.trim() || 'Serviço de Desbloqueio';
+                      const summary = editingUnlockService.summary?.trim() || 'Desbloqueio de central multimídia e conectividade.';
+                      const serviceToSave: UnlockServiceItem = {
+                        ...editingUnlockService,
+                        title,
+                        summary,
+                        images: editingUnlockService.images || [],
+                        videos: editingUnlockService.videos || [],
+                      };
+                      if (isCreatingUnlockService) {
+                        addUnlockService(serviceToSave);
+                        triggerSuccess('Serviço de desbloqueio cadastrado com sucesso!');
+                      } else {
+                        updateUnlockService(editingUnlockService.id, serviceToSave);
+                        triggerSuccess('Serviço de desbloqueio atualizado com sucesso!');
+                      }
+                      setEditingUnlockService(null);
+                      setUnlockEditorTab('editor');
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase hover:bg-[#f5cc14] transition-all flex items-center gap-2 shadow-md shadow-[#ebbf01]/20 cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Salvar Serviço</span>
+                  </button>
                 </div>
               </div>
-
-              {/* Applicable Cars & Custom Slug */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Veículos Compatíveis
-                  </label>
-                  <input
-                    type="text"
-                    value={editingUnlockService.applicableCars || ''}
-                    onChange={(e) => setEditingUnlockService({ ...editingUnlockService, applicableCars: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none"
-                    placeholder="Ex: Dolphin, Dolphin Mini, Seal, Song Plus, Yuan Plus"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Slug da URL (ex: desbloqueio-byd-dilink)
-                  </label>
-                  <input
-                    type="text"
-                    value={editingUnlockService.slug || ''}
-                    onChange={(e) => setEditingUnlockService({ ...editingUnlockService, slug: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-mono text-neutral-900 focus:outline-none"
-                    placeholder="desbloqueio-byd-dilink"
-                  />
-                </div>
-              </div>
-
-              {/* Image Upload / Field */}
-              <ImageUploadField
-                label="Imagem Ilustrativa do Serviço"
-                value={editingUnlockService.imageUrl || ''}
-                onChange={(url) => setEditingUnlockService({ ...editingUnlockService, imageUrl: url })}
-                previewAspect="video"
-              />
-
-              {/* Summary */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                  Resumo Curto (Exibido no Card da Listagem) *
-                </label>
-                <textarea
-                  rows={2}
-                  value={editingUnlockService.summary}
-                  onChange={(e) => setEditingUnlockService({ ...editingUnlockService, summary: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none"
-                  placeholder="Breve descrição dos benefícios e escopo do serviço."
-                />
-              </div>
-
-              {/* Full Content */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                  Conteúdo Completo & Detalhamento Técnico *
-                </label>
-                <textarea
-                  rows={6}
-                  value={editingUnlockService.content}
-                  onChange={(e) => setEditingUnlockService({ ...editingUnlockService, content: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-mono text-neutral-900 focus:outline-none"
-                  placeholder="Instruções completas, tópicos, garantias e diferenciais do seu atendimento."
-                />
-              </div>
-
-              {/* WhatsApp Contact Message */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                  Mensagem Automática para Contratação no WhatsApp
-                </label>
-                <input
-                  type="text"
-                  value={editingUnlockService.whatsappContactMessage || ''}
-                  onChange={(e) => setEditingUnlockService({ ...editingUnlockService, whatsappContactMessage: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none"
-                  placeholder="Ex: Olá! Gostaria de informações sobre o serviço de Desbloqueio DiLink."
-                />
-              </div>
-
-              {/* Garantia & Execução de Serviços */}
-              <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-wider">
-                  <ShieldCheck className="w-4 h-4 text-[#ebbf01]" />
-                  <span>Garantia & Execução de Serviços (Aviso no Card)</span>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Título do Card de Garantia
-                  </label>
-                  <input
-                    type="text"
-                    value={editingUnlockService.warrantyTitle !== undefined ? editingUnlockService.warrantyTitle : 'Garantia & Execução de Serviços'}
-                    onChange={(e) => setEditingUnlockService({ ...editingUnlockService, warrantyTitle: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none bg-white"
-                    placeholder="Garantia & Execução de Serviços"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                    Descrição / Texto da Garantia
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={editingUnlockService.warrantyText !== undefined ? editingUnlockService.warrantyText : 'Todos os serviços são executados com ferramentas de nível profissional, garantindo integridade dos sistemas originais do veículo.'}
-                    onChange={(e) => setEditingUnlockService({ ...editingUnlockService, warrantyText: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 focus:border-[#ebbf01] focus:ring-1 focus:ring-[#ebbf01] text-xs font-medium text-neutral-900 focus:outline-none bg-white"
-                    placeholder="Todos os serviços são executados com ferramentas de nível profissional, garantindo integridade dos sistemas originais do veículo."
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200">
-              <button
-                type="button"
-                onClick={() => setEditingUnlockService(null)}
-                className="px-4 py-2.5 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 text-xs font-bold cursor-pointer transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const title = editingUnlockService.title?.trim() || 'Serviço de Desbloqueio';
-                  const summary = editingUnlockService.summary?.trim() || 'Desbloqueio de central multimídia e conectividade.';
-                  const serviceToSave: UnlockServiceItem = {
-                    ...editingUnlockService,
-                    title,
-                    summary,
-                  };
-                  if (isCreatingUnlockService) {
-                    addUnlockService(serviceToSave);
-                    triggerSuccess('Serviço de desbloqueio cadastrado com sucesso!');
-                  } else {
-                    updateUnlockService(editingUnlockService.id, serviceToSave);
-                    triggerSuccess('Serviço de desbloqueio atualizado com sucesso!');
-                  }
-                  setEditingUnlockService(null);
-                }}
-                className="px-6 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase hover:bg-[#f5cc14] transition-all flex items-center gap-2 shadow-md shadow-[#ebbf01]/20 cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                <span>Salvar Serviço</span>
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}

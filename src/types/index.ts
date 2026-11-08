@@ -402,6 +402,7 @@ export interface UnlockServiceItem {
   category: string;
   imageUrl?: string;
   images?: string[];
+  videos?: TutorialVideoItem[];
   videoUrl?: string;
   price?: string;
   originalPrice?: string;
