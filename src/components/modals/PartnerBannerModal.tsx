@@ -43,12 +43,17 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
 
   const isUserAuthenticated = Boolean(isVipLoggedIn || isAdminAuthenticated);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
-  // Fecha o modal ao pressionar a tecla ESC
+  // Fecha o modal ou a imagem ampliada ao pressionar a tecla ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (enlargedImage) {
+          setEnlargedImage(null);
+        } else {
+          onClose();
+        }
       }
     };
 
@@ -63,7 +68,7 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, enlargedImage]);
 
   if (!isOpen || !partner) return null;
 
@@ -154,7 +159,7 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-4xl max-h-[92vh] bg-gradient-to-b from-[#111116] via-[#0b0b0f] to-[#060608] border border-white/[0.08] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleUp"
+        className="relative w-full md:w-[65vw] md:max-w-[65vw] max-h-[92vh] bg-gradient-to-b from-[#111116] via-[#0b0b0f] to-[#060608] border border-white/[0.08] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Barra Superior com Título, Botão de Compartilhar e Fechar */}
@@ -216,7 +221,7 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
                 <img
                   src={getMediaPreviewUrl(bannerImage)}
                   alt={partner.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90"
+                  className="w-full h-full object-cover opacity-90"
                 />
                 {/* Transição suave em degradê na cor da página */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c10] via-transparent to-black/30 pointer-events-none" />
@@ -292,18 +297,38 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
                 <div className="pt-4 space-y-3 relative z-10">
                   <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-mono font-bold text-neutral-400 uppercase tracking-wider">
                     <ImageIcon className="w-4 h-4 text-[var(--color-brand)]" />
-                    <span>Fotos</span>
+                    <span>Fotos Anexas</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {partner.additionalImages.map((imgUrl, imgIdx) => (
-                      <div key={imgIdx} className="rounded-2xl overflow-hidden border border-white/[0.08] hover:border-[var(--color-brand)]/40 aspect-video bg-[#16161D] relative group transition-colors">
-                        <img
-                          src={getMediaPreviewUrl(imgUrl)}
-                          alt={`${partner.name} - Imagem ${imgIdx + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      </div>
-                    ))}
+                    {partner.additionalImages.map((imgUrl, imgIdx) => {
+                      const fullUrl = getMediaPreviewUrl(imgUrl);
+                      return (
+                        <div
+                          key={imgIdx}
+                          onClick={() => setEnlargedImage(fullUrl)}
+                          className="rounded-2xl overflow-hidden border border-white/[0.08] hover:border-[var(--color-brand)]/50 aspect-video bg-[#16161D] relative group/img transition-all duration-300 block cursor-pointer hover:shadow-xl hover:shadow-[var(--color-brand)]/10"
+                          title="Clique para ampliar a foto"
+                        >
+                          <img
+                            src={fullUrl}
+                            alt={`${partner.name} - Imagem ${imgIdx + 1}`}
+                            className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute bottom-2.5 right-2.5">
+                            <a
+                              href={fullUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1.5 rounded-xl bg-black/75 hover:bg-black text-white hover:text-[var(--color-brand)] border border-white/15 transition-all shadow-md flex items-center justify-center cursor-pointer"
+                              title="Abrir em nova janela"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -464,6 +489,58 @@ export const PartnerBannerModal: React.FC<PartnerBannerModalProps> = ({
 
         </div>
       </div>
+
+      {/* Lightbox / Modal de Ampliação de Imagem (Capa e Fotos Anexas) */}
+      {enlargedImage && (
+        <div 
+          className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-fadeIn cursor-pointer"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <div 
+            className="relative max-w-6xl w-full max-h-[94vh] flex flex-col items-center justify-center cursor-default space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Barra Superior do Lightbox */}
+            <div className="w-full flex items-center justify-between text-white px-1">
+              <span className="text-xs font-mono font-bold text-neutral-300 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-[var(--color-brand)]" />
+                <span>Foto Ampliada • {partner.name}</span>
+              </span>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href={enlargedImage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono font-bold transition-all border border-white/20 cursor-pointer shadow-md"
+                  title="Abrir imagem original em nova aba"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-[var(--color-brand)]" />
+                  <span>Abrir em Nova Aba</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setEnlargedImage(null)}
+                  className="p-2 text-neutral-400 hover:text-white rounded-xl bg-white/10 hover:bg-white/20 transition-colors cursor-pointer border border-white/10"
+                  title="Fechar ampliação"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Imagem Ampliada */}
+            <div className="relative max-h-[84vh] overflow-hidden rounded-2xl border border-white/20 shadow-2xl bg-black/90 flex items-center justify-center p-1 sm:p-2">
+              <img 
+                src={enlargedImage} 
+                alt="Foto Ampliada" 
+                className="max-w-full max-h-[82vh] object-contain rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
