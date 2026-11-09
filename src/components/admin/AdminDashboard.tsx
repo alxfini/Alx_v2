@@ -83,6 +83,7 @@ import { VisibilitySelector, VisibilityBadge } from './VisibilitySelector';
 import { GitHubStorageTab } from './GitHubStorageTab';
 import { DatabaseTab } from './DatabaseTab';
 import { PartnersTab } from './PartnersTab';
+import { VipCardsManager } from './VipCardsManager';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
 import { resolveWallpaperDownloadUrl } from '../../utils/wallpaperUrl';
 import { EDITABLE_PAGES, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../../utils/pageColors';
@@ -7137,150 +7138,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* ================= SEÇÃO: MURAL DE AVISOS & COMUNICADOS VIP ================= */}
-            <div className="bg-white border border-neutral-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100">
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-2 text-[10px] font-mono font-black text-red-700 uppercase tracking-wider bg-red-50 px-2.5 py-1 rounded-full border border-red-200">
-                    <Megaphone className="w-3.5 h-3.5 text-red-600" />
-                    <span>Card Vermelho Oficial • Área VIP</span>
-                  </div>
-                  <h3 className="text-xl font-black text-neutral-900 font-heading">
-                    Mural de Comunicados da Área VIP
-                  </h3>
-                  <p className="text-xs text-neutral-600 font-medium">
-                    Escreva avisos, novidades ou alertas importantes. O card é exibido em destaque em vermelho na Área VIP e só pode ser editado aqui pelo administrador.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-bold text-neutral-700 flex items-center gap-2 cursor-pointer">
-                    <span>Exibir no site:</span>
-                    <input
-                      type="checkbox"
-                      checked={vipNoticeActiveInput}
-                      onChange={(e) => setVipNoticeActiveInput(e.target.checked)}
-                      className="w-4 h-4 rounded text-black focus:ring-black cursor-pointer"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <form onSubmit={handleSaveVipNotice} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-900">
-                    Título do Comunicado *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={vipNoticeTitleInput}
-                    onChange={(e) => setVipNoticeTitleInput(e.target.value)}
-                    placeholder="Ex: Atualização Importante de Firmwares & APKs"
-                    className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-4 py-2.5 text-xs text-neutral-900 font-medium placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-900">
-                    Mensagem / Texto do Comunicado aos Membros *
-                  </label>
-                  <textarea
-                    rows={4}
-                    required
-                    value={vipNoticeMessageInput}
-                    onChange={(e) => setVipNoticeMessageInput(e.target.value)}
-                    placeholder="Digite o texto explicativo ou avisos que os membros verão..."
-                    className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl p-3.5 text-xs text-neutral-900 font-medium placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs resize-none"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-[11px] font-mono text-neutral-500">
-                    Data registrada: {brand.vipNoticeDate || 'Hoje'}
-                  </span>
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase hover:bg-[#f5cc14] transition-all flex items-center gap-2 shadow-md shadow-[#ebbf01]/20 cursor-pointer"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>Salvar Comunicado</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* ================= SEÇÃO: GRUPO VIP DO WHATSAPP ================= */}
-            <div className="bg-white border border-neutral-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100">
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-2 text-[10px] font-mono font-black text-[#25D366] uppercase tracking-wider bg-[#25D366]/10 px-2.5 py-1 rounded-full border border-[#25D366]/20">
-                    <SocialIcon platform="whatsapp" className="w-3.5 h-3.5 text-[#25D366]" />
-                    <span>Comunidade Exclusiva</span>
-                  </div>
-                  <h3 className="text-lg font-black text-neutral-900 font-heading">
-                    Card de Convite para o Grupo de WhatsApp VIP
-                  </h3>
-                  <p className="text-xs text-neutral-500">
-                    Configure o link de convite, título e mensagem exibidos no card ao lado do mural de avisos na Área VIP.
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSaveVipWhatsappGroup} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-900">
-                    Link de Convite do Grupo WhatsApp (ou link wa.me) *
-                  </label>
-                  <input
-                    type="text"
-                    value={vipWhatsappGroupUrlInput}
-                    onChange={(e) => setVipWhatsappGroupUrlInput(e.target.value)}
-                    placeholder="https://chat.whatsapp.com/ExemploDeConvite"
-                    className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-4 py-2.5 text-xs text-neutral-900 font-medium placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
-                  />
-                  <p className="text-[11px] text-neutral-500 font-mono">
-                    Cole o link de convite oficial do grupo (ex: https://chat.whatsapp.com/...). Se vazio, utilizará o WhatsApp padrão de atendimento.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-900">
-                    Título do Card *
-                  </label>
-                  <input
-                    type="text"
-                    value={vipWhatsappGroupTitleInput}
-                    onChange={(e) => setVipWhatsappGroupTitleInput(e.target.value)}
-                    placeholder="Grupo VIP no WhatsApp"
-                    className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-4 py-2.5 text-xs text-neutral-900 font-medium placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-900">
-                    Mensagem de Convite / Descrição *
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={vipWhatsappGroupDescInput}
-                    onChange={(e) => setVipWhatsappGroupDescInput(e.target.value)}
-                    placeholder="Faça parte da comunidade exclusiva no WhatsApp!..."
-                    className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl p-3.5 text-xs text-neutral-900 font-medium placeholder:text-neutral-400 focus:outline-none focus:border-black shadow-xs resize-none"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end pt-2">
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#25D366] text-black font-extrabold text-xs uppercase hover:bg-[#20ba59] transition-all flex items-center gap-2 shadow-md shadow-[#25D366]/20 cursor-pointer"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>Salvar Grupo WhatsApp</span>
-                  </button>
-                </div>
-              </form>
-            </div>
+            {/* ================= GERENCIADOR DE CARDS & CARROSSEL DA ÁREA VIP ================= */}
+            <VipCardsManager 
+              brand={brand} 
+              updateBrand={updateBrand} 
+              onTriggerSuccess={triggerSuccess} 
+            />
 
             {/* ================= SEÇÃO: CONTEÚDOS EXCLUSIVOS EXIBIDOS NA ÁREA VIP ================= */}
             <div className="bg-white border border-neutral-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">

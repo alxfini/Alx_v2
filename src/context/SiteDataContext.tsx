@@ -335,6 +335,7 @@ interface SiteDataContextType {
   setIsVipAuthModalOpen: (open: boolean) => void;
   openVipModal: () => void;
   logoutVip: () => void;
+  updateCurrentVipProfile: (data: Partial<VipMember>) => void;
 }
 
 const SiteDataContext = createContext<SiteDataContextType | undefined>(undefined);
@@ -478,6 +479,31 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const logoutVip = () => {
     setIsVipLoggedIn(false);
+  };
+
+  const updateCurrentVipProfile = (data: Partial<VipMember>) => {
+    if (!currentVipMember) return;
+    const updated = { ...currentVipMember, ...data };
+    setCurrentVipMember(updated);
+    try {
+      localStorage.setItem('alx_vip_current_member', JSON.stringify(updated));
+      if (data.email) {
+        localStorage.setItem('alx_vip_member_email', data.email);
+      }
+    } catch (err) {
+      console.warn('Erro ao salvar alx_vip_current_member:', err);
+    }
+
+    if (vipMembers && vipMembers.length > 0) {
+      const updatedList = vipMembers.map((m) => {
+        if (m.id === currentVipMember.id || m.email?.toLowerCase().trim() === currentVipMember.email?.toLowerCase().trim()) {
+          return { ...m, ...data };
+        }
+        return m;
+      });
+      setVipMembers(updatedList);
+      saveToStorage({ vipMembers: updatedList });
+    }
   };
 
   // Dynamic Favicon Updater Effect: substituição instantânea e infalível no Chrome, Edge, Safari e Mobile
@@ -2525,6 +2551,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setIsVipAuthModalOpen,
         openVipModal,
         logoutVip,
+        updateCurrentVipProfile,
       }}
     >
       {children}

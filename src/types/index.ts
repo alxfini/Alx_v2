@@ -142,6 +142,20 @@ export interface VipContentItem {
   version?: string;
 }
 
+export interface VipInfoCard {
+  id: string;
+  title: string;
+  badge?: string;
+  description: string;
+  color?: string;
+  icon?: string;
+  buttonText?: string;
+  buttonUrl?: string;
+  buttonIcon?: string;
+  active: boolean;
+  order?: number;
+}
+
 export interface CustomSocialLink {
   id: string;
   platform: string; // e.g. 'whatsapp' | 'tiktok' | 'facebook' | 'x' | 'discord' | 'threads' | 'linkedin' | 'github' | 'twitch' | 'bluesky' | 'kwai' | 'custom';
@@ -254,6 +268,7 @@ export interface SiteBrandConfig {
   vipWhatsappGroupUrl?: string;
   vipWhatsappGroupTitle?: string;
   vipWhatsappGroupDesc?: string;
+  vipCards?: VipInfoCard[];
   githubStorage?: GitHubStorageConfig;
 }
 

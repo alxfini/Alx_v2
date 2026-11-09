@@ -6,6 +6,8 @@ import { useSiteData } from '../context/SiteDataContext';
 import { SocialIcon } from './common/SocialIcon';
 import { getPageThemeHex } from '../utils/pageColors';
 import { VipPlansSection } from './vip/VipPlansSection';
+import { VipUserSettingsModal } from './vip/VipUserSettingsModal';
+import { VipCardsCarousel } from './vip/VipCardsCarousel';
 import { getMediaPreviewUrl } from '../utils/mediaUrl';
 import { isItemVisibleInVipSection } from '../utils/visibility';
 
@@ -90,6 +92,9 @@ export const VipSection: React.FC<VipSectionProps> = ({
 
   // Cor exata configurada no Painel Administrativo para a Área VIP
   const vipThemeHex = getPageThemeHex('vip', brand?.pageColors);
+
+  // Modal para configurações de usuário VIP (troca de senha, plano, email)
+  const [showUserSettingsModal, setShowUserSettingsModal] = useState(false);
 
   // Modal para formulário de contato / pedido de adesão
   const [showContactModal, setShowContactModal] = useState(false);
@@ -209,89 +214,126 @@ export const VipSection: React.FC<VipSectionProps> = ({
     }
   };
 
-  // Mapeia dinamicamente aplicativos, tutoriais e vídeos do Painel ADM marcados como VIP
+  // Mapeia dinamicamente todos os recursos da plataforma para membros logados na Área VIP
+  // Ordenados rigorosamente do mais atual para o mais antigo
   const dynamicVipApps: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (apps || [])
-    .filter(isItemVisibleInVipSection)
-    .map((a) => ({
-      id: `dyn-app-${a.id}`,
-      title: a.name || a.title,
-      type: 'app' as const,
-      category: a.category || 'Aplicativo VIP',
-      description: a.fullDescription || a.description || a.summary || 'Aplicativo exclusivo para membros da Área VIP.',
-      imageUrl: getMediaPreviewUrl(a.coverImage || (a as any).iconUrl || '/imagens/apps/byd-cockpit.jpg'),
-      downloadSize: (a as any).fileSize || 'APK',
-      downloadUrl: a.downloadUrl || '#',
-      releaseDate: (a as any).releaseDate || a.updatedAt || '2026',
-      isNew: Boolean(a.isNew || a.isUpdated || a.badge?.toLowerCase().includes('novo') || a.badge?.toLowerCase().includes('beta')),
-      version: a.version,
-      rawItem: a,
-      rawDate: parseDateToTimestamp(a.updatedAt || (a as any).releaseDate || (a as any).createdAt),
-    }));
+    .filter((a) => (a as any).visibility !== 'unlisted' && (a as any).visibility !== 'link_only')
+    .map((a, idx) => {
+      const rawDateStr = a.updatedAt || (a as any).releaseDate || (a as any).createdAt || (a as any).date;
+      let ts = parseDateToTimestamp(rawDateStr);
+      if (!ts || ts === 0) {
+        // Fallback decrescente para apps cadastrados sem data explícita (mais recentes primeiro)
+        ts = new Date(2026, 2, 28).getTime() - (idx * 3600000 * 4);
+      }
+      return {
+        id: `dyn-app-${a.id}`,
+        title: a.name || a.title,
+        type: 'app' as const,
+        category: a.category || 'Aplicativo VIP',
+        description: a.fullDescription || a.description || a.summary || 'Aplicativo exclusivo para membros da Área VIP.',
+        imageUrl: getMediaPreviewUrl(a.coverImage || (a as any).iconUrl || '/imagens/apps/byd-cockpit.jpg'),
+        downloadSize: (a as any).fileSize || 'APK',
+        downloadUrl: a.downloadUrl || '#',
+        releaseDate: a.updatedAt || (a as any).releaseDate || '2026',
+        isNew: Boolean(a.isNew || a.isUpdated || a.badge?.toLowerCase().includes('novo') || a.badge?.toLowerCase().includes('beta')),
+        version: a.version,
+        rawItem: a,
+        rawDate: ts,
+      };
+    });
 
   const dynamicVipTutorials: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (tutorials || [])
-    .filter(isItemVisibleInVipSection)
-    .map((t) => ({
-      id: `dyn-tut-${t.id}`,
-      title: t.title,
-      type: 'tutorial' as const,
-      category: t.category || 'Guia Passo a Passo',
-      description: t.summary || 'Guia e manual técnico exclusivo para membros.',
-      imageUrl: getMediaPreviewUrl(t.imageUrl || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop'),
-      downloadUrl: `/tutoriais/${t.slug || t.id}`,
-      releaseDate: t.date || '2026',
-      isNew: Boolean(t.badge?.toLowerCase().includes('novo')),
-      rawItem: t,
-      rawDate: parseDateToTimestamp(t.date || (t as any).createdAt),
-    }));
+    .filter((t) => (t as any).visibility !== 'unlisted' && (t as any).visibility !== 'link_only')
+    .map((t, idx) => {
+      const rawDateStr = t.date || (t as any).updatedAt || (t as any).createdAt;
+      let ts = parseDateToTimestamp(rawDateStr);
+      if (!ts || ts === 0) {
+        ts = new Date(2026, 2, 25).getTime() - (idx * 3600000 * 4);
+      }
+      return {
+        id: `dyn-tut-${t.id}`,
+        title: t.title,
+        type: 'tutorial' as const,
+        category: t.category || 'Guia Passo a Passo',
+        description: t.summary || 'Guia e manual técnico exclusivo para membros.',
+        imageUrl: getMediaPreviewUrl(t.imageUrl || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop'),
+        downloadUrl: `/tutoriais/${t.slug || t.id}`,
+        releaseDate: t.date || '2026',
+        isNew: Boolean(t.badge?.toLowerCase().includes('novo')),
+        rawItem: t,
+        rawDate: ts,
+      };
+    });
 
   const dynamicVipVideos: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (videos || [])
-    .filter((v) => (v as any).isMembersOnly || (v as any).isVipExclusive)
-    .map((v) => ({
-      id: `dyn-vid-${v.id}`,
-      title: v.title,
-      type: 'video' as const,
-      category: 'Vídeo Exclusivo',
-      description: v.summary || v.description || 'Aula e vídeo exclusivo para membros.',
-      imageUrl: getMediaPreviewUrl(v.thumbnailUrl || (v.youtubeId ? `https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1536240478700-b869070f9279?q=80&w=800&auto=format&fit=crop')),
-      videoUrl: v.youtubeUrl || v.videoUrl || (v.youtubeId ? `https://www.youtube.com/watch?v=${v.youtubeId}` : '#'),
-      releaseDate: v.date || '2026',
-      isNew: false,
-      rawItem: v,
-      rawDate: parseDateToTimestamp(v.date),
-    }));
-
-  const dynamicVipWallpapers: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (wallpapers || [])
-    .filter((w) => w.isMembersOnly || (w as any).isVipExclusive)
-    .map((w) => ({
-      id: `dyn-wp-${w.id}`,
-      title: w.title,
-      type: 'wallpaper' as const,
-      category: w.category || 'Wallpaper VIP',
-      description: w.description || 'Wallpaper exclusivo para membros da Área VIP.',
-      imageUrl: getMediaPreviewUrl(w.previewUrl || (w.videoUrl ? 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop' : '')),
-      downloadSize: w.resolution || '4K Ultra HD',
-      downloadUrl: w.downloadUrl || w.previewUrl,
-      releaseDate: w.date || '2026',
-      isNew: Boolean(w.badge?.toLowerCase().includes('novo')),
-      rawItem: w,
-      rawDate: parseDateToTimestamp(w.date),
-    }));
+    .filter((v) => (v as any).visibility !== 'unlisted' && (v as any).visibility !== 'link_only')
+    .map((v, idx) => {
+      const rawDateStr = v.date || (v as any).updatedAt || (v as any).createdAt;
+      let ts = parseDateToTimestamp(rawDateStr);
+      if (!ts || ts === 0) {
+        ts = new Date(2026, 2, 20).getTime() - (idx * 3600000 * 4);
+      }
+      return {
+        id: `dyn-vid-${v.id}`,
+        title: v.title,
+        type: 'video' as const,
+        category: 'Vídeo Exclusivo',
+        description: v.summary || v.description || 'Aula e vídeo exclusivo para membros.',
+        imageUrl: getMediaPreviewUrl(v.thumbnailUrl || (v.youtubeId ? `https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1536240478700-b869070f9279?q=80&w=800&auto=format&fit=crop')),
+        videoUrl: v.youtubeUrl || v.videoUrl || (v.youtubeId ? `https://www.youtube.com/watch?v=${v.youtubeId}` : '#'),
+        releaseDate: v.date || '2026',
+        isNew: false,
+        rawItem: v,
+        rawDate: ts,
+      };
+    });
 
   const dynamicVipNews: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (news || [])
-    .filter((n) => n.isMembersOnly || n.isVipExclusive || (n as any).category === 'VIP')
-    .map((n) => ({
-      id: `dyn-news-${n.id}`,
-      title: n.title,
-      type: 'news' as const,
-      category: n.category || 'Artigo VIP',
-      description: n.summary || 'Artigo técnico e análise exclusiva para membros.',
-      imageUrl: getMediaPreviewUrl(n.imageUrl || '/imagens/noticias/noticia-1.jpg'),
-      downloadUrl: `/noticias/${n.slug || n.id}`,
-      releaseDate: n.date || '2026',
-      isNew: false,
-      rawItem: n,
-      rawDate: parseDateToTimestamp(n.date),
-    }));
+    .filter((n) => (n as any).visibility !== 'unlisted' && (n as any).visibility !== 'link_only')
+    .map((n, idx) => {
+      const rawDateStr = n.date || (n as any).updatedAt || (n as any).createdAt;
+      let ts = parseDateToTimestamp(rawDateStr);
+      if (!ts || ts === 0) {
+        ts = new Date(2026, 2, 18).getTime() - (idx * 3600000 * 4);
+      }
+      return {
+        id: `dyn-news-${n.id}`,
+        title: n.title,
+        type: 'news' as const,
+        category: n.category || 'Artigo VIP',
+        description: n.summary || 'Artigo técnico e análise exclusiva para membros.',
+        imageUrl: getMediaPreviewUrl(n.imageUrl || '/imagens/noticias/noticia-1.jpg'),
+        downloadUrl: `/noticias/${n.slug || n.id}`,
+        releaseDate: n.date || '2026',
+        isNew: false,
+        rawItem: n,
+        rawDate: ts,
+      };
+    });
+
+  const dynamicVipWallpapers: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (wallpapers || [])
+    .filter((w) => (w as any).visibility !== 'unlisted' && (w as any).visibility !== 'link_only')
+    .map((w, idx) => {
+      const rawDateStr = w.date || (w as any).updatedAt || (w as any).createdAt;
+      let ts = parseDateToTimestamp(rawDateStr);
+      if (!ts || ts === 0) {
+        ts = new Date(2026, 2, 15).getTime() - (idx * 3600000 * 4);
+      }
+      return {
+        id: `dyn-wp-${w.id}`,
+        title: w.title,
+        type: 'wallpaper' as const,
+        category: w.category || 'Wallpaper VIP',
+        description: w.description || 'Wallpaper exclusivo para membros da Área VIP.',
+        imageUrl: getMediaPreviewUrl(w.previewUrl || (w.videoUrl ? 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop' : '')),
+        downloadSize: w.resolution || '4K Ultra HD',
+        downloadUrl: w.downloadUrl || w.previewUrl,
+        releaseDate: w.date || '2026',
+        isNew: Boolean(w.badge?.toLowerCase().includes('novo')),
+        rawItem: w,
+        rawDate: ts,
+      };
+    });
 
   const allVipItems: (VipContentItem & { rawItem?: any; rawDate?: number })[] = [
     ...dynamicVipApps,
@@ -638,11 +680,21 @@ export const VipSection: React.FC<VipSectionProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-center sm:justify-end gap-3 w-full sm:w-auto pt-1 sm:pt-0">
+              <div className="flex items-center justify-center sm:justify-end gap-2.5 w-full sm:w-auto pt-1 sm:pt-0">
+                <button
+                  type="button"
+                  onClick={() => setShowUserSettingsModal(true)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#181820] hover:bg-white/10 text-neutral-200 hover:text-white text-xs font-semibold border border-white/[0.08] hover:border-[#ebbf01]/50 transition-all cursor-pointer w-full sm:w-auto shadow-xs"
+                  title="Configurações da Conta (Alterar Senha, Plano e E-mail)"
+                >
+                  <Key className="w-3.5 h-3.5 text-[#ebbf01]" />
+                  <span>Configurações</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={onLogout || logoutVip}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#181820] hover:bg-red-500/20 text-neutral-300 hover:text-red-400 text-xs font-semibold border border-white/[0.06] hover:border-red-500/30 transition-all cursor-pointer w-full sm:w-auto"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#181820] hover:bg-red-500/20 text-neutral-300 hover:text-red-400 text-xs font-semibold border border-white/[0.06] hover:border-red-500/30 transition-all cursor-pointer w-full sm:w-auto"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Encerrar Sessão</span>
@@ -658,114 +710,13 @@ export const VipSection: React.FC<VipSectionProps> = ({
               </div>
             )}
 
-            {/* ================= SEÇÃO SUPERIOR: MURAL DE AVISOS + CONVITE GRUPO WHATSAPP VIP ================= */}
-            <div className={`grid grid-cols-1 ${brand.vipNoticeActive !== false ? 'lg:grid-cols-2' : 'max-w-xl'} gap-5 items-stretch`}>
-              {/* 1. Mural de Avisos & Comunicados VIP (Design com Leve Tom Vermelho Estilo IPTV) */}
-              {brand.vipNoticeActive !== false && (
-                <div 
-                  className="bg-gradient-to-br from-red-950/40 via-[#161012] to-red-950/20 border border-red-500/40 hover:border-red-500/70 hover:from-red-900/50 hover:to-red-950/40 hover:shadow-2xl hover:shadow-red-500/20 hover:-translate-y-0.5 transition-all duration-300 rounded-3xl p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between space-y-4 group backdrop-blur-xl items-center sm:items-start text-center sm:text-left"
-                >
-                  {/* Laser Top Accent Vermelho Brilhante */}
-                  <div 
-                    className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-80 group-hover:opacity-100 group-hover:via-red-400 transition-opacity duration-300"
-                  />
-
-                  {/* Fundo com brilho e brilho vermelho sutil e constante */}
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-red-600/20 group-hover:bg-red-600/35 rounded-full blur-2xl transition-all duration-500 pointer-events-none" />
-                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-red-600/15 group-hover:bg-red-600/25 rounded-full blur-2xl transition-all duration-500 pointer-events-none" />
-
-                  <div className="space-y-3 relative z-10 flex flex-col items-center sm:items-start w-full">
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 border-b border-red-500/20 group-hover:border-red-500/40 pb-3 transition-colors w-full">
-                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2.5">
-                        <div 
-                          className="w-10 h-10 rounded-xl border border-red-500/50 bg-red-500/20 group-hover:bg-red-500/30 group-hover:border-red-500/70 flex items-center justify-center shrink-0 shadow-lg backdrop-blur-md transition-all"
-                        >
-                          <Megaphone className="w-5 h-5 text-red-400 group-hover:text-red-300 transition-colors" />
-                        </div>
-                        <div className="flex flex-col items-center sm:items-start">
-                          <div className="flex items-center justify-center sm:justify-start gap-2">
-                            <span 
-                              className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/40"
-                            >
-                              Mural de Avisos
-                            </span>
-                          </div>
-                          <h4 className="text-base sm:text-lg font-black text-white font-heading mt-0.5 drop-shadow-sm text-center sm:text-left">
-                            {brand.vipNoticeTitle || 'Mural de Avisos & Comunicados VIP'}
-                          </h4>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Caixa Interna com Legibilidade Cristalina e Tom Vermelho Suave */}
-                    <div className="bg-red-950/30 border border-red-500/25 group-hover:border-red-500/45 rounded-2xl p-4 text-xs sm:text-sm text-neutral-100 group-hover:text-white font-medium leading-relaxed font-sans whitespace-pre-line shadow-inner backdrop-blur-md transition-all duration-300 text-center sm:text-left w-full">
-                      {brand.vipNoticeMessage || 'Bem-vindo ao espaço exclusivo de membros! Fique atento às novas atualizações de APKs, firmwares e tutoriais disponibilizados periodicamente nesta área.'}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 2. Card de Convite ao Grupo VIP no WhatsApp (Design com Leve Tom Verde Estilo IPTV) */}
-              <div className="bg-gradient-to-br from-emerald-950/40 via-[#101612] to-emerald-950/20 border border-[#25D366]/40 hover:border-[#25D366]/70 hover:from-emerald-900/50 hover:to-emerald-950/40 hover:shadow-2xl hover:shadow-[#25D366]/20 hover:-translate-y-0.5 transition-all duration-300 rounded-3xl p-5 sm:p-6 relative overflow-hidden flex flex-col justify-between space-y-4 group backdrop-blur-xl items-center sm:items-start text-center sm:text-left">
-                {/* Laser Top Accent Verde WhatsApp */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#25D366] to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
-
-                {/* Brilho Verde Dinâmico e Constante no Fundo */}
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#25D366]/20 group-hover:bg-[#25D366]/35 rounded-full blur-2xl transition-all duration-500 pointer-events-none" />
-                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-600/15 group-hover:bg-emerald-600/25 rounded-full blur-2xl transition-all duration-500 pointer-events-none" />
-
-                <div className="space-y-3 relative z-10 flex flex-col items-center sm:items-start w-full">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 border-b border-[#25D366]/20 group-hover:border-[#25D366]/40 pb-3 transition-colors w-full">
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2.5">
-                      <div className="w-10 h-10 rounded-xl border border-[#25D366]/50 bg-[#25D366]/20 group-hover:bg-[#25D366]/30 group-hover:border-[#25D366]/70 flex items-center justify-center shrink-0 transition-all shadow-lg">
-                        <SocialIcon platform="whatsapp" className="w-5 h-5 text-[#25D366]" />
-                      </div>
-                      <div className="flex flex-col items-center sm:items-start">
-                        <div className="flex items-center justify-center sm:justify-start gap-2">
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/40">
-                            Comunidade VIP
-                          </span>
-                          <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#25D366] animate-pulse" />
-                            Grupo Ativo
-                          </span>
-                        </div>
-                        <h4 className="text-base sm:text-lg font-black text-white font-heading mt-0.5 text-center sm:text-left">
-                          {brand.vipWhatsappGroupTitle || 'Grupo Alx⁺ VIP'}
-                        </h4>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-xs sm:text-sm text-neutral-200 leading-relaxed font-sans text-center sm:text-left">
-                    {brand.vipWhatsappGroupDesc || 'Faça parte da comunidade exclusiva no WhatsApp! Conecte-se diretamente com outros membros VIP, tire dúvidas e receba avisos em primeira mão.'}
-                  </p>
-
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1 text-[11px] font-mono text-neutral-200">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-[#25D366]/25 text-emerald-300 group-hover:border-[#25D366]/45 transition-colors">
-                      ✓ Notificações Instantâneas
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-[#25D366]/25 text-emerald-300 group-hover:border-[#25D366]/45 transition-colors">
-                      ✓ Troca de Experiências
-                    </span>
-                  </div>
-                </div>
-
-                {/* Botão de Entrada no Grupo */}
-                <div className="pt-2 relative z-10 w-full">
-                  <a
-                    href={whatsappGroupLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2.5 w-full py-3 px-5 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-black font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-[#25D366]/25 hover:shadow-[#25D366]/50 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
-                  >
-                    <SocialIcon platform="whatsapp" className="w-4 h-4 fill-current shrink-0" />
-                    <span>Grupo Alx⁺ VIP</span>
-                    <ExternalLink className="w-4 h-4 stroke-[2.5] ml-0.5" />
-                  </a>
-                </div>
-              </div>
-            </div>
+            {/* ================= SEÇÃO SUPERIOR: CARDS & CARROSSEL VIP (MURAL, WHATSAPP E CARDS CUSTOMIZADOS) ================= */}
+            <VipCardsCarousel
+              cards={brand.vipCards}
+              defaultWhatsappUrl={whatsappGroupLink}
+              defaultMuralTitle={brand.vipNoticeTitle}
+              defaultMuralMessage={brand.vipNoticeMessage}
+            />
 
             {/* Dashboard Category Tabs - Somente ícones coloridos sem texto e menores em uma única linha */}
             <div className="flex items-center justify-center flex-nowrap gap-3 xs:gap-5 sm:gap-8 py-2 pb-3 border-b border-white/[0.06] w-full max-w-md sm:max-w-none mx-auto px-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -869,6 +820,17 @@ export const VipSection: React.FC<VipSectionProps> = ({
 
                     {/* Card Body Compacto */}
                     <div className="p-4 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/[0.06] text-neutral-300 border border-white/[0.08]">
+                          {item.type === 'app' ? 'Aplicativo' : item.type === 'tutorial' ? 'Tutorial' : item.type === 'video' ? 'Vídeo' : item.type === 'news' ? 'Artigo' : 'Wallpaper'}
+                        </span>
+                        {item.releaseDate && (
+                          <span className="text-[10px] font-mono text-neutral-400">
+                            {item.releaseDate}
+                          </span>
+                        )}
+                      </div>
+
                       <h3 className="text-sm font-bold text-white font-heading line-clamp-2 group-hover:text-neutral-100 transition-colors">
                         {item.title}
                       </h3>
@@ -1036,6 +998,13 @@ export const VipSection: React.FC<VipSectionProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal de Configurações da Conta do Usuário VIP */}
+      <VipUserSettingsModal
+        isOpen={showUserSettingsModal}
+        onClose={() => setShowUserSettingsModal(false)}
+        vipThemeHex={vipThemeHex}
+      />
     </section>
   );
 };
