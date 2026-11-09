@@ -333,14 +333,16 @@ export const VipSection: React.FC<VipSectionProps> = ({
         rawItem: w,
         rawDate: ts,
       };
-    });
+    })
+    .sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
+  // "Todos os Recursos" contém os aplicativos, tutoriais, notícias e vídeos da plataforma.
+  // Wallpapers foram removidos de "Todos os Recursos" a pedido do usuário e ficam acessíveis na aba exclusiva de Wallpapers.
   const allVipItems: (VipContentItem & { rawItem?: any; rawDate?: number })[] = [
     ...dynamicVipApps,
     ...dynamicVipTutorials,
     ...dynamicVipNews,
     ...dynamicVipVideos,
-    ...dynamicVipWallpapers,
   ].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
   // Link do grupo VIP do WhatsApp com fallback inteligente
@@ -353,7 +355,9 @@ export const VipSection: React.FC<VipSectionProps> = ({
 
   const filteredItems = activeTab === 'all'
     ? allVipItems
-    : allVipItems.filter(item => item.type === activeTab);
+    : activeTab === 'wallpaper'
+      ? dynamicVipWallpapers
+      : allVipItems.filter(item => item.type === activeTab);
 
   const handleActionClick = (item: VipContentItem & { rawItem?: any }) => {
     if (!isLoggedIn) {
