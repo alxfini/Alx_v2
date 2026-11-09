@@ -131,7 +131,7 @@ export interface VipMember {
 export interface VipContentItem {
   id: string;
   title: string;
-  type: 'app' | 'video' | 'download' | 'tutorial' | 'news' | 'wallpaper';
+  type: 'app' | 'video' | 'download' | 'tutorial' | 'news' | 'wallpaper' | 'unlock';
   category: string;
   description: string;
   imageUrl?: string;
@@ -431,6 +431,11 @@ export interface UnlockServiceItem {
   whatsappContactMessage?: string;
   warrantyTitle?: string;
   warrantyText?: string;
+  isMembersOnly?: boolean;
+  isVipExclusive?: boolean;
+  visibility?: ItemVisibility;
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 export interface IptvAppItem {

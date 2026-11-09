@@ -1971,17 +1971,21 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Unlock Services CRUD
   const updateUnlockService = (id: string, data: Partial<UnlockServiceItem>) => {
-    const updated = unlockServices.map(s => (s.id === id ? { ...s, ...data } : s));
+    const nowIso = new Date().toISOString();
+    const updated = unlockServices.map(s => (s.id === id ? { ...s, ...data, updatedAt: nowIso } : s));
     setUnlockServices(updated);
     saveToStorage({ unlockServices: updated });
   };
 
   const addUnlockService = (serviceData: Omit<UnlockServiceItem, 'id'>): UnlockServiceItem => {
+    const nowIso = new Date().toISOString();
     const newId = `srv-${Date.now()}`;
     const newService: UnlockServiceItem = {
       ...serviceData,
       id: newId,
-      slug: serviceData.slug || serviceData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `servico-${Date.now()}`
+      slug: serviceData.slug || serviceData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `servico-${Date.now()}`,
+      createdAt: (serviceData as any).createdAt || nowIso,
+      updatedAt: nowIso,
     };
     const updated = [newService, ...unlockServices];
     setUnlockServices(updated);
@@ -1998,12 +2002,15 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const duplicateUnlockService = (id: string): UnlockServiceItem | null => {
     const original = unlockServices.find(s => s.id === id);
     if (!original) return null;
+    const nowIso = new Date().toISOString();
     const newId = `srv-${Date.now()}`;
     const cloned: UnlockServiceItem = {
       ...original,
       id: newId,
       slug: `${original.slug || 'servico'}-copia-${Math.floor(Math.random() * 1000)}`,
       title: `${original.title} (Cópia)`,
+      createdAt: nowIso,
+      updatedAt: nowIso,
     };
     const updated = [cloned, ...unlockServices];
     setUnlockServices(updated);

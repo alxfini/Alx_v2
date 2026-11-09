@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Check, Lock, Sparkles, Download, Play, BookOpen, LogIn, LogOut, ArrowRight, ShieldCheck, UserCheck, Zap, Key, Smartphone, Layers, Youtube, Mail, Send, X, MessageSquare, User, Megaphone, Eye, ExternalLink, FileText } from 'lucide-react';
+import { Crown, Check, Lock, Sparkles, Download, Play, BookOpen, LogIn, LogOut, ArrowRight, ShieldCheck, UserCheck, Zap, Key, KeyRound, Smartphone, Layers, Youtube, Mail, Send, X, MessageSquare, User, Megaphone, Eye, ExternalLink, FileText } from 'lucide-react';
 import { vipBenefits, demoVipUser } from '../data/vip';
 import { VipContentItem } from '../types';
 import { useSiteData } from '../context/SiteDataContext';
@@ -110,8 +110,8 @@ export const VipSection: React.FC<VipSectionProps> = ({
   onOpenAuthModal,
   isStandalone = false,
 }) => {
-  const { brand, addContactMessage, currentVipMember, logoutVip, apps = [], tutorials = [], news = [], videos = [], wallpapers = [], setActivePage, openDownloadGateway } = useSiteData();
-  const [activeTab, setActiveTab] = useState<'all' | 'app' | 'tutorial' | 'wallpaper'>('all');
+  const { brand, addContactMessage, currentVipMember, logoutVip, apps = [], tutorials = [], unlockServices = [], news = [], videos = [], wallpapers = [], setActivePage, openDownloadGateway } = useSiteData();
+  const [activeTab, setActiveTab] = useState<'all' | 'app' | 'unlock' | 'tutorial' | 'wallpaper'>('all');
   const [visibleCount, setVisibleCount] = useState<number>(12);
   const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
 
@@ -239,13 +239,12 @@ export const VipSection: React.FC<VipSectionProps> = ({
     }
   };
 
-  // Mapeia dinamicamente apenas os aplicativos e tutoriais selecionados no site/painel para a Área VIP
+  // Mapeia dinamicamente APENAS os itens explicitamente selecionados no site/painel para a Área VIP
   // Ordenados rigorosamente do mais recente para o mais antigo
   const isAppVip = (a: any) => {
     if (!a) return false;
-    // Ocultos com link direto não entram na vitrine principal se não forem exclusivos
     if (a.visibility === 'unlisted' || a.visibility === 'link_only') return false;
-    if (
+    return Boolean(
       a.isVipExclusive ||
       (a as any).isMembersOnly ||
       a.visibility === 'public_vip' ||
@@ -254,20 +253,13 @@ export const VipSection: React.FC<VipSectionProps> = ({
       a.priceText?.toLowerCase().includes('exclusiv') ||
       a.badge?.toLowerCase().includes('vip') ||
       a.category?.toLowerCase().includes('vip')
-    ) {
-      return true;
-    }
-    // Qualquer aplicativo criado pelo administrador via painel (ID com timestamp)
-    if (String(a.id).startsWith('app-') && /\d{10,}/.test(String(a.id))) {
-      return true;
-    }
-    return false;
+    );
   };
 
   const isTutorialVip = (t: any) => {
     if (!t) return false;
     if (t.visibility === 'unlisted' || t.visibility === 'link_only') return false;
-    if (
+    return Boolean(
       t.isMembersOnly ||
       (t as any).isVipExclusive ||
       t.visibility === 'public_vip' ||
@@ -275,13 +267,22 @@ export const VipSection: React.FC<VipSectionProps> = ({
       t.badge?.toLowerCase().includes('vip') ||
       t.badge?.toLowerCase().includes('exclusiv') ||
       t.category?.toLowerCase().includes('vip')
-    ) {
-      return true;
-    }
-    if (String(t.id).startsWith('tut-') && /\d{10,}/.test(String(t.id))) {
-      return true;
-    }
-    return false;
+    );
+  };
+
+  const isUnlockVip = (u: any) => {
+    if (!u) return false;
+    if (u.visibility === 'unlisted' || u.visibility === 'link_only') return false;
+    return Boolean(
+      u.isMembersOnly ||
+      u.isVipExclusive ||
+      u.visibility === 'public_vip' ||
+      u.visibility === 'members_and_link' ||
+      u.badge?.toLowerCase().includes('vip') ||
+      u.badge?.toLowerCase().includes('exclusiv') ||
+      u.category?.toLowerCase().includes('vip') ||
+      u.price?.toLowerCase().includes('vip')
+    );
   };
 
   const dynamicVipApps: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (apps || [])
@@ -329,6 +330,26 @@ export const VipSection: React.FC<VipSectionProps> = ({
     })
     .sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
+  const dynamicVipUnlocks: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (unlockServices || [])
+    .filter(isUnlockVip)
+    .map((u, idx) => {
+      const ts = getItemTimestamp(u, idx + 5);
+      return {
+        id: `dyn-unl-${u.id}`,
+        title: u.title,
+        type: 'unlock' as any,
+        category: u.category || 'Desbloqueio VIP',
+        description: u.summary || 'Serviço e solução de desbloqueio de multimídia exclusivo para membros VIP.',
+        imageUrl: getMediaPreviewUrl(u.imageUrl || 'https://images.unsplash.com/photo-1508974239320-0a029497e820?q=80&w=800&auto=format&fit=crop'),
+        downloadUrl: `/desbloqueio/${u.slug || u.id}`,
+        releaseDate: u.date || '2026',
+        isNew: Boolean(u.badge?.toLowerCase().includes('novo') || (Date.now() - ts < 14 * 86400000)),
+        rawItem: u,
+        rawDate: ts,
+      };
+    })
+    .sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
+
   const dynamicVipWallpapers: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (wallpapers || [])
     .filter((w) => w.isMembersOnly || (w as any).isVipExclusive || (w as any).visibility === 'public_vip' || (w as any).visibility === 'members_and_link')
     .map((w, idx) => {
@@ -354,9 +375,10 @@ export const VipSection: React.FC<VipSectionProps> = ({
     })
     .sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
-  // "Todos os Recursos VIP" contém exclusivamente os aplicativos e tutoriais marcados como VIP, ordenados do mais recente para o mais antigo.
+  // "Todos os Recursos VIP" contém exclusivamente os aplicativos, tutoriais e desbloqueios marcados como VIP, ordenados do mais recente para o mais antigo.
   const allVipItems: (VipContentItem & { rawItem?: any; rawDate?: number })[] = [
     ...dynamicVipApps,
+    ...dynamicVipUnlocks,
     ...dynamicVipTutorials,
   ].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
@@ -372,9 +394,11 @@ export const VipSection: React.FC<VipSectionProps> = ({
     ? allVipItems
     : activeTab === 'app'
       ? dynamicVipApps
-      : activeTab === 'tutorial'
-        ? dynamicVipTutorials
-        : dynamicVipWallpapers;
+      : activeTab === 'unlock'
+        ? dynamicVipUnlocks
+        : activeTab === 'tutorial'
+          ? dynamicVipTutorials
+          : dynamicVipWallpapers;
 
   const handleActionClick = (item: VipContentItem & { rawItem?: any }) => {
     if (!isLoggedIn) {
@@ -387,6 +411,16 @@ export const VipSection: React.FC<VipSectionProps> = ({
         setActivePage({ type: 'wallpaper', idOrSlug: item.rawItem.slug || item.rawItem.id });
       } else {
         setActivePage({ type: 'wallpapers' });
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (item.type === 'unlock' || item.category?.toLowerCase().includes('desbloqueio')) {
+      if (item.rawItem) {
+        setActivePage({ type: 'servico-desbloqueio', idOrSlug: item.rawItem.slug || item.rawItem.id });
+      } else {
+        setActivePage({ type: 'desbloqueio' });
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -706,6 +740,14 @@ export const VipSection: React.FC<VipSectionProps> = ({
                   dotColor: 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]'
                 },
                 { 
+                  id: 'unlock', 
+                  label: 'Desbloqueio VIP', 
+                  icon: KeyRound, 
+                  color: 'text-lime-400',
+                  activeColor: 'text-lime-300 drop-shadow-[0_0_12px_rgba(163,230,53,0.9)] scale-110',
+                  dotColor: 'bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.8)]'
+                },
+                { 
                   id: 'tutorial', 
                   label: 'Tutoriais VIP', 
                   icon: BookOpen, 
@@ -730,7 +772,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
                     type="button"
                     onClick={() => {
                       setActiveTab(tab.id as any);
-                      setVisibleCount(4);
+                      setVisibleCount(12);
                     }}
                     title={tab.label}
                     aria-label={tab.label}
@@ -747,7 +789,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
               })}
             </div>
 
-            {/* VIP Content Cards Grid: Centralizados no mobile, limite inicial de 4 por tela com botão de Carregar Mais */}
+            {/* VIP Content Cards Grid: Centralizados no mobile, limite inicial de 12 por tela com botão de Carregar Mais */}
             {filteredItems.length === 0 ? (
               <div className="py-12 px-4 rounded-3xl bg-[#111115] border border-white/[0.06] text-center space-y-2">
                 <p className="text-sm font-semibold text-neutral-300">Nenhum recurso VIP cadastrado nesta categoria.</p>
@@ -780,7 +822,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
                       <div className="p-4 space-y-2">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/[0.06] text-neutral-300 border border-white/[0.08]">
-                            {item.type === 'app' ? 'Aplicativo' : item.type === 'tutorial' ? 'Tutorial' : 'Wallpaper'}
+                            {item.type === 'app' ? 'Aplicativo' : item.type === 'tutorial' ? 'Tutorial' : item.type === 'unlock' ? 'Desbloqueio' : 'Wallpaper'}
                           </span>
                           {item.releaseDate && (
                             <span className="text-[10px] font-mono text-neutral-400">

@@ -4552,6 +4552,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <button
                 onClick={() => {
+                  const nowIso = new Date().toISOString();
                   setEditingUnlockService({
                     id: '',
                     title: 'Desbloqueio de Multimídia BYD DiLink',
@@ -4564,7 +4565,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     applicableCars: 'Dolphin, Seal, Song Plus, Yuan Plus, King',
                     tags: ['Desbloqueio', 'BYD', 'DiLink'],
                     whatsappContactMessage: 'Olá! Gostaria de informações sobre o serviço de desbloqueio.',
-                    slug: `desbloqueio-servico-${Date.now()}`
+                    slug: `desbloqueio-servico-${Date.now()}`,
+                    isMembersOnly: false,
+                    isVipExclusive: false,
+                    visibility: 'public',
+                    createdAt: nowIso,
+                    updatedAt: nowIso,
                   });
                   setIsCreatingUnlockService(true);
                   setUnlockEditorTab('editor');
@@ -4580,7 +4586,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(unlockServices || []).map((service, idx) => (
+              {(unlockServices || []).map((service, idx) => {
+                const isServiceVip = Boolean(service.isMembersOnly || service.isVipExclusive || (service as any).visibility === 'public_vip');
+                return (
                 <div key={service.id} className="bg-white border border-neutral-200 text-neutral-900 rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between">
                   <div>
                     <div className="aspect-video bg-neutral-100 relative overflow-hidden border-b border-neutral-200">
@@ -4589,10 +4597,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         alt={service.title}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                      <div className="absolute top-2 left-2 flex items-center gap-1.5 flex-wrap">
                         <span className="px-2.5 py-0.5 rounded bg-black text-[#ebbf01] font-mono text-[10px] font-bold">
                           {service.category}
                         </span>
+                        {isServiceVip && (
+                          <span className="px-2 py-0.5 rounded bg-[#ebbf01] text-black font-mono text-[10px] font-black flex items-center gap-1 shadow-sm">
+                            <Crown className="w-2.5 h-2.5 fill-black" />
+                            <span>VIP</span>
+                          </span>
+                        )}
                         {service.badge && (
                           <span className="px-2 py-0.5 rounded bg-emerald-500 text-black font-mono text-[10px] font-black">
                             {service.badge}
@@ -4662,6 +4676,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5">
+                      {/* Botão de Toggle Rápido VIP */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const isNowVip = !isServiceVip;
+                          updateUnlockService(service.id, {
+                            isMembersOnly: isNowVip,
+                            isVipExclusive: isNowVip,
+                            visibility: isNowVip ? 'public_vip' : 'public',
+                            updatedAt: new Date().toISOString(),
+                          });
+                          triggerSuccess(`Serviço "${service.title}" ${isNowVip ? 'adicionado ao VIP' : 'removido do VIP'}!`);
+                        }}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-colors ${
+                          isServiceVip
+                            ? 'bg-[#ebbf01] text-black font-black'
+                            : 'bg-white text-neutral-600 hover:text-black border border-neutral-200'
+                        }`}
+                        title={isServiceVip ? 'Remover exclusividade VIP' : 'Selecionar este serviço para a Área VIP'}
+                      >
+                        <Crown className="w-3 h-3 fill-current" />
+                        <span>{isServiceVip ? 'VIP' : '+ VIP'}</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -4714,7 +4752,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           </div>
         )}
@@ -10742,6 +10781,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     />
                   </div>
 
+                  {/* Configuração de Exclusividade VIP */}
+                  <div className="sm:col-span-2 p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-[#ebbf01]" />
+                      <div>
+                        <div className="text-xs font-bold text-neutral-900">Exclusivo na Área VIP</div>
+                        <div className="text-[11px] text-neutral-500">Exibir e disponibilizar este serviço na aba Desbloqueios da Área VIP</div>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(editingUnlockService.isMembersOnly || editingUnlockService.isVipExclusive || editingUnlockService.visibility === 'public_vip')}
+                        onChange={(e) => {
+                          const isVip = e.target.checked;
+                          setEditingUnlockService({
+                            ...editingUnlockService,
+                            isMembersOnly: isVip,
+                            isVipExclusive: isVip,
+                            visibility: isVip ? 'public_vip' : 'public',
+                          });
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ebbf01]"></div>
+                    </label>
+                  </div>
+
                   {/* Badge Color Selector */}
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1">
@@ -12220,12 +12287,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     onClick={() => {
                       const title = editingUnlockService.title?.trim() || 'Serviço de Desbloqueio';
                       const summary = editingUnlockService.summary?.trim() || 'Desbloqueio de central multimídia e conectividade.';
+                      const isVip = Boolean(
+                        editingUnlockService.isMembersOnly ||
+                        editingUnlockService.isVipExclusive ||
+                        editingUnlockService.visibility === 'public_vip' ||
+                        editingUnlockService.visibility === 'members_and_link' ||
+                        editingUnlockService.badge?.toLowerCase().includes('vip') ||
+                        editingUnlockService.price?.toLowerCase().includes('vip')
+                      );
+                      const nowIso = new Date().toISOString();
                       const serviceToSave: UnlockServiceItem = {
                         ...editingUnlockService,
                         title,
                         summary,
                         images: editingUnlockService.images || [],
                         videos: editingUnlockService.videos || [],
+                        isMembersOnly: isVip,
+                        isVipExclusive: isVip,
+                        visibility: editingUnlockService.visibility || (isVip ? 'public_vip' : 'public'),
+                        updatedAt: nowIso,
+                        createdAt: editingUnlockService.createdAt || nowIso,
                       };
                       if (isCreatingUnlockService) {
                         addUnlockService(serviceToSave);

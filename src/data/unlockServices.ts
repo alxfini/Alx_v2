@@ -39,12 +39,16 @@ Removemos a trava automática de segurança que bloqueia a tela ao engatar D ou 
 - **Sem Modificação Física de Chicotes:** Feito totalmente via software/parâmetros de sistema.
 - **Mantém Todas as Funções Originais:** Câmeras 360°, sensores de ré e comandos no volante funcionam perfeitamente.`,
     category: 'Vídeo em Movimento',
-    price: 'Serviço Sob Consulta',
-    badge: 'Exclusivo',
+    price: 'Exclusivo VIP',
+    badge: 'Exclusivo VIP',
+    isMembersOnly: true,
+    isVipExclusive: true,
+    visibility: 'public_vip',
+    date: '2026-11-09',
     imageUrl: 'https://images.unsplash.com/photo-1508974239320-0a029497e820?q=80&w=800&auto=format&fit=crop',
     applicableCars: 'Dolphin, Seal, Song Plus, Yuan Plus, King, GWM Ora 03',
-    tags: ['VIM', 'Vídeo em Movimento', 'Desbloqueio', 'Streaming'],
-    whatsappContactMessage: 'Olá! Quero saber mais sobre o Desbloqueio de Vídeo em Movimento para meu carro.'
+    tags: ['VIM', 'Vídeo em Movimento', 'Desbloqueio', 'Streaming', 'VIP'],
+    whatsappContactMessage: 'Olá! Sou Membro VIP e quero saber mais sobre o Desbloqueio de Vídeo em Movimento.'
   },
   {
     id: 'atendimento-suporte-remoto',
