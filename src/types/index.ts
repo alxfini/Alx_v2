@@ -68,6 +68,7 @@ export interface ALXApp {
   isUpdated?: boolean;
   isNew?: boolean;
   updatedAt?: string;
+  createdAt?: string;
   partnerSlug?: string;
   partnerName?: string;
   youtubeUrl?: string;

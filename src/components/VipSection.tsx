@@ -59,6 +59,31 @@ function parseDateToTimestamp(dateStr?: string): number {
   return 0;
 }
 
+function getItemTimestamp(item: any, fallbackIndex = 0): number {
+  if (!item) return 0;
+  
+  // 1. Check explicit date strings
+  const dateStr = item.updatedAt || item.createdAt || item.date || item.releaseDate;
+  if (dateStr) {
+    const parsed = parseDateToTimestamp(dateStr);
+    if (parsed > 0) return parsed;
+  }
+
+  // 2. Extract Unix timestamp from item.id if generated via Date.now() (e.g. "app-1741512345678")
+  if (item.id) {
+    const idMatch = String(item.id).match(/\b(\d{10,13})\b/);
+    if (idMatch) {
+      const num = parseInt(idMatch[1], 10);
+      if (num > 1000000000) {
+        return num < 10000000000 ? num * 1000 : num;
+      }
+    }
+  }
+
+  // 3. Fallback: prioritize recent items in feed at current time
+  return Date.now() - (fallbackIndex * 60000);
+}
+
 function formatExpiryDate(dateStr?: string): string {
   if (!dateStr) return 'Ativo';
   const clean = String(dateStr).trim();
@@ -87,7 +112,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
 }) => {
   const { brand, addContactMessage, currentVipMember, logoutVip, apps = [], tutorials = [], news = [], videos = [], wallpapers = [], setActivePage, openDownloadGateway } = useSiteData();
   const [activeTab, setActiveTab] = useState<'all' | 'app' | 'tutorial' | 'wallpaper'>('all');
-  const [visibleCount, setVisibleCount] = useState<number>(4);
+  const [visibleCount, setVisibleCount] = useState<number>(12);
   const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
 
   // Cor exata configurada no Painel Administrativo para a Área VIP
@@ -216,14 +241,56 @@ export const VipSection: React.FC<VipSectionProps> = ({
 
   // Mapeia dinamicamente apenas os aplicativos e tutoriais selecionados no site/painel para a Área VIP
   // Ordenados rigorosamente do mais recente para o mais antigo
+  const isAppVip = (a: any) => {
+    if (!a) return false;
+    // Ocultos com link direto não entram na vitrine principal se não forem exclusivos
+    if (a.visibility === 'unlisted' || a.visibility === 'link_only') return false;
+    if (
+      a.isVipExclusive ||
+      (a as any).isMembersOnly ||
+      a.visibility === 'public_vip' ||
+      a.visibility === 'members_and_link' ||
+      a.priceText?.toLowerCase().includes('vip') ||
+      a.priceText?.toLowerCase().includes('exclusiv') ||
+      a.badge?.toLowerCase().includes('vip') ||
+      a.category?.toLowerCase().includes('vip')
+    ) {
+      return true;
+    }
+    // Qualquer aplicativo criado pelo administrador via painel (ID com timestamp)
+    if (String(a.id).startsWith('app-') && /\d{10,}/.test(String(a.id))) {
+      return true;
+    }
+    return false;
+  };
+
+  const isTutorialVip = (t: any) => {
+    if (!t) return false;
+    if (t.visibility === 'unlisted' || t.visibility === 'link_only') return false;
+    if (
+      t.isMembersOnly ||
+      (t as any).isVipExclusive ||
+      t.visibility === 'public_vip' ||
+      t.visibility === 'members_and_link' ||
+      t.badge?.toLowerCase().includes('vip') ||
+      t.badge?.toLowerCase().includes('exclusiv') ||
+      t.category?.toLowerCase().includes('vip')
+    ) {
+      return true;
+    }
+    if (String(t.id).startsWith('tut-') && /\d{10,}/.test(String(t.id))) {
+      return true;
+    }
+    return false;
+  };
+
   const dynamicVipApps: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (apps || [])
-    .filter(isItemVisibleInVipSection)
+    .filter(isAppVip)
     .map((a, idx) => {
-      const rawDateStr = a.updatedAt || (a as any).releaseDate || (a as any).createdAt || (a as any).date;
-      let ts = parseDateToTimestamp(rawDateStr);
-      if (!ts || ts === 0) {
-        ts = new Date(2026, 2, 28).getTime() - (idx * 3600000 * 4);
-      }
+      const ts = getItemTimestamp(a, idx);
+      const formattedReleaseDate = a.updatedAt
+        ? new Date(ts).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+        : (a as any).releaseDate || (a as any).createdAt || 'Recente';
       return {
         id: `dyn-app-${a.id}`,
         title: a.name || a.title,
@@ -233,22 +300,19 @@ export const VipSection: React.FC<VipSectionProps> = ({
         imageUrl: getMediaPreviewUrl(a.coverImage || (a as any).iconUrl || '/imagens/apps/byd-cockpit.jpg'),
         downloadSize: (a as any).fileSize || 'APK',
         downloadUrl: a.downloadUrl || '#',
-        releaseDate: a.updatedAt || (a as any).releaseDate || '2026',
-        isNew: Boolean(a.isNew || a.isUpdated || a.badge?.toLowerCase().includes('novo') || a.badge?.toLowerCase().includes('beta')),
+        releaseDate: formattedReleaseDate,
+        isNew: Boolean(a.isNew || a.isUpdated || a.badge?.toLowerCase().includes('novo') || a.badge?.toLowerCase().includes('beta') || (Date.now() - ts < 14 * 86400000)),
         version: a.version,
         rawItem: a,
         rawDate: ts,
       };
-    });
+    })
+    .sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
   const dynamicVipTutorials: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (tutorials || [])
-    .filter(isItemVisibleInVipSection)
+    .filter(isTutorialVip)
     .map((t, idx) => {
-      const rawDateStr = t.date || (t as any).updatedAt || (t as any).createdAt;
-      let ts = parseDateToTimestamp(rawDateStr);
-      if (!ts || ts === 0) {
-        ts = new Date(2026, 2, 25).getTime() - (idx * 3600000 * 4);
-      }
+      const ts = getItemTimestamp(t, idx + 10);
       return {
         id: `dyn-tut-${t.id}`,
         title: t.title,
@@ -258,11 +322,12 @@ export const VipSection: React.FC<VipSectionProps> = ({
         imageUrl: getMediaPreviewUrl(t.imageUrl || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop'),
         downloadUrl: `/tutoriais/${t.slug || t.id}`,
         releaseDate: t.date || '2026',
-        isNew: Boolean(t.badge?.toLowerCase().includes('novo')),
+        isNew: Boolean(t.badge?.toLowerCase().includes('novo') || (Date.now() - ts < 14 * 86400000)),
         rawItem: t,
         rawDate: ts,
       };
-    });
+    })
+    .sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
   const dynamicVipWallpapers: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (wallpapers || [])
     .filter((w) => w.isMembersOnly || (w as any).isVipExclusive || (w as any).visibility === 'public_vip' || (w as any).visibility === 'members_and_link')
@@ -757,12 +822,12 @@ export const VipSection: React.FC<VipSectionProps> = ({
               </div>
             )}
 
-            {/* Botão de Carregar Mais Conteúdos (Carrega +4 itens) */}
+            {/* Botão de Carregar Mais Conteúdos (Carrega +12 itens) */}
             {filteredItems.length > visibleCount && (
               <div className="flex justify-center pt-6 pb-2">
                 <button
                   type="button"
-                  onClick={() => setVisibleCount((prev) => prev + 4)}
+                  onClick={() => setVisibleCount((prev) => prev + 12)}
                   style={{
                     borderColor: `${vipThemeHex}60`,
                   }}

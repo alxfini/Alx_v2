@@ -3039,6 +3039,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
               <button
                 onClick={() => {
+                  const nowIso = new Date().toISOString();
                   setEditingApp({
                     id: '',
                     slug: '',
@@ -3052,12 +3053,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     compatibility: ['BYD Dolphin', 'DiLink 3.0+'],
                     requirements: ['Android 9.0+'],
                     version: 'v1.0.0',
-                    priceText: 'Gratuito',
-                    isFree: true,
-                    isVipExclusive: false,
+                    priceText: 'Exclusivo VIP',
+                    isFree: false,
+                    isVipExclusive: true,
+                    isMembersOnly: true,
+                    visibility: 'public_vip',
                     badge: 'Novo',
                     downloadUrl: '#',
                     buyUrl: '#',
+                    createdAt: nowIso,
+                    updatedAt: nowIso,
                   });
                   setIsCreatingApp(true);
                 }}
@@ -7711,7 +7716,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  const isVipMode = Boolean(editingApp.isVipExclusive || editingApp.priceText?.toLowerCase().includes('vip'));
+                  const isVipMode = Boolean(
+                    editingApp.isVipExclusive ||
+                    (editingApp as any).isMembersOnly ||
+                    editingApp.visibility === 'public_vip' ||
+                    editingApp.visibility === 'members_and_link' ||
+                    editingApp.priceText?.toLowerCase().includes('vip') ||
+                    editingApp.priceText?.toLowerCase().includes('exclusiv') ||
+                    editingApp.badge?.toLowerCase().includes('vip')
+                  );
+                  const nowIso = new Date().toISOString();
                   const appToSave: ALXApp = {
                     ...editingApp,
                     name: editingApp.name?.trim() || 'Novo Aplicativo',
@@ -7719,6 +7733,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     isFree: !isVipMode && Boolean(editingApp.isFree ?? true),
                     isVipExclusive: isVipMode,
                     isMembersOnly: isVipMode,
+                    visibility: editingApp.visibility || (isVipMode ? 'public_vip' : 'public'),
+                    updatedAt: nowIso,
+                    createdAt: editingApp.createdAt || nowIso,
                   };
                   if (isCreatingApp) {
                     addApp(appToSave);

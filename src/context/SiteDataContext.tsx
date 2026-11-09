@@ -1589,16 +1589,20 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Apps CRUD
   const updateApp = (id: string, data: Partial<ALXApp>) => {
-    const updated = apps.map(app => (app.id === id ? { ...app, ...data } : app));
+    const nowIso = new Date().toISOString();
+    const updated = apps.map(app => (app.id === id ? { ...app, ...data, updatedAt: nowIso } : app));
     setApps(updated);
     saveToStorage({ apps: updated });
   };
 
   const addApp = (newAppData: Omit<ALXApp, 'id'>): ALXApp => {
+    const nowIso = new Date().toISOString();
     const newApp: ALXApp = {
       ...newAppData,
       id: `app-${Date.now()}`,
       slug: newAppData.slug || `app-${Date.now()}`,
+      createdAt: (newAppData as any).createdAt || nowIso,
+      updatedAt: nowIso,
     };
     const updated = [newApp, ...apps];
     setApps(updated);
@@ -1627,6 +1631,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const target = apps.find((a) => a.id === id);
     if (!target) return null;
 
+    const nowIso = new Date().toISOString();
     const newId = `app-${Date.now()}`;
     const newSlug = `${target.slug || 'app'}-copia-${Math.floor(Math.random() * 1000)}`;
 
@@ -1638,6 +1643,8 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       downloadsCount: 0,
       isNew: true,
       isUpdated: true,
+      createdAt: nowIso,
+      updatedAt: nowIso,
     };
 
     // Prepend to top of apps array so it appears as most recent
