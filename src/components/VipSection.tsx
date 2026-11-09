@@ -86,7 +86,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
   isStandalone = false,
 }) => {
   const { brand, addContactMessage, currentVipMember, logoutVip, apps = [], tutorials = [], news = [], videos = [], wallpapers = [], setActivePage, openDownloadGateway } = useSiteData();
-  const [activeTab, setActiveTab] = useState<'all' | 'app' | 'video' | 'tutorial' | 'news' | 'wallpaper'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'app' | 'tutorial' | 'wallpaper'>('all');
   const [visibleCount, setVisibleCount] = useState<number>(4);
   const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
 
@@ -214,15 +214,14 @@ export const VipSection: React.FC<VipSectionProps> = ({
     }
   };
 
-  // Mapeia dinamicamente todos os recursos da plataforma para membros logados na Área VIP
-  // Ordenados rigorosamente do mais atual para o mais antigo
+  // Mapeia dinamicamente apenas os aplicativos e tutoriais selecionados no site/painel para a Área VIP
+  // Ordenados rigorosamente do mais recente para o mais antigo
   const dynamicVipApps: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (apps || [])
-    .filter((a) => (a as any).visibility !== 'unlisted' && (a as any).visibility !== 'link_only')
+    .filter(isItemVisibleInVipSection)
     .map((a, idx) => {
       const rawDateStr = a.updatedAt || (a as any).releaseDate || (a as any).createdAt || (a as any).date;
       let ts = parseDateToTimestamp(rawDateStr);
       if (!ts || ts === 0) {
-        // Fallback decrescente para apps cadastrados sem data explícita (mais recentes primeiro)
         ts = new Date(2026, 2, 28).getTime() - (idx * 3600000 * 4);
       }
       return {
@@ -243,7 +242,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
     });
 
   const dynamicVipTutorials: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (tutorials || [])
-    .filter((t) => (t as any).visibility !== 'unlisted' && (t as any).visibility !== 'link_only')
+    .filter(isItemVisibleInVipSection)
     .map((t, idx) => {
       const rawDateStr = t.date || (t as any).updatedAt || (t as any).createdAt;
       let ts = parseDateToTimestamp(rawDateStr);
@@ -265,54 +264,8 @@ export const VipSection: React.FC<VipSectionProps> = ({
       };
     });
 
-  const dynamicVipVideos: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (videos || [])
-    .filter((v) => (v as any).visibility !== 'unlisted' && (v as any).visibility !== 'link_only')
-    .map((v, idx) => {
-      const rawDateStr = v.date || (v as any).updatedAt || (v as any).createdAt;
-      let ts = parseDateToTimestamp(rawDateStr);
-      if (!ts || ts === 0) {
-        ts = new Date(2026, 2, 20).getTime() - (idx * 3600000 * 4);
-      }
-      return {
-        id: `dyn-vid-${v.id}`,
-        title: v.title,
-        type: 'video' as const,
-        category: 'Vídeo Exclusivo',
-        description: v.summary || v.description || 'Aula e vídeo exclusivo para membros.',
-        imageUrl: getMediaPreviewUrl(v.thumbnailUrl || (v.youtubeId ? `https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1536240478700-b869070f9279?q=80&w=800&auto=format&fit=crop')),
-        videoUrl: v.youtubeUrl || v.videoUrl || (v.youtubeId ? `https://www.youtube.com/watch?v=${v.youtubeId}` : '#'),
-        releaseDate: v.date || '2026',
-        isNew: false,
-        rawItem: v,
-        rawDate: ts,
-      };
-    });
-
-  const dynamicVipNews: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (news || [])
-    .filter((n) => (n as any).visibility !== 'unlisted' && (n as any).visibility !== 'link_only')
-    .map((n, idx) => {
-      const rawDateStr = n.date || (n as any).updatedAt || (n as any).createdAt;
-      let ts = parseDateToTimestamp(rawDateStr);
-      if (!ts || ts === 0) {
-        ts = new Date(2026, 2, 18).getTime() - (idx * 3600000 * 4);
-      }
-      return {
-        id: `dyn-news-${n.id}`,
-        title: n.title,
-        type: 'news' as const,
-        category: n.category || 'Artigo VIP',
-        description: n.summary || 'Artigo técnico e análise exclusiva para membros.',
-        imageUrl: getMediaPreviewUrl(n.imageUrl || '/imagens/noticias/noticia-1.jpg'),
-        downloadUrl: `/noticias/${n.slug || n.id}`,
-        releaseDate: n.date || '2026',
-        isNew: false,
-        rawItem: n,
-        rawDate: ts,
-      };
-    });
-
   const dynamicVipWallpapers: (VipContentItem & { rawItem?: any; rawDate?: number })[] = (wallpapers || [])
-    .filter((w) => (w as any).visibility !== 'unlisted' && (w as any).visibility !== 'link_only')
+    .filter((w) => w.isMembersOnly || (w as any).isVipExclusive || (w as any).visibility === 'public_vip' || (w as any).visibility === 'members_and_link')
     .map((w, idx) => {
       const rawDateStr = w.date || (w as any).updatedAt || (w as any).createdAt;
       let ts = parseDateToTimestamp(rawDateStr);
@@ -336,13 +289,10 @@ export const VipSection: React.FC<VipSectionProps> = ({
     })
     .sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
-  // "Todos os Recursos" contém os aplicativos, tutoriais, notícias e vídeos da plataforma.
-  // Wallpapers foram removidos de "Todos os Recursos" a pedido do usuário e ficam acessíveis na aba exclusiva de Wallpapers.
+  // "Todos os Recursos VIP" contém exclusivamente os aplicativos e tutoriais marcados como VIP, ordenados do mais recente para o mais antigo.
   const allVipItems: (VipContentItem & { rawItem?: any; rawDate?: number })[] = [
     ...dynamicVipApps,
     ...dynamicVipTutorials,
-    ...dynamicVipNews,
-    ...dynamicVipVideos,
   ].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
   // Link do grupo VIP do WhatsApp com fallback inteligente
@@ -355,9 +305,11 @@ export const VipSection: React.FC<VipSectionProps> = ({
 
   const filteredItems = activeTab === 'all'
     ? allVipItems
-    : activeTab === 'wallpaper'
-      ? dynamicVipWallpapers
-      : allVipItems.filter(item => item.type === activeTab);
+    : activeTab === 'app'
+      ? dynamicVipApps
+      : activeTab === 'tutorial'
+        ? dynamicVipTutorials
+        : dynamicVipWallpapers;
 
   const handleActionClick = (item: VipContentItem & { rawItem?: any }) => {
     if (!isLoggedIn) {
@@ -402,11 +354,6 @@ export const VipSection: React.FC<VipSectionProps> = ({
         setActivePage({ type: 'apps' });
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    if (item.type === 'video' && item.videoUrl && item.videoUrl !== '#') {
-      window.open(item.videoUrl, '_blank');
       return;
     }
 
@@ -511,8 +458,8 @@ export const VipSection: React.FC<VipSectionProps> = ({
                 </p>
               </div>
 
-              {/* 3 Columns Inside Full-width Card: 1º WhatsApp (Verde), 2º Assinante VIP (Branco/Dourado), 3º YouTube (Vermelho) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+              {/* 2 Columns Inside Full-width Card: 1º WhatsApp (Verde), 2º Assinante VIP (Branco/Dourado) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
 
                 {/* 1º Card: Apoiadores no WhatsApp (Textos e Botão de Contato WhatsApp) */}
                 <div className="bg-gradient-to-br from-[#122e1e]/60 via-[#0a1c12]/80 to-[#060e09] border border-[#25D366]/30 hover:border-[#25D366]/70 rounded-2xl p-5 flex flex-col justify-between transition-all group hover:-translate-y-1 shadow-lg relative overflow-hidden items-center sm:items-start text-center sm:text-left">
@@ -574,54 +521,6 @@ export const VipSection: React.FC<VipSectionProps> = ({
                       <Crown className="w-4 h-4 fill-slate-950 text-slate-950" />
                       <span>ASSINAR ÁREA VIP</span>
                     </button>
-                  </div>
-                </div>
-
-                {/* 3º Card: YouTube (Textos e Botão em Vermelho YouTube) */}
-                <div className="bg-gradient-to-br from-[#330f13]/60 via-[#1f090b]/80 to-[#0d0405] border border-red-500/30 hover:border-red-500/70 rounded-2xl p-5 flex flex-col justify-between transition-all group hover:-translate-y-1 shadow-lg relative overflow-hidden items-center sm:items-start text-center sm:text-left">
-                  <div className="absolute -top-12 -right-12 w-28 h-28 bg-red-600/10 blur-2xl rounded-full pointer-events-none" />
-                  <div className="space-y-3 relative z-10 flex flex-col items-center sm:items-start w-full">
-                    <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center font-bold shadow-sm">
-                      <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24">
-                        <path
-                          d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"
-                          fill="#FF0000"
-                        />
-                        <path
-                          d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"
-                          fill="#FFFFFF"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-base font-extrabold text-red-400 font-heading">
-                        Apoiador Exclusivo no YouTube
-                      </h4>
-                    </div>
-                    <p className="text-xs text-red-200/90 leading-relaxed font-sans space-y-1">
-                      <span className="block font-semibold">Apoiadores exclusivo ou acima, tem acesso VIP ao site.</span>
-                      <span className="block">Seja membro oficial do canal ALX Garage no YouTube para ser membro VIP.</span>
-                    </p>
-                  </div>
-                  <div className="pt-5 relative z-10 w-full">
-                    <a
-                      href={brand.links?.youtube ? `${brand.links.youtube}/join` : 'https://www.youtube.com/@alx-garage/join'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-red-600/25 cursor-pointer"
-                    >
-                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                        <path
-                          d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"
-                          fill="#FFFFFF"
-                        />
-                        <path
-                          d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"
-                          fill="#DC2626"
-                        />
-                      </svg>
-                      <span>APOIADOR NO YOUTUBE ↗</span>
-                    </a>
                   </div>
                 </div>
 
@@ -727,7 +626,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
               {[
                 { 
                   id: 'all', 
-                  label: 'Todos os Recursos', 
+                  label: 'Todos os Recursos VIP', 
                   icon: Layers, 
                   color: 'text-amber-400',
                   activeColor: 'text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)] scale-110',
@@ -735,19 +634,11 @@ export const VipSection: React.FC<VipSectionProps> = ({
                 },
                 { 
                   id: 'app', 
-                  label: 'Apps Exclusivos', 
+                  label: 'Apps Exclusivos VIP', 
                   icon: Smartphone, 
                   color: 'text-cyan-400',
                   activeColor: 'text-cyan-300 drop-shadow-[0_0_12px_rgba(34,211,238,0.9)] scale-110',
                   dotColor: 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]'
-                },
-                { 
-                  id: 'video', 
-                  label: 'Vídeos VIP', 
-                  icon: Play, 
-                  color: 'text-rose-500',
-                  activeColor: 'text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.9)] scale-110',
-                  dotColor: 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
                 },
                 { 
                   id: 'tutorial', 
@@ -756,14 +647,6 @@ export const VipSection: React.FC<VipSectionProps> = ({
                   color: 'text-purple-400',
                   activeColor: 'text-purple-300 drop-shadow-[0_0_12px_rgba(192,132,252,0.9)] scale-110',
                   dotColor: 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.8)]'
-                },
-                { 
-                  id: 'news', 
-                  label: 'Artigos VIP', 
-                  icon: FileText, 
-                  color: 'text-emerald-400',
-                  activeColor: 'text-emerald-300 drop-shadow-[0_0_12px_rgba(52,211,153,0.9)] scale-110',
-                  dotColor: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
                 },
                 { 
                   id: 'wallpaper', 
@@ -800,72 +683,79 @@ export const VipSection: React.FC<VipSectionProps> = ({
             </div>
 
             {/* VIP Content Cards Grid: Centralizados no mobile, limite inicial de 4 por tela com botão de Carregar Mais */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 justify-items-center sm:justify-items-stretch">
-              {filteredItems.slice(0, visibleCount).map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleActionClick(item)}
-                  className="group bg-[#111115] border border-white/[0.08] hover:border-white/25 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-xl hover:shadow-black/70 flex flex-col justify-between cursor-pointer w-full max-w-sm sm:max-w-none"
-                >
-                  <div>
-                    {/* Top Preview Image Container: Foto limpa, NADA escrito na foto */}
-                    <div className="relative aspect-[16/10] overflow-hidden bg-[#16161D]">
-                      <img
-                        src={getMediaPreviewUrl(item.imageUrl) || (item.type === 'video' ? 'https://images.unsplash.com/photo-1536240478700-b869070f9279?q=80&w=800&auto=format&fit=crop' : '/imagens/apps/byd-cockpit.jpg')}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/imagens/apps/byd-cockpit.jpg';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#111115] via-transparent to-black/20 pointer-events-none" />
-                    </div>
-
-                    {/* Card Body Compacto */}
-                    <div className="p-4 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/[0.06] text-neutral-300 border border-white/[0.08]">
-                          {item.type === 'app' ? 'Aplicativo' : item.type === 'tutorial' ? 'Tutorial' : item.type === 'video' ? 'Vídeo' : item.type === 'news' ? 'Artigo' : 'Wallpaper'}
-                        </span>
-                        {item.releaseDate && (
-                          <span className="text-[10px] font-mono text-neutral-400">
-                            {item.releaseDate}
-                          </span>
-                        )}
+            {filteredItems.length === 0 ? (
+              <div className="py-12 px-4 rounded-3xl bg-[#111115] border border-white/[0.06] text-center space-y-2">
+                <p className="text-sm font-semibold text-neutral-300">Nenhum recurso VIP cadastrado nesta categoria.</p>
+                <p className="text-xs text-neutral-500">Selecione itens no Painel Administrativo com visibilidade VIP para exibi-los aqui.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 justify-items-center sm:justify-items-stretch">
+                {filteredItems.slice(0, visibleCount).map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleActionClick(item)}
+                    className="group bg-[#111115] border border-white/[0.08] hover:border-white/25 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-xl hover:shadow-black/70 flex flex-col justify-between cursor-pointer w-full max-w-sm sm:max-w-none"
+                  >
+                    <div>
+                      {/* Top Preview Image Container: Foto limpa, NADA escrito na foto */}
+                      <div className="relative aspect-[16/10] overflow-hidden bg-[#16161D]">
+                        <img
+                          src={getMediaPreviewUrl(item.imageUrl) || '/imagens/apps/byd-cockpit.jpg'}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/imagens/apps/byd-cockpit.jpg';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#111115] via-transparent to-black/20 pointer-events-none" />
                       </div>
 
-                      <h3 className="text-sm font-bold text-white font-heading line-clamp-2 group-hover:text-neutral-100 transition-colors">
-                        {item.title}
-                      </h3>
+                      {/* Card Body Compacto */}
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/[0.06] text-neutral-300 border border-white/[0.08]">
+                            {item.type === 'app' ? 'Aplicativo' : item.type === 'tutorial' ? 'Tutorial' : 'Wallpaper'}
+                          </span>
+                          {item.releaseDate && (
+                            <span className="text-[10px] font-mono text-neutral-400">
+                              {item.releaseDate}
+                            </span>
+                          )}
+                        </div>
 
-                      <p className="text-xs text-neutral-400 leading-relaxed line-clamp-2">
-                        {item.description}
-                      </p>
+                        <h3 className="text-sm font-bold text-white font-heading line-clamp-2 group-hover:text-neutral-100 transition-colors">
+                          {item.title}
+                        </h3>
+
+                        <p className="text-xs text-neutral-400 leading-relaxed line-clamp-2">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action: Botão de Ver somente */}
+                    <div className="p-4 pt-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleActionClick(item);
+                        }}
+                        style={{
+                          backgroundColor: vipThemeHex,
+                          color: '#000000',
+                        }}
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-[0.99] transition-all cursor-pointer shadow-md"
+                      >
+                        <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Ver</span>
+                      </button>
                     </div>
                   </div>
-
-                  {/* Bottom Action: Botão de Ver somente */}
-                  <div className="p-4 pt-0">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleActionClick(item);
-                      }}
-                      style={{
-                        backgroundColor: vipThemeHex,
-                        color: '#000000',
-                      }}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-black text-xs uppercase tracking-wider hover:brightness-110 active:scale-[0.99] transition-all cursor-pointer shadow-md"
-                    >
-                      <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Ver</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* Botão de Carregar Mais Conteúdos (Carrega +4 itens) */}
             {filteredItems.length > visibleCount && (
