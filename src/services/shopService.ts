@@ -1,6 +1,6 @@
 import { ProductItem } from '../types';
 
-export const DEFAULT_SHOP_URL = 'https://alxshop.7f.com.br/categoria-produto/alx-garage/';
+export const DEFAULT_SHOP_URL = 'https://alxshop.7f.com.br/categoria-produto/alx-automotive/';
 export const DEFAULT_SHOP_API = 'https://alxshop.7f.com.br/wp-json/wc/store/v1/products?per_page=100';
 
 export const initialShopProducts: ProductItem[] = [

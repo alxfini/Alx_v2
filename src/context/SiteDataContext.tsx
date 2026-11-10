@@ -75,6 +75,7 @@ export const initialBrandConfig: SiteBrandConfig = {
   defaultShareImageUrl: '/imagens/og-padrao.jpg',
   youtubeSectionLogoUrl: '/logo_alx_garage.png',
   shopSectionLogoUrl: '/logo_alx_garage.png',
+  shopUrl: 'https://alxshop.7f.com.br/categoria-produto/alx-automotive/',
   faviconUrl: '/favicon.svg?v=2026',
   adminPassword: 'alx2026',
   heroBackgroundUrl: '/imagens/fundo-calculadora.jpg',
@@ -701,6 +702,9 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (savedData.brand.youtubeChannelId?.includes('ALX_AutoTech') || savedData.brand.links?.youtube?.includes('ALX_AutoTech')) {
             savedData.brand.youtubeChannelId = 'https://www.youtube.com/@alx-garage';
             savedData.brand.links = { ...(savedData.brand.links || {}), youtube: 'https://www.youtube.com/@alx-garage' };
+          }
+          if (!savedData.brand.shopUrl || savedData.brand.shopUrl.includes('alx-garage')) {
+            savedData.brand.shopUrl = 'https://alxshop.7f.com.br/categoria-produto/alx-automotive/';
           }
           setBrand(savedData.brand);
         }

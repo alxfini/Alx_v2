@@ -3594,7 +3594,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       price: 'R$ 199,00',
                       originalPrice: 'R$ 249,00',
                       imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop',
-                      buyUrl: 'https://alxshop.7f.com.br/categoria-produto/alx-garage/',
+                      buyUrl: 'https://alxshop.7f.com.br/categoria-produto/alx-automotive/',
                       badge: 'Lançamento',
                       inStock: true,
                       specs: [{ label: 'Conexão', value: 'Bluetooth / USB' }],
@@ -3621,12 +3621,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
                   </div>
                   <div className="text-[11px] text-neutral-500 font-mono truncate">
-                    {brand.shopUrl || 'https://alxshop.7f.com.br/categoria-produto/alx-garage/'}
+                    {brand.shopUrl || 'https://alxshop.7f.com.br/categoria-produto/alx-automotive/'}
                   </div>
                 </div>
               </div>
               <a
-                href={brand.shopUrl || 'https://alxshop.7f.com.br/categoria-produto/alx-garage/'}
+                href={brand.shopUrl || 'https://alxshop.7f.com.br/categoria-produto/alx-automotive/'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-3 py-1.5 rounded-lg bg-white border border-neutral-200 text-neutral-700 hover:text-black hover:border-neutral-300 text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs transition-colors"
