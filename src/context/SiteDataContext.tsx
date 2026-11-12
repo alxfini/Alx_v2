@@ -41,6 +41,7 @@ import { syncShopProductsFromStore } from '../services/shopService';
 import { applyPageThemeHex, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../utils/pageColors';
 import { isItemVip } from '../utils/vip';
 import { normalizeWallpapersList, resolveWallpaperDownloadUrl } from '../utils/wallpaperUrl';
+import { trackDownload } from '../services/analyticsService';
 
 export interface FullSiteDataPayload {
   brand?: SiteBrandConfig;
@@ -390,7 +391,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return sessionStorage.getItem('alx_admin_authed') === 'true';
   });
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState<boolean>(false);
-  const [pendingAdminTab, setPendingAdminTab] = useState<'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'youtube' | 'notifications' | 'pages' | 'backup'>('brand');
+  const [pendingAdminTab, setPendingAdminTab] = useState<'analytics' | 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'youtube' | 'notifications' | 'pages' | 'backup'>('analytics');
 
   // VIP Auth & Membership states (com persistência robusta ao recarregar a página)
   const [currentVipMember, setCurrentVipMember] = useState<VipMember | null>(() => {
@@ -1499,9 +1500,13 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const registerDownload = (id: string, category: string) => {
     if (!id) return;
     if (category === 'app') {
+      let itemTitle = id;
+      let downloadUrl = '';
       setApps((prevApps) => {
         const updated = prevApps.map((a) => {
           if (a.id === id || (a.slug && a.slug === id) || a.name === id) {
+            itemTitle = a.name;
+            downloadUrl = a.downloadUrl || a.directApkUrl || '';
             const currentCount = a.downloadsCount ?? 0;
             return { ...a, downloadsCount: currentCount + 1 };
           }
@@ -1510,10 +1515,15 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveToStorage({ apps: updated });
         return updated;
       });
+      trackDownload(id, itemTitle, 'Aplicativo', downloadUrl);
     } else if (category === 'ota') {
+      let itemTitle = id;
+      let downloadUrl = '';
       setOtaUpdates((prevOta) => {
         const updated = prevOta.map((o) => {
           if (o.id === id || (o.slug && o.slug === id) || o.title === id) {
+            itemTitle = o.title;
+            downloadUrl = o.downloadUrl || '';
             const currentCount = o.downloadsCount ?? 0;
             return { ...o, downloadsCount: currentCount + 1 };
           }
@@ -1522,10 +1532,15 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveToStorage({ otaUpdates: updated });
         return updated;
       });
+      trackDownload(id, itemTitle, 'Atualização OTA', downloadUrl);
     } else if (category === 'wallpaper') {
+      let itemTitle = id;
+      let downloadUrl = '';
       setWallpapers((prevWps) => {
         const updated = prevWps.map((w) => {
           if (w.id === id || (w.slug && w.slug === id) || w.title === id) {
+            itemTitle = w.title;
+            downloadUrl = w.imageUrl || '';
             const currentCount = w.downloadCount ?? 0;
             return { ...w, downloadCount: currentCount + 1 };
           }
@@ -1534,6 +1549,9 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveToStorage({ wallpapers: updated });
         return updated;
       });
+      trackDownload(id, itemTitle, 'Wallpaper', downloadUrl);
+    } else {
+      trackDownload(id, id, category || 'Outro Download');
     }
   };
 

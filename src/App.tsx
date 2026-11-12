@@ -17,6 +17,7 @@ import { ShopSection } from './components/ShopSection';
 import { TelegramSection } from './components/TelegramSection';
 import { HomeSection } from './components/HomeSection';
 import { Footer } from './components/Footer';
+import { trackPageView } from './services/analyticsService';
 
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminPasswordModal } from './components/admin/AdminPasswordModal';
@@ -144,6 +145,9 @@ const MainAppContent: React.FC = () => {
       brand.defaultShareImageUrl,
       { apps, news, products, otaUpdates, tutorials, unlockServices, wallpapers, partners }
     );
+
+    // Track analytics pageview in background
+    trackPageView(expectedPath, document.title);
   }, [
     activePage, 
     brand.brandName, 

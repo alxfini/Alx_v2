@@ -524,6 +524,6 @@ export type ActivePageView =
   | { type: 'app'; idOrSlug: string }
   | { type: 'news'; idOrSlug: string }
   | { type: 'product'; idOrSlug: string }
-  | { type: 'admin'; initialTab?: 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers'; activeTab?: string };
+  | { type: 'admin'; initialTab?: 'analytics' | 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers' | 'storage' | 'database'; activeTab?: string };
 
 

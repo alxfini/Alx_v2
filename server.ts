@@ -1231,6 +1231,174 @@ app.get('/api/mysql-config.php', (_req, res) => {
   }
 });
 
+// ==========================================
+// 📊 SISTEMA DE ANALYTICS ULTRALEVE (SITE & ADMIN)
+// ==========================================
+const analyticsFilePath = path.join(uploadsDir, 'analytics.json');
+
+function getAnalyticsData() {
+  try {
+    if (fs.existsSync(analyticsFilePath)) {
+      const raw = fs.readFileSync(analyticsFilePath, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch {}
+  return {
+    totalPageViews: 0,
+    totalDownloads: 0,
+    sources: {},
+    devices: {},
+    countries: {},
+    pages: {},
+    downloads: {},
+    recentEvents: [],
+    dailyHistory: {},
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+function saveAnalyticsData(data: any) {
+  try {
+    data.lastUpdated = new Date().toISOString();
+    fs.writeFileSync(analyticsFilePath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('Erro ao salvar analytics.json:', err);
+  }
+}
+
+function detectCountry(req: express.Request, bodyLang?: string): string {
+  const headerCountry = (req.headers['cf-ipcountry'] || req.headers['x-appengine-country'] || req.headers['x-country-code']) as string;
+  if (headerCountry) {
+    const code = String(headerCountry).toUpperCase();
+    if (code === 'BR') return 'Brasil 🇧🇷';
+    if (code === 'PT') return 'Portugal 🇵🇹';
+    if (code === 'US') return 'Estados Unidos 🇺🇸';
+    if (code === 'ES') return 'Espanha 🇪🇸';
+    if (code === 'AR') return 'Argentina 🇦🇷';
+    if (code === 'CL') return 'Chile 🇨🇱';
+    if (code === 'UY') return 'Uruguai 🇺🇾';
+    if (code === 'MX') return 'México 🇲🇽';
+    if (code === 'DE') return 'Alemanha 🇩🇪';
+    if (code === 'FR') return 'França 🇫🇷';
+    if (code === 'GB') return 'Reino Unido 🇬🇧';
+    return `${code} 🌐`;
+  }
+  const lang = String(bodyLang || req.headers['accept-language'] || '').toLowerCase();
+  if (lang.includes('pt-br') || lang.includes('pt_br')) return 'Brasil 🇧🇷';
+  if (lang.includes('pt-pt') || lang.includes('pt_pt')) return 'Portugal 🇵🇹';
+  if (lang.includes('en-us') || lang.includes('en_us')) return 'Estados Unidos 🇺🇸';
+  if (lang.includes('es-')) return 'Espanha 🇪🇸';
+  if (lang.includes('pt')) return 'Brasil 🇧🇷';
+  return 'Outros / Global 🌐';
+}
+
+app.post('/api/analytics/event', (req, res) => {
+  try {
+    const body = req.body || {};
+    const type = body.type || 'pageview';
+    const source = body.source || '🌐 Acesso Direto';
+    const device = body.device || '💻 Computador';
+    const country = detectCountry(req, body.language);
+    const today = new Date().toISOString().split('T')[0];
+
+    const data = getAnalyticsData();
+
+    if (!data.sources) data.sources = {};
+    if (!data.devices) data.devices = {};
+    if (!data.countries) data.countries = {};
+    if (!data.pages) data.pages = {};
+    if (!data.downloads) data.downloads = {};
+    if (!data.dailyHistory) data.dailyHistory = {};
+    if (!data.recentEvents) data.recentEvents = [];
+
+    if (!data.dailyHistory[today]) {
+      data.dailyHistory[today] = { pageViews: 0, downloads: 0 };
+    }
+
+    data.sources[source] = (data.sources[source] || 0) + 1;
+    data.devices[device] = (data.devices[device] || 0) + 1;
+    data.countries[country] = (data.countries[country] || 0) + 1;
+
+    let eventName = '';
+
+    if (type === 'pageview') {
+      data.totalPageViews = (data.totalPageViews || 0) + 1;
+      data.dailyHistory[today].pageViews = (data.dailyHistory[today].pageViews || 0) + 1;
+
+      const path = body.path || '/';
+      data.pages[path] = (data.pages[path] || 0) + 1;
+      eventName = `Página: ${body.pageTitle || path}`;
+    } else if (type === 'download') {
+      data.totalDownloads = (data.totalDownloads || 0) + 1;
+      data.dailyHistory[today].downloads = (data.dailyHistory[today].downloads || 0) + 1;
+
+      const itemId = body.itemId || 'item-geral';
+      const title = body.itemTitle || 'Arquivo de Download';
+      const category = body.itemCategory || 'Geral';
+
+      if (!data.downloads[itemId]) {
+        data.downloads[itemId] = { title, category, count: 0, lastDownloadedAt: new Date().toISOString() };
+      }
+      data.downloads[itemId].count += 1;
+      data.downloads[itemId].lastDownloadedAt = new Date().toISOString();
+      data.downloads[itemId].title = title;
+      data.downloads[itemId].category = category;
+
+      eventName = `Download: ${title}`;
+    }
+
+    data.recentEvents.unshift({
+      id: `evt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      type,
+      name: eventName,
+      source,
+      country,
+      device,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Mantém no máximo 50 eventos recentes no histórico circular
+    if (data.recentEvents.length > 50) {
+      data.recentEvents = data.recentEvents.slice(0, 50);
+    }
+
+    saveAnalyticsData(data);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Erro ao registrar evento de analytics' });
+  }
+});
+
+app.get('/api/analytics/stats', (_req, res) => {
+  try {
+    const data = getAnalyticsData();
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Erro ao buscar estatísticas' });
+  }
+});
+
+app.post('/api/analytics/clear', (_req, res) => {
+  try {
+    const emptyData = {
+      totalPageViews: 0,
+      totalDownloads: 0,
+      sources: {},
+      devices: {},
+      countries: {},
+      pages: {},
+      downloads: {},
+      recentEvents: [],
+      dailyHistory: {},
+      lastUpdated: new Date().toISOString(),
+    };
+    saveAnalyticsData(emptyData);
+    res.json({ success: true, message: 'Estatísticas resetadas com sucesso!' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Erro ao limpar estatísticas' });
+  }
+});
+
 app.post('/api/mysql-config.php', (req, res) => {
   try {
     const data = req.body || {};

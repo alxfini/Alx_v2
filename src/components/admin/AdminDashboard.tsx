@@ -43,6 +43,7 @@ import {
   Send,
   Smartphone,
   Radio,
+  BarChart3,
   Megaphone,
   Copy,
   ChevronUp,
@@ -72,6 +73,7 @@ import {
   Palette,
   Film
 } from 'lucide-react';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { TutorialDocumentView } from '../tutorials/TutorialDocumentView';
 import { DesbloqueioDocumentView } from '../desbloqueio/DesbloqueioDocumentView';
 import { useSiteData } from '../../context/SiteDataContext';
@@ -217,12 +219,12 @@ const EXISTING_SITE_PAGES = [
 ];
 
 interface AdminDashboardProps {
-  initialTab?: 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'storage' | 'database' | 'vipMembers';
+  initialTab?: 'analytics' | 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'storage' | 'database' | 'vipMembers';
   onClose?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
-  initialTab = 'brand',
+  initialTab = 'analytics',
   onClose 
 }) => {
   const {
@@ -322,7 +324,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setActivePage,
   } = useSiteData();
 
-  const [activeTab, setActiveTab] = useState<'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers' | 'storage' | 'database'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'analytics' | 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers' | 'storage' | 'database'>(initialTab || 'analytics');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
@@ -1231,6 +1233,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Drag & drop tab ordering
   const defaultTabIds = [
+    'analytics',
     'brand',
     'messages',
     'notifications',
@@ -1371,6 +1374,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const navTabs = [
+    { id: 'analytics', label: 'Analytics & Estatísticas', icon: BarChart3, count: null },
     { id: 'brand', label: 'Imagens', icon: ImageIcon, count: null },
     { id: 'messages', label: 'Mensagens & Contatos (Caixa de Entrada)', icon: Mail, count: unreadMessagesCount },
     { id: 'notifications', label: 'Notificações & Sininho', icon: Bell, count: notifications.length },
@@ -1657,6 +1661,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             })}
           </div>
         </div>
+
+        {/* TAB 0: ANALYTICS & ESTATÍSTICAS */}
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard />
+        )}
 
         {/* TAB 1: IMAGENS */}
         {activeTab === 'brand' && (
