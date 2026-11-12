@@ -1560,7 +1560,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const handleHash = () => {
       const hash = window.location.hash;
       if (hash === '#admin') {
-        setActivePage({ type: 'admin' });
+        setActivePage({ type: 'admin', activeTab: 'analytics' });
       } else if (hash === '#noticias') {
         setActivePage({ type: 'noticias' });
       } else if (hash === '#apps') {

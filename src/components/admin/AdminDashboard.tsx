@@ -325,6 +325,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   } = useSiteData();
 
   const [activeTab, setActiveTab] = useState<'analytics' | 'brand' | 'messages' | 'apps' | 'news' | 'products' | 'evModels' | 'ota' | 'tutorials' | 'unlock' | 'wallpapers' | 'iptv' | 'parceiros' | 'youtube' | 'notifications' | 'pages' | 'backup' | 'vipMembers' | 'storage' | 'database'>(initialTab || 'analytics');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
 

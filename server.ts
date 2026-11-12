@@ -1292,9 +1292,20 @@ function detectCountry(req: express.Request, bodyLang?: string): string {
   return 'Outros / Global 🌐';
 }
 
-app.post('/api/analytics/event', (req, res) => {
+// Helper para registrar eventos tanto em /api/site-metrics/event como em /api/analytics/event
+const handleAnalyticsEvent: express.RequestHandler = (req, res) => {
   try {
-    const body = req.body || {};
+    let body = req.body || {};
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {}
+    } else if (Buffer.isBuffer(body)) {
+      try {
+        body = JSON.parse(body.toString('utf8'));
+      } catch {}
+    }
+
     const type = body.type || 'pageview';
     const source = body.source || '🌐 Acesso Direto';
     const device = body.device || '💻 Computador';
@@ -1367,9 +1378,11 @@ app.post('/api/analytics/event', (req, res) => {
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message || 'Erro ao registrar evento de analytics' });
   }
-});
+};
 
-app.get('/api/analytics/stats', (_req, res) => {
+app.post(['/api/site-metrics/event', '/api/analytics/event'], handleAnalyticsEvent);
+
+app.get(['/api/site-metrics/stats', '/api/analytics/stats'], (_req, res) => {
   try {
     const data = getAnalyticsData();
     res.json(data);
@@ -1378,7 +1391,7 @@ app.get('/api/analytics/stats', (_req, res) => {
   }
 });
 
-app.post('/api/analytics/clear', (_req, res) => {
+app.post(['/api/site-metrics/clear', '/api/analytics/clear'], (_req, res) => {
   try {
     const emptyData = {
       totalPageViews: 0,

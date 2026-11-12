@@ -125,11 +125,15 @@ export function trackPageView(pagePath: string, pageTitle?: string) {
 
     // Disparo ultraleve não-bloqueante
     const bodyStr = JSON.stringify(payload);
+    let sent = false;
     if (navigator.sendBeacon) {
-      const blob = new Blob([bodyStr], { type: 'application/json' });
-      navigator.sendBeacon('/api/analytics/event', blob);
-    } else {
-      fetch('/api/analytics/event', {
+      try {
+        const blob = new Blob([bodyStr], { type: 'application/json' });
+        sent = navigator.sendBeacon('/api/site-metrics/event', blob);
+      } catch {}
+    }
+    if (!sent) {
+      fetch('/api/site-metrics/event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: bodyStr,
@@ -161,11 +165,15 @@ export function trackDownload(itemId: string, itemTitle: string, itemCategory?: 
     };
 
     const bodyStr = JSON.stringify(payload);
+    let sent = false;
     if (navigator.sendBeacon) {
-      const blob = new Blob([bodyStr], { type: 'application/json' });
-      navigator.sendBeacon('/api/analytics/event', blob);
-    } else {
-      fetch('/api/analytics/event', {
+      try {
+        const blob = new Blob([bodyStr], { type: 'application/json' });
+        sent = navigator.sendBeacon('/api/site-metrics/event', blob);
+      } catch {}
+    }
+    if (!sent) {
+      fetch('/api/site-metrics/event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: bodyStr,
@@ -182,7 +190,7 @@ export function trackDownload(itemId: string, itemTitle: string, itemCategory?: 
  */
 export async function fetchAnalyticsStats(): Promise<AnalyticsStats | null> {
   try {
-    const res = await fetch('/api/analytics/stats');
+    const res = await fetch('/api/site-metrics/stats');
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -195,7 +203,7 @@ export async function fetchAnalyticsStats(): Promise<AnalyticsStats | null> {
  */
 export async function clearAnalyticsStats(): Promise<boolean> {
   try {
-    const res = await fetch('/api/analytics/clear', { method: 'POST' });
+    const res = await fetch('/api/site-metrics/clear', { method: 'POST' });
     return res.ok;
   } catch {
     return false;

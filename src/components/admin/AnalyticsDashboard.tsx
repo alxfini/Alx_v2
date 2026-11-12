@@ -26,17 +26,21 @@ export const AnalyticsDashboard: React.FC = () => {
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     const data = await fetchAnalyticsStats();
     if (data) {
       setStats(data);
     }
-    setIsLoading(false);
+    if (!silent) setIsLoading(false);
   };
 
   useEffect(() => {
     loadData();
+    const timer = setInterval(() => {
+      loadData(true);
+    }, 4000);
+    return () => clearInterval(timer);
   }, []);
 
   const handleClear = async () => {

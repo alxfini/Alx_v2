@@ -246,7 +246,7 @@ export function getPageFromUrl(pathname: string = window.location.pathname, hash
     case 'admin':
     case 'painel':
     case 'dashboard':
-      return { type: 'admin' };
+      return { type: 'admin', activeTab: 'analytics' };
 
     case '404':
     case 'notfound':

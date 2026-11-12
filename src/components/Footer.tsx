@@ -133,7 +133,7 @@ export const Footer: React.FC<FooterProps> = ({ isHome = false }) => {
                   <button
                     key="admin"
                     type="button"
-                    onClick={() => openAdminTab('brand')}
+                    onClick={() => openAdminTab('analytics')}
                     className="w-9 h-9 rounded-xl bg-[#121217] border border-white/[0.06] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] flex items-center justify-center text-neutral-300 transition-colors cursor-pointer group"
                     aria-label="Painel Administrativo"
                     title="Acessar Painel Administrativo"
