@@ -154,7 +154,14 @@ $subTagline = 'Portal oficial especialista em desbloqueio de central multimídia
 $defaultShareImage = '/imagens/og-padrao.jpg';
 
 if ($data && !empty($data['brand']) && is_array($data['brand'])) {
-    if (!empty($data['brand']['brandName'])) $siteName = trim($data['brand']['brandName']);
+    if (!empty($data['brand']['brandName'])) {
+        $siteName = trim($data['brand']['brandName']);
+        if ($siteName === 'Alx +' || $siteName === 'Alx+' || $siteName === 'ALX +' || $siteName === 'ALX+' || $siteName === 'Alx') {
+            $siteName = 'Alx⁺';
+        } else {
+            $siteName = preg_replace('/\bAlx\s*\+/iu', 'Alx⁺', $siteName);
+        }
+    }
     if (!empty($data['brand']['tagline'])) $tagline = trim($data['brand']['tagline']);
     if (!empty($data['brand']['subTagline'])) $subTagline = trim($data['brand']['subTagline']);
     if (!empty($data['brand']['defaultShareImageUrl']) && strpos($data['brand']['defaultShareImageUrl'], 'blob:') !== 0) {

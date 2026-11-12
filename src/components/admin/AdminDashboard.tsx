@@ -1104,7 +1104,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              content: `🧪 **[Teste de Conexão] Painel Administrativo Alx +**\nStatus: Conexão Webhook ativa!\nDestino: ${targetEmail}\nData: ${new Date().toLocaleString('pt-BR')}`,
+              content: `🧪 **[Teste de Conexão] Painel Administrativo Alx⁺**\nStatus: Conexão Webhook ativa!\nDestino: ${targetEmail}\nData: ${new Date().toLocaleString('pt-BR')}`,
               name: 'Painel Administrativo',
               email: targetEmail,
               subject: 'Teste de Conexão',
@@ -1128,7 +1128,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             },
             body: JSON.stringify({
               access_key: web3Key,
-              name: 'Painel Administrativo Alx + (Teste Web3Forms)',
+              name: 'Painel Administrativo Alx⁺ (Teste Web3Forms)',
               email: targetEmail,
               replyto: targetEmail,
               subject: `[Teste Web3Forms ⚡] Painel Administrativo`,
@@ -1154,11 +1154,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               'Accept': 'application/json',
             },
             body: JSON.stringify({
-              Nome: 'Painel Administrativo Alx + (Teste de Conexão)',
+              Nome: 'Painel Administrativo Alx⁺ (Teste de Conexão)',
               Email: targetEmail,
               Mensagem: `Olá! Este é um e-mail de teste disparado pelo Painel Administrativo para confirmar que o formulário do site está operando e entregando mensagens no endereço ${targetEmail}.\n\nData e hora: ${new Date().toLocaleString('pt-BR')}`,
               _replyto: targetEmail,
-              _subject: `[Teste de Verificação] Painel Administrativo Alx +`,
+              _subject: `[Teste de Verificação] Painel Administrativo Alx⁺`,
               _template: 'box',
               _captcha: 'false',
             }),
@@ -2986,7 +2986,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {/* Action buttons on the right */}
                         <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
                           <a
-                            href={`mailto:${msg.email}?subject=${encodeURIComponent(`Re: [${brand.brandName || 'Alx +'}] ${msg.subject}`)}&body=${encodeURIComponent(`Olá, ${msg.name}!\n\nEm resposta à sua mensagem:\n"${msg.message}"\n\n---\nAtenciosamente,\nEquipe ${brand.brandName || 'Alx +'}`)}`}
+                            href={`mailto:${msg.email}?subject=${encodeURIComponent(`Re: [${brand.brandName || 'Alx⁺'}] ${msg.subject}`)}&body=${encodeURIComponent(`Olá, ${msg.name}!\n\nEm resposta à sua mensagem:\n"${msg.message}"\n\n---\nAtenciosamente,\nEquipe ${brand.brandName || 'Alx⁺'}`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-black hover:bg-neutral-800 text-[#ebbf01] text-xs font-bold transition-all shadow-xs cursor-pointer"

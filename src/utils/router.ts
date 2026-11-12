@@ -264,8 +264,8 @@ export function getPageTitle(
   brandName: string = 'Alx⁺',
   storeData?: TitleStoreData
 ): string {
-  let brand = (brandName || 'Alx⁺').trim();
-  if (brand === 'Alx +' || brand === 'Alx + -' || brand === 'Alx' || !brand) {
+  let brand = (brandName || 'Alx⁺').trim().replace(/\bAlx\s*\+/gi, 'Alx⁺');
+  if (brand === 'Alx +' || brand === 'Alx+' || brand === 'Alx + -' || brand === 'Alx⁺ -' || brand === 'Alx' || !brand) {
     brand = 'Alx⁺';
   }
 

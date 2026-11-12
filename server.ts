@@ -1625,7 +1625,10 @@ app.use((req, res, next) => {
   }
 
   const brand = siteData?.brand || {};
-  const siteName = brand.brandName || 'Alx⁺';
+  const rawSiteName = (brand.brandName || 'Alx⁺').trim();
+  const siteName = (rawSiteName === 'Alx +' || rawSiteName === 'Alx+' || rawSiteName === 'ALX +' || rawSiteName === 'ALX+' || rawSiteName === 'Alx')
+    ? 'Alx⁺'
+    : rawSiteName.replace(/\bAlx\s*\+/gi, 'Alx⁺');
   const tagline = brand.tagline || 'Portal Automotivo & Multimídia';
   const subTagline = brand.subTagline || 'Portal oficial especialista em desbloqueio de central multimídia, atualizações OTA e tutoriais.';
   const defaultImage = brand.defaultShareImageUrl || '/imagens/og-padrao.jpg';

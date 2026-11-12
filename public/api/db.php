@@ -213,6 +213,13 @@ function loadSiteDataFromDb() {
         if ($row && !empty($row['content'])) {
             $parsed = json_decode($row['content'], true);
             if ($parsed && (isset($parsed['brand']) || isset($parsed['apps']) || isset($parsed['news']) || isset($parsed['products']))) {
+                if (isset($parsed['brand']['brandName']) && is_string($parsed['brand']['brandName'])) {
+                    $bName = trim($parsed['brand']['brandName']);
+                    if ($bName === 'Alx +' || $bName === 'Alx+' || $bName === 'ALX +' || $bName === 'ALX+' || $bName === 'Alx') {
+                        $parsed['brand']['brandName'] = 'Alx⁺';
+                        return json_encode($parsed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    }
+                }
                 return $row['content'];
             }
         }

@@ -68,6 +68,60 @@ export interface FullSiteDataPayload {
 
 const STORAGE_KEY = 'alx_site_data_store_v2';
 
+function normalizeAlxPlusText(str?: string): string {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/\bAlx\s*\+/g, 'Alx⁺')
+    .replace(/\bALX\s*\+/g, 'ALX⁺')
+    .replace(/\balx\s*\+/g, 'Alx⁺');
+}
+
+function normalizeBrandDisplayStrings(brandObj: any): any {
+  if (!brandObj || typeof brandObj !== 'object') return brandObj;
+  const copy = { ...brandObj };
+  if (typeof copy.brandName === 'string') {
+    const trimmed = copy.brandName.trim();
+    if (!trimmed || trimmed === 'Alx +' || trimmed === 'Alx+' || trimmed === 'ALX +' || trimmed === 'ALX+' || trimmed === 'Alx' || trimmed === 'Alx + -') {
+      copy.brandName = 'Alx⁺';
+    } else {
+      copy.brandName = normalizeAlxPlusText(trimmed);
+    }
+  } else {
+    copy.brandName = 'Alx⁺';
+  }
+
+  const textKeys = [
+    'tagline',
+    'subTagline',
+    'aboutText',
+    'termsText',
+    'privacyText',
+    'contactTitle',
+    'contactDescription',
+    'contactCustomText',
+    'tutorialCopyrightText',
+    'vipWhatsappGroupTitle',
+    'vipWhatsappGroupDesc',
+    'vipNoticeTitle',
+    'vipNoticeMessage',
+  ];
+  for (const key of textKeys) {
+    if (typeof copy[key] === 'string') {
+      copy[key] = normalizeAlxPlusText(copy[key]);
+    }
+  }
+
+  if (Array.isArray(copy.vipCards)) {
+    copy.vipCards = copy.vipCards.map((c: any) => ({
+      ...c,
+      title: typeof c?.title === 'string' ? normalizeAlxPlusText(c.title) : c?.title,
+      buttonText: typeof c?.buttonText === 'string' ? normalizeAlxPlusText(c.buttonText) : c?.buttonText,
+      description: typeof c?.description === 'string' ? normalizeAlxPlusText(c.description) : c?.description,
+    }));
+  }
+  return copy;
+}
+
 export const initialBrandConfig: SiteBrandConfig = {
   brandName: initialSiteConfig.brandName || 'Alx⁺',
   tagline: initialSiteConfig.tagline || 'Tecnologia que vai além do seu carro.',
@@ -708,6 +762,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (!savedData.brand.shopUrl || savedData.brand.shopUrl.includes('alx-garage')) {
             savedData.brand.shopUrl = 'https://alxshop.7f.com.br/categoria-produto/alx-automotive/';
           }
+          savedData.brand = normalizeBrandDisplayStrings(savedData.brand);
           setBrand(savedData.brand);
         }
         if (Array.isArray(savedData.apps)) {
@@ -880,7 +935,8 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // 4. Marca e configurações
       if (remoteData.brand && typeof remoteData.brand === 'object') {
-        setBrand((prev) => ({
+        remoteData.brand = normalizeBrandDisplayStrings(remoteData.brand);
+        setBrand((prev) => normalizeBrandDisplayStrings({
           ...prev,
           ...remoteData.brand,
           links: {

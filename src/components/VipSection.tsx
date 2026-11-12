@@ -140,7 +140,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
 
     setIsSubmitting(true);
 
-    const fullSubject = `[${brand.brandName || 'Alx +'}] Pedido de Adesão VIP - ${contactName}`;
+    const fullSubject = `[${brand.brandName || 'Alx⁺'}] Pedido de Adesão VIP - ${contactName}`;
     const fullBody = `Nome: ${contactName}\nE-mail: ${contactEmail}\nWhatsApp: ${contactPhone}\n\nMensagem / Solicitação:\n${contactMessage}`;
 
     // 1. Salva na Caixa de Entrada / Painel Administrativo do site
@@ -194,7 +194,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
               replyto: contactEmail,
               subject: fullSubject,
               message: fullBody,
-              from_name: `${brand.brandName || 'Alx +'} Website`,
+              from_name: `${brand.brandName || 'Alx⁺'} Website`,
             }),
           });
           const w3Data = await w3Res.json().catch(() => null);
@@ -532,7 +532,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
         {!isLoggedIn ? (
           <div className="space-y-12">
             
-            {/* Card de Largura Total no TOPO: Alx+ VIP */}
+            {/* Card de Largura Total no TOPO: Alx⁺ VIP */}
             <div 
               style={{ borderColor: `${vipThemeHex}40` }}
               className="bg-[#111116] border rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden text-center sm:text-left"
