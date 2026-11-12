@@ -41,6 +41,48 @@ export interface AnalyticsStats {
 const LOCAL_MIRROR_KEY = 'alx_analytics_mirror_v2';
 const SESSION_SOURCE_KEY = 'alx_session_traffic_source';
 const BROADCAST_CHANNEL_NAME = 'alx_analytics_sync';
+const ADMIN_IGNORE_KEY = 'alx_ignore_admin_analytics';
+
+/**
+ * Ativa por padrão o bloqueio de contagem para este navegador assim que o Admin faz login ou abre o painel
+ */
+export function initAdminAnalyticsIgnoreDefault(): void {
+  try {
+    if (typeof window === 'undefined') return;
+    const current = localStorage.getItem(ADMIN_IGNORE_KEY);
+    // Se nunca foi configurado neste navegador, ativa automaticamente para o dono do site
+    if (current === null) {
+      localStorage.setItem(ADMIN_IGNORE_KEY, 'true');
+    }
+  } catch {}
+}
+
+/**
+ * Verifica se este navegador pertence ao Administrador e está com bloqueio de auto-contagem ativo
+ */
+export function isAdminAnalyticsIgnored(): boolean {
+  try {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem(ADMIN_IGNORE_KEY);
+    // Se o admin desativou explicitamente para fazer um teste ('false'), permite contabilizar
+    if (saved === 'false') return false;
+    // Se está marcado no localStorage (persiste mesmo após fechar o navegador) ou logado na sessão atual
+    if (saved === 'true' || sessionStorage.getItem('alx_admin_authed') === 'true') {
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+/**
+ * Permite ao Administrador ativar/desativar a proteção contra auto-contagem no navegador dele
+ */
+export function setAdminAnalyticsIgnored(ignore: boolean): void {
+  try {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(ADMIN_IGNORE_KEY, ignore ? 'true' : 'false');
+  } catch {}
+}
 
 /**
  * Retorna a data atual no fuso horário do Brasil (YYYY-MM-DD) para consistência total entre cliente e servidor
@@ -314,7 +356,19 @@ export function trackPageView(pagePath: string, pageTitle?: string) {
   try {
     if (typeof window === 'undefined') return;
     // Não contabiliza a própria tela interna do painel admin como visita pública
-    if (pagePath === '/admin' || pagePath.startsWith('/admin/')) return;
+    if (
+      pagePath === '/admin' ||
+      pagePath.startsWith('/admin/') ||
+      window.location.pathname === '/admin' ||
+      window.location.pathname.startsWith('/admin/') ||
+      window.location.hash.includes('admin')
+    ) {
+      initAdminAnalyticsIgnoreDefault();
+      return;
+    }
+
+    // Não contabiliza os acessos do próprio Administrador no navegador dele
+    if (isAdminAnalyticsIgnored()) return;
 
     const { source, device } = getSourceAndDeviceFromContext();
     const payload: AnalyticsEventPayload = {
@@ -342,6 +396,8 @@ export function trackPageView(pagePath: string, pageTitle?: string) {
 export function trackDownload(itemId: string, itemTitle: string, itemCategory?: string, downloadUrl?: string) {
   try {
     if (typeof window === 'undefined') return;
+    // Não contabiliza downloads de teste feitos pelo próprio Administrador (a menos que desative o bloqueio)
+    if (isAdminAnalyticsIgnored()) return;
 
     const { source, device } = getSourceAndDeviceFromContext();
     const payload: AnalyticsEventPayload = {

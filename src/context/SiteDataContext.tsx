@@ -41,7 +41,7 @@ import { syncShopProductsFromStore } from '../services/shopService';
 import { applyPageThemeHex, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../utils/pageColors';
 import { isItemVip } from '../utils/vip';
 import { normalizeWallpapersList, resolveWallpaperDownloadUrl } from '../utils/wallpaperUrl';
-import { trackDownload } from '../services/analyticsService';
+import { trackDownload, initAdminAnalyticsIgnoreDefault } from '../services/analyticsService';
 
 export interface FullSiteDataPayload {
   brand?: SiteBrandConfig;
@@ -575,6 +575,7 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (passwordInput === currentPass) {
       setIsAdminAuthenticated(true);
       sessionStorage.setItem('alx_admin_authed', 'true');
+      initAdminAnalyticsIgnoreDefault();
       setIsPasswordModalOpen(false);
       setActivePage({ type: 'admin', activeTab: pendingAdminTab });
       return { success: true };

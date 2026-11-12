@@ -4,6 +4,8 @@ import {
   TrendingUp, 
   Download, 
   Eye, 
+  EyeOff,
+  ShieldCheck,
   Globe, 
   Smartphone, 
   Tv, 
@@ -24,6 +26,9 @@ import {
   subscribeToAnalyticsUpdates,
   getLocalDateKey,
   createEmptyAnalyticsStats,
+  initAdminAnalyticsIgnoreDefault,
+  isAdminAnalyticsIgnored,
+  setAdminAnalyticsIgnored,
   AnalyticsStats 
 } from '../../services/analyticsService';
 
@@ -32,6 +37,22 @@ export const AnalyticsDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [ignoreMyAccess, setIgnoreMyAccess] = useState<boolean>(() => {
+    initAdminAnalyticsIgnoreDefault();
+    return isAdminAnalyticsIgnored();
+  });
+
+  const handleToggleIgnoreAdmin = () => {
+    const nextValue = !ignoreMyAccess;
+    setAdminAnalyticsIgnored(nextValue);
+    setIgnoreMyAccess(nextValue);
+    setFeedbackMsg(
+      nextValue
+        ? 'Proteção ativa: Seus próprios acessos neste navegador NÃO serão contabilizados!'
+        : 'Modo Teste ativado: Seus acessos neste navegador passarão a ser contabilizados.'
+    );
+    setTimeout(() => setFeedbackMsg(null), 4000);
+  };
 
   const loadData = async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -56,6 +77,8 @@ export const AnalyticsDashboard: React.FC = () => {
   };
 
   useEffect(() => {
+    initAdminAnalyticsIgnoreDefault();
+    setIgnoreMyAccess(isAdminAnalyticsIgnored());
     loadData();
     const unsubscribe = subscribeToAnalyticsUpdates((updated) => {
       setStats(updated);
@@ -135,7 +158,30 @@ export const AnalyticsDashboard: React.FC = () => {
           </h3>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleToggleIgnoreAdmin}
+            title={ignoreMyAccess ? 'Clique caso queira testar a contagem neste navegador' : 'Clique para voltar a ocultar seus próprios acessos'}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-colors cursor-pointer border ${
+              ignoreMyAccess
+                ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+            }`}
+          >
+            {ignoreMyAccess ? (
+              <>
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Ignorar Meu Acesso: ATIVO</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-3.5 h-3.5 text-amber-600" />
+                <span>Modo Teste: Contabilizando</span>
+              </>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={handleManualRefresh}
