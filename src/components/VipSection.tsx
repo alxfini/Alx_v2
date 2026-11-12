@@ -557,8 +557,8 @@ export const VipSection: React.FC<VipSectionProps> = ({
                 </p>
               </div>
 
-              {/* 2 Columns Inside Full-width Card: 1º WhatsApp (Verde), 2º Assinante VIP (Branco/Dourado) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+              {/* 3 Columns Inside Full-width Card: 1º WhatsApp (Verde), 2º Assinante VIP (Branco/Dourado), 3º Membros no YouTube (Vermelho) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
 
                 {/* 1º Card: Apoiadores no WhatsApp (Textos e Botão de Contato WhatsApp) */}
                 <div className="bg-gradient-to-br from-[#122e1e]/60 via-[#0a1c12]/80 to-[#060e09] border border-[#25D366]/30 hover:border-[#25D366]/70 rounded-2xl p-5 flex flex-col justify-between transition-all group hover:-translate-y-1 shadow-lg relative overflow-hidden items-center sm:items-start text-center sm:text-left">
@@ -573,7 +573,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
                       </h4>
                     </div>
                     <p className="text-xs text-emerald-200/90 leading-relaxed font-sans space-y-1">
-                      <span>Nossa jornada só foi possible graças aos amigos que acreditaram e estiveram ao nosso lado.</span><br />
+                      <span>Nossa jornada só foi possível graças aos amigos que acreditaram e estiveram ao nosso lado.</span><br />
                       <span>A cada doação, ajuda ou incentivo no WhatsApp, vocês fazem parte e têm um lugar especial na nossa história!</span>
                     </p>
                   </div>
@@ -620,6 +620,36 @@ export const VipSection: React.FC<VipSectionProps> = ({
                       <Crown className="w-4 h-4 fill-slate-950 text-slate-950" />
                       <span>ASSINAR ÁREA VIP</span>
                     </button>
+                  </div>
+                </div>
+
+                {/* 3º Card: Membros no YouTube (Textos e Botão em Vermelho) */}
+                <div className="bg-gradient-to-br from-[#2e1212]/60 via-[#1c0a0a]/80 to-[#0e0606] border border-[#FF0000]/30 hover:border-[#FF0000]/70 rounded-2xl p-5 flex flex-col justify-between transition-all group hover:-translate-y-1 shadow-lg relative overflow-hidden items-center sm:items-start text-center sm:text-left">
+                  <div className="absolute -top-12 -right-12 w-28 h-28 bg-[#FF0000]/10 blur-2xl rounded-full pointer-events-none" />
+                  <div className="space-y-3 relative z-10 flex flex-col items-center sm:items-start w-full">
+                    <div className="w-10 h-10 rounded-xl bg-[#FF0000]/20 text-[#FF0000] border border-[#FF0000]/40 flex items-center justify-center font-bold shadow-sm">
+                      <Youtube className="w-5 h-5 text-[#FF0000]" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-extrabold text-[#FF0000] font-heading">
+                        Membros no YouTube
+                      </h4>
+                    </div>
+                    <p className="text-xs text-red-200/90 leading-relaxed font-sans space-y-1">
+                      <span>Para os inscritos que apoiam nosso canal como membros oficiais lá no YouTube.</span><br />
+                      <span>Quem é membro ativo do canal também garante acesso especial à nossa Área VIP e conteúdos exclusivos!</span>
+                    </p>
+                  </div>
+                  <div className="pt-5 relative z-10 w-full">
+                    <a
+                      href={brand.links?.youtube || 'https://www.youtube.com/@alx-garage'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#FF0000] hover:bg-[#dc2626] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-[#FF0000]/25 cursor-pointer active:scale-98"
+                    >
+                      <Youtube className="w-4 h-4 text-white" />
+                      <span>SEJA MEMBRO NO YOUTUBE</span>
+                    </a>
                   </div>
                 </div>
 
