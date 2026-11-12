@@ -35,6 +35,19 @@ export const AnalyticsDashboard: React.FC = () => {
     if (!silent) setIsLoading(false);
   };
 
+  const handleManualRefresh = async () => {
+    setIsLoading(true);
+    const data = await fetchAnalyticsStats();
+    if (data) {
+      setStats(data);
+      setFeedbackMsg('Estatísticas atualizadas em tempo real!');
+    } else {
+      setFeedbackMsg('Não foi possível obter dados novos do servidor.');
+    }
+    setIsLoading(false);
+    setTimeout(() => setFeedbackMsg(null), 3000);
+  };
+
   useEffect(() => {
     loadData();
     const timer = setInterval(() => {
@@ -110,22 +123,12 @@ export const AnalyticsDashboard: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={loadData}
+            onClick={handleManualRefresh}
             disabled={isLoading}
-            className="px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-black hover:bg-neutral-800 text-[#ebbf01] text-xs font-bold flex items-center gap-2 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Atualizar</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowClearConfirm(true)}
-            className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold flex items-center gap-1.5 border border-red-200 transition-colors cursor-pointer"
-            title="Resetar contadores de estatísticas"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Zerar Histórico</span>
+            <span>Atualizar Agora</span>
           </button>
         </div>
       </div>
@@ -508,6 +511,28 @@ export const AnalyticsDashboard: React.FC = () => {
             })}
           </div>
         )}
+      </div>
+
+      {/* SEÇÃO NO FINAL DA PÁGINA: GERENCIAMENTO E LIMPEZA DE ESTATÍSTICAS */}
+      <div className="bg-red-50/60 p-6 rounded-3xl border border-red-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h4 className="text-sm font-black text-red-900 font-heading flex items-center gap-2">
+            <Trash2 className="w-4 h-4 text-red-600" />
+            <span>Zerar Estatísticas do Site</span>
+          </h4>
+          <p className="text-xs text-neutral-600 font-medium">
+            Resetar os contadores de visitas, origem de tráfego, acessos por país e ranking de downloads.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowClearConfirm(true)}
+          className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-colors cursor-pointer shrink-0"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Zerar Estatísticas</span>
+        </button>
       </div>
 
     </div>

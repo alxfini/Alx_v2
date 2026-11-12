@@ -1240,10 +1240,11 @@ function getAnalyticsData() {
   try {
     if (fs.existsSync(analyticsFilePath)) {
       const raw = fs.readFileSync(analyticsFilePath, 'utf8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
     }
   } catch {}
-  return {
+  const initial = {
     totalPageViews: 0,
     totalDownloads: 0,
     sources: {},
@@ -1255,6 +1256,10 @@ function getAnalyticsData() {
     dailyHistory: {},
     lastUpdated: new Date().toISOString(),
   };
+  try {
+    fs.writeFileSync(analyticsFilePath, JSON.stringify(initial, null, 2), 'utf8');
+  } catch {}
+  return initial;
 }
 
 function saveAnalyticsData(data: any) {

@@ -123,23 +123,23 @@ export function trackPageView(pagePath: string, pageTitle?: string) {
       language: navigator.language || 'pt-BR',
     };
 
-    // Disparo ultraleve não-bloqueante
     const bodyStr = JSON.stringify(payload);
-    let sent = false;
-    if (navigator.sendBeacon) {
-      try {
-        const blob = new Blob([bodyStr], { type: 'application/json' });
-        sent = navigator.sendBeacon('/api/site-metrics/event', blob);
-      } catch {}
-    }
-    if (!sent) {
-      fetch('/api/site-metrics/event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: bodyStr,
-        keepalive: true,
-      }).catch(() => {});
-    }
+
+    // Disparo primário seguro via fetch com keepalive
+    fetch('/api/site-metrics/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: bodyStr,
+      keepalive: true,
+    }).catch(() => {
+      // Fallback secundário
+      if (navigator.sendBeacon) {
+        try {
+          const blob = new Blob([bodyStr], { type: 'application/json' });
+          navigator.sendBeacon('/api/analytics/event', blob);
+        } catch {}
+      }
+    });
   } catch {
     // Ignora erros de telemetria sem afetar o usuário
   }
@@ -165,21 +165,20 @@ export function trackDownload(itemId: string, itemTitle: string, itemCategory?: 
     };
 
     const bodyStr = JSON.stringify(payload);
-    let sent = false;
-    if (navigator.sendBeacon) {
-      try {
-        const blob = new Blob([bodyStr], { type: 'application/json' });
-        sent = navigator.sendBeacon('/api/site-metrics/event', blob);
-      } catch {}
-    }
-    if (!sent) {
-      fetch('/api/site-metrics/event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: bodyStr,
-        keepalive: true,
-      }).catch(() => {});
-    }
+
+    fetch('/api/site-metrics/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: bodyStr,
+      keepalive: true,
+    }).catch(() => {
+      if (navigator.sendBeacon) {
+        try {
+          const blob = new Blob([bodyStr], { type: 'application/json' });
+          navigator.sendBeacon('/api/analytics/event', blob);
+        } catch {}
+      }
+    });
   } catch {
     // Silent catch
   }
@@ -190,10 +189,17 @@ export function trackDownload(itemId: string, itemTitle: string, itemCategory?: 
  */
 export async function fetchAnalyticsStats(): Promise<AnalyticsStats | null> {
   try {
-    const res = await fetch('/api/site-metrics/stats');
+    let res = await fetch(`/api/site-metrics/stats?t=${Date.now()}`);
+    if (!res.ok) {
+      res = await fetch(`/api/analytics/stats?t=${Date.now()}`);
+    }
     if (!res.ok) return null;
     return await res.json();
   } catch {
+    try {
+      const fallbackRes = await fetch(`/api/analytics/stats?t=${Date.now()}`);
+      if (fallbackRes.ok) return await fallbackRes.json();
+    } catch {}
     return null;
   }
 }
@@ -203,7 +209,10 @@ export async function fetchAnalyticsStats(): Promise<AnalyticsStats | null> {
  */
 export async function clearAnalyticsStats(): Promise<boolean> {
   try {
-    const res = await fetch('/api/site-metrics/clear', { method: 'POST' });
+    let res = await fetch('/api/site-metrics/clear', { method: 'POST' });
+    if (!res.ok) {
+      res = await fetch('/api/analytics/clear', { method: 'POST' });
+    }
     return res.ok;
   } catch {
     return false;
