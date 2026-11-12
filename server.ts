@@ -1297,7 +1297,42 @@ function detectCountry(req: express.Request, bodyLang?: string): string {
   return 'Outros / Global 🌐';
 }
 
-// Helper para registrar eventos tanto em /api/site-metrics/event como em /api/analytics/event
+// Helper para limpar estatísticas
+const handleAnalyticsClear: express.RequestHandler = (_req, res) => {
+  try {
+    const emptyData = {
+      totalPageViews: 0,
+      totalDownloads: 0,
+      sources: {},
+      devices: {},
+      countries: {},
+      pages: {},
+      downloads: {},
+      recentEvents: [],
+      dailyHistory: {},
+      lastUpdated: new Date().toISOString(),
+      resetAt: new Date().toISOString(),
+    };
+    saveAnalyticsData(emptyData);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json({ success: true, message: 'Estatísticas resetadas com sucesso!', stats: emptyData });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Erro ao limpar estatísticas' });
+  }
+};
+
+// Helper para ler estatísticas
+const handleAnalyticsStats: express.RequestHandler = (_req, res) => {
+  try {
+    const data = getAnalyticsData();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Erro ao buscar estatísticas' });
+  }
+};
+
+// Helper para registrar eventos tanto em /api/metrics.php como em /api/site-metrics/event e /api/analytics/event
 const handleAnalyticsEvent: express.RequestHandler = (req, res) => {
   try {
     let body = req.body || {};
@@ -1311,11 +1346,21 @@ const handleAnalyticsEvent: express.RequestHandler = (req, res) => {
       } catch {}
     }
 
+    const action = (req.query.action as string) || body.action || 'event';
+    if (action === 'clear') {
+      return handleAnalyticsClear(req, res, () => {});
+    }
+    if (action === 'stats') {
+      return handleAnalyticsStats(req, res, () => {});
+    }
+
     const type = body.type || 'pageview';
     const source = body.source || '🌐 Acesso Direto';
     const device = body.device || '💻 Computador';
     const country = detectCountry(req, body.language);
-    const today = new Date().toISOString().split('T')[0];
+    const today = (typeof body.dateKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.dateKey))
+      ? body.dateKey
+      : new Date().toISOString().split('T')[0];
 
     const data = getAnalyticsData();
 
@@ -1341,9 +1386,9 @@ const handleAnalyticsEvent: express.RequestHandler = (req, res) => {
       data.totalPageViews = (data.totalPageViews || 0) + 1;
       data.dailyHistory[today].pageViews = (data.dailyHistory[today].pageViews || 0) + 1;
 
-      const path = body.path || '/';
-      data.pages[path] = (data.pages[path] || 0) + 1;
-      eventName = `Página: ${body.pageTitle || path}`;
+      const reqPath = body.path || '/';
+      data.pages[reqPath] = (data.pages[reqPath] || 0) + 1;
+      eventName = `Página: ${body.pageTitle || reqPath}`;
     } else if (type === 'download') {
       data.totalDownloads = (data.totalDownloads || 0) + 1;
       data.dailyHistory[today].downloads = (data.dailyHistory[today].downloads || 0) + 1;
@@ -1379,43 +1424,27 @@ const handleAnalyticsEvent: express.RequestHandler = (req, res) => {
     }
 
     saveAnalyticsData(data);
-    res.json({ success: true });
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json({
+      success: true,
+      totalPageViews: data.totalPageViews,
+      totalDownloads: data.totalDownloads,
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message || 'Erro ao registrar evento de analytics' });
   }
 };
 
-app.post(['/api/site-metrics/event', '/api/analytics/event'], handleAnalyticsEvent);
+app.post(['/api/metrics.php', '/api/analytics.php', '/api/site-metrics/event', '/api/analytics/event'], handleAnalyticsEvent);
 
-app.get(['/api/site-metrics/stats', '/api/analytics/stats'], (_req, res) => {
-  try {
-    const data = getAnalyticsData();
-    res.json(data);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Erro ao buscar estatísticas' });
+app.get(['/api/metrics.php', '/api/analytics.php', '/api/site-metrics/stats', '/api/analytics/stats'], (req, res, next) => {
+  if (req.query.action === 'clear') {
+    return handleAnalyticsClear(req, res, next);
   }
+  return handleAnalyticsStats(req, res, next);
 });
 
-app.post(['/api/site-metrics/clear', '/api/analytics/clear'], (_req, res) => {
-  try {
-    const emptyData = {
-      totalPageViews: 0,
-      totalDownloads: 0,
-      sources: {},
-      devices: {},
-      countries: {},
-      pages: {},
-      downloads: {},
-      recentEvents: [],
-      dailyHistory: {},
-      lastUpdated: new Date().toISOString(),
-    };
-    saveAnalyticsData(emptyData);
-    res.json({ success: true, message: 'Estatísticas resetadas com sucesso!' });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err?.message || 'Erro ao limpar estatísticas' });
-  }
-});
+app.post(['/api/site-metrics/clear', '/api/analytics/clear'], handleAnalyticsClear);
 
 app.post('/api/mysql-config.php', (req, res) => {
   try {
@@ -1474,6 +1503,13 @@ app.post('/api/mysql-config.php', (req, res) => {
         "  `id` int(11) NOT NULL AUTO_INCREMENT,",
         "  `content` longtext NOT NULL,",
         "  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,",
+        "  PRIMARY KEY (`id`)",
+        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+        "",
+        "CREATE TABLE IF NOT EXISTS `site_analytics` (",
+        "  `id` int(11) NOT NULL DEFAULT 1,",
+        "  `content` longtext NOT NULL,",
+        "  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,",
         "  PRIMARY KEY (`id`)",
         ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
         "",

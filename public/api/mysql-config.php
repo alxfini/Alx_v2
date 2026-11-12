@@ -168,6 +168,12 @@ if ($action === 'download_sql') {
          . "  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n"
          . "  PRIMARY KEY (`id`)\n"
          . ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n\n"
+         . "CREATE TABLE IF NOT EXISTS `site_analytics` (\n"
+         . "  `id` int(11) NOT NULL DEFAULT 1,\n"
+         . "  `content` longtext NOT NULL,\n"
+         . "  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n"
+         . "  PRIMARY KEY (`id`)\n"
+         . ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n\n"
          . "INSERT INTO `site_data` (`id`, `content`, `updated_at`)\n"
          . "VALUES (1, '{$escaped}', NOW())\n"
          . "ON DUPLICATE KEY UPDATE `content` = VALUES(`content`), `updated_at` = NOW();\n";

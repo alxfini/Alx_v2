@@ -75,11 +75,73 @@ function ensureDbTablesExist($pdo) {
             `content` LONGTEXT NOT NULL,
             `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        CREATE TABLE IF NOT EXISTS `site_analytics` (
+            `id` INT NOT NULL PRIMARY KEY DEFAULT 1,
+            `content` LONGTEXT NOT NULL,
+            `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ";
         $pdo->exec($sql);
         return true;
     } catch (Exception $e) {
         error_log("ALX MySQL Table Creation Error: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Carrega os dados de Analytics e Estatísticas do MySQL
+ * @return array|null
+ */
+function loadAnalyticsFromDb() {
+    $pdo = getDbConnection();
+    if (!$pdo) {
+        return null;
+    }
+    try {
+        ensureDbTablesExist($pdo);
+        $stmt = $pdo->prepare("SELECT `content` FROM `site_analytics` WHERE `id` = 1 LIMIT 1");
+        $stmt->execute();
+        $row = $stmt->fetch();
+        if ($row && !empty($row['content'])) {
+            $parsed = json_decode($row['content'], true);
+            if (is_array($parsed) && isset($parsed['totalPageViews'])) {
+                return $parsed;
+            }
+        }
+    } catch (Exception $e) {
+        error_log("ALX MySQL Analytics Load Error: " . $e->getMessage());
+    }
+    return null;
+}
+
+/**
+ * Salva os dados de Analytics e Estatísticas no MySQL
+ * @param array $analyticsData
+ * @return bool
+ */
+function saveAnalyticsToDb($analyticsData) {
+    $pdo = getDbConnection();
+    if (!$pdo) {
+        return false;
+    }
+    try {
+        ensureDbTablesExist($pdo);
+        $contentJson = json_encode($analyticsData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!$contentJson) {
+            return false;
+        }
+        $stmt = $pdo->prepare("
+            INSERT INTO `site_analytics` (`id`, `content`, `updated_at`)
+            VALUES (1, :content, NOW())
+            ON DUPLICATE KEY UPDATE 
+                `content` = VALUES(`content`),
+                `updated_at` = NOW()
+        ");
+        return $stmt->execute([':content' => $contentJson]);
+    } catch (Exception $e) {
+        error_log("ALX MySQL Analytics Save Error: " . $e->getMessage());
         return false;
     }
 }

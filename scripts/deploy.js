@@ -87,6 +87,7 @@ async function deploy() {
       path.join(localDist, 'api', 'site-data-backup.json'),
       path.join(localDist, 'site-data.json'),
       path.join(localDist, 'site-data-backup.json'),
+      path.join(localDist, 'uploads', 'analytics.json'),
     ];
     for (const f of filesToProtect) {
       if (fs.existsSync(f)) {

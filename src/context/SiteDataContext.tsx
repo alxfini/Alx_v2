@@ -1500,13 +1500,15 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const registerDownload = (id: string, category: string) => {
     if (!id) return;
     if (category === 'app') {
-      let itemTitle = id;
-      let downloadUrl = '';
+      const matchedApp = (stateRef.current.apps || apps).find(
+        (a) => a.id === id || (a.slug && a.slug === id) || a.name === id
+      );
+      const itemTitle = matchedApp?.name || downloadModalItem?.title || id;
+      const downloadUrl = matchedApp?.downloadUrl || matchedApp?.directApkUrl || downloadModalItem?.rawDownloadUrl || '';
+
       setApps((prevApps) => {
         const updated = prevApps.map((a) => {
           if (a.id === id || (a.slug && a.slug === id) || a.name === id) {
-            itemTitle = a.name;
-            downloadUrl = a.downloadUrl || a.directApkUrl || '';
             const currentCount = a.downloadsCount ?? 0;
             return { ...a, downloadsCount: currentCount + 1 };
           }
@@ -1517,13 +1519,15 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       trackDownload(id, itemTitle, 'Aplicativo', downloadUrl);
     } else if (category === 'ota') {
-      let itemTitle = id;
-      let downloadUrl = '';
+      const matchedOta = (stateRef.current.otaUpdates || otaUpdates).find(
+        (o) => o.id === id || (o.slug && o.slug === id) || o.title === id
+      );
+      const itemTitle = matchedOta?.title || downloadModalItem?.title || id;
+      const downloadUrl = matchedOta?.downloadUrl || downloadModalItem?.rawDownloadUrl || '';
+
       setOtaUpdates((prevOta) => {
         const updated = prevOta.map((o) => {
           if (o.id === id || (o.slug && o.slug === id) || o.title === id) {
-            itemTitle = o.title;
-            downloadUrl = o.downloadUrl || '';
             const currentCount = o.downloadsCount ?? 0;
             return { ...o, downloadsCount: currentCount + 1 };
           }
@@ -1534,13 +1538,15 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       trackDownload(id, itemTitle, 'Atualização OTA', downloadUrl);
     } else if (category === 'wallpaper') {
-      let itemTitle = id;
-      let downloadUrl = '';
+      const matchedWp = (stateRef.current.wallpapers || wallpapers).find(
+        (w) => w.id === id || (w.slug && w.slug === id) || w.title === id
+      );
+      const itemTitle = matchedWp?.title || downloadModalItem?.title || id;
+      const downloadUrl = matchedWp?.downloadUrl || matchedWp?.imageUrl || downloadModalItem?.rawDownloadUrl || '';
+
       setWallpapers((prevWps) => {
         const updated = prevWps.map((w) => {
           if (w.id === id || (w.slug && w.slug === id) || w.title === id) {
-            itemTitle = w.title;
-            downloadUrl = w.imageUrl || '';
             const currentCount = w.downloadCount ?? 0;
             return { ...w, downloadCount: currentCount + 1 };
           }
@@ -1551,7 +1557,12 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       trackDownload(id, itemTitle, 'Wallpaper', downloadUrl);
     } else {
-      trackDownload(id, id, category || 'Outro Download');
+      trackDownload(
+        id,
+        downloadModalItem?.title || id,
+        category || 'Outro Download',
+        downloadModalItem?.rawDownloadUrl || ''
+      );
     }
   };
 

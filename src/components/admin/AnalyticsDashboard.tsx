@@ -18,7 +18,14 @@ import {
   Check,
   AlertTriangle
 } from 'lucide-react';
-import { fetchAnalyticsStats, clearAnalyticsStats, AnalyticsStats } from '../../services/analyticsService';
+import { 
+  fetchAnalyticsStats, 
+  clearAnalyticsStats, 
+  subscribeToAnalyticsUpdates,
+  getLocalDateKey,
+  createEmptyAnalyticsStats,
+  AnalyticsStats 
+} from '../../services/analyticsService';
 
 export const AnalyticsDashboard: React.FC = () => {
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
@@ -40,7 +47,7 @@ export const AnalyticsDashboard: React.FC = () => {
     const data = await fetchAnalyticsStats();
     if (data) {
       setStats(data);
-      setFeedbackMsg('Estatísticas atualizadas em tempo real!');
+      setFeedbackMsg('Estatísticas sincronizadas com o Banco de Dados em tempo real!');
     } else {
       setFeedbackMsg('Não foi possível obter dados novos do servidor.');
     }
@@ -50,17 +57,24 @@ export const AnalyticsDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = subscribeToAnalyticsUpdates((updated) => {
+      setStats(updated);
+    });
     const timer = setInterval(() => {
       loadData(true);
     }, 4000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      unsubscribe();
+    };
   }, []);
 
   const handleClear = async () => {
     const success = await clearAnalyticsStats();
     if (success) {
+      setStats(createEmptyAnalyticsStats());
       setFeedbackMsg('Histórico de estatísticas resetado com sucesso!');
-      loadData();
+      loadData(true);
     } else {
       setFeedbackMsg('Erro ao resetar estatísticas.');
     }
@@ -81,8 +95,9 @@ export const AnalyticsDashboard: React.FC = () => {
 
   const totalPageViews = stats?.totalPageViews || 0;
   const totalDownloads = stats?.totalDownloads || 0;
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayStats = stats?.dailyHistory?.[todayStr] || { pageViews: 0, downloads: 0 };
+  const todayStr = getLocalDateKey();
+  const utcTodayStr = new Date().toISOString().split('T')[0];
+  const todayStats = stats?.dailyHistory?.[todayStr] || stats?.dailyHistory?.[utcTodayStr] || { pageViews: 0, downloads: 0 };
 
   // Helper para porcentagens
   const getPercentage = (count: number, total: number) => {

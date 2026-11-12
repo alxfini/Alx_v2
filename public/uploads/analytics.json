@@ -1,0 +1,36 @@
+{
+  "totalPageViews": 1,
+  "totalDownloads": 0,
+  "sources": {
+    "🌐 Acesso Direto": 1
+  },
+  "devices": {
+    "💻 Computador": 1
+  },
+  "countries": {
+    "Brasil 🇧🇷": 1
+  },
+  "pages": {
+    "/": 1
+  },
+  "downloads": {},
+  "recentEvents": [
+    {
+      "id": "evt-1794485087895-806",
+      "type": "pageview",
+      "name": "Página: Alx⁺ • Tecnologia que vai além do seu carro",
+      "source": "🌐 Acesso Direto",
+      "country": "Brasil 🇧🇷",
+      "device": "💻 Computador",
+      "timestamp": "2026-11-12T12:04:47.895Z"
+    }
+  ],
+  "dailyHistory": {
+    "2026-11-12": {
+      "pageViews": 1,
+      "downloads": 0
+    }
+  },
+  "lastUpdated": "2026-11-12T12:04:47.895Z",
+  "resetAt": "2026-11-12T12:04:47.880Z"
+}

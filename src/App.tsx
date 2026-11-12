@@ -145,9 +145,6 @@ const MainAppContent: React.FC = () => {
       brand.defaultShareImageUrl,
       { apps, news, products, otaUpdates, tutorials, unlockServices, wallpapers, partners }
     );
-
-    // Track analytics pageview in background
-    trackPageView(expectedPath, document.title);
   }, [
     activePage, 
     brand.brandName, 
@@ -161,6 +158,38 @@ const MainAppContent: React.FC = () => {
     wallpapers,
     partners
   ]);
+
+  // 2b. Track visitor page views accurately once per route transition
+  useEffect(() => {
+    if (activePage.type === 'admin') return;
+    const expectedPath = getRoutePath(activePage);
+    trackPageView(expectedPath, document.title);
+  }, [activePage.type, (activePage as any).idOrSlug, (activePage as any).id]);
+
+  // 2c. Track modal opens (App, Notícia, Produto, Vídeo) when opened from Home/Search
+  useEffect(() => {
+    if (selectedApp) {
+      trackPageView(`/apps/${selectedApp.slug || selectedApp.id}`, `App: ${selectedApp.name}`);
+    }
+  }, [selectedApp]);
+
+  useEffect(() => {
+    if (selectedArticle) {
+      trackPageView(`/noticias/${selectedArticle.slug || selectedArticle.id}`, `Notícia: ${selectedArticle.title}`);
+    }
+  }, [selectedArticle]);
+
+  useEffect(() => {
+    if (selectedProduct) {
+      trackPageView(`/produtos/${selectedProduct.id}`, `Produto: ${selectedProduct.name}`);
+    }
+  }, [selectedProduct]);
+
+  useEffect(() => {
+    if (selectedVideo) {
+      trackPageView(`/youtube/${selectedVideo.youtubeId}`, `Vídeo: ${selectedVideo.title}`);
+    }
+  }, [selectedVideo]);
 
   // Scroll to top on page transition
   useEffect(() => {
