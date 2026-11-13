@@ -45,6 +45,8 @@ import { trackDownload, initAdminAnalyticsIgnoreDefault } from '../services/anal
 import {
   sendVipApprovalEmailToMember,
   sendVipExpirationReminderEmails,
+  sendVipRenewalEmailToMember,
+  sendVipPaymentFailedEmailToMember,
   getTomorrowDateKey,
 } from '../services/emailService';
 
@@ -361,6 +363,8 @@ interface SiteDataContextType {
   updateVipMember: (id: string, data: Partial<VipMember>) => void;
   deleteVipMember: (id: string) => void;
   approveVipMember: (id: string) => void;
+  renewVipMember: (id: string) => void;
+  grantVipGracePeriod: (id: string) => void;
   importVipMembers: (membersList: Omit<VipMember, 'id' | 'createdAt'>[]) => number;
 
   // Download Gateway Modal Trigger
@@ -1342,6 +1346,79 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const renewVipMember = (id: string) => {
+    let renewedTarget: VipMember | null = null;
+
+    const updated = vipMembers.map((m) => {
+      if (m.id === id) {
+        const baseDate = m.expirationDate && /^\d{4}-\d{2}-\d{2}$/.test(m.expirationDate) && new Date(m.expirationDate).getTime() > Date.now()
+          ? new Date(m.expirationDate)
+          : new Date();
+
+        if (m.period === 'Anual') {
+          baseDate.setFullYear(baseDate.getFullYear() + 1);
+        } else if (m.period === 'Vitalício') {
+          baseDate.setFullYear(baseDate.getFullYear() + 100);
+        } else {
+          baseDate.setDate(baseDate.getDate() + 30);
+        }
+        const newExpStr = m.period === 'Vitalício' ? 'Vitalício' : baseDate.toISOString().slice(0, 10);
+
+        const nextMember: VipMember = {
+          ...m,
+          status: 'Ativo' as const,
+          expirationDate: newExpStr,
+          lastReminderSentForExpiration: undefined,
+        };
+        renewedTarget = nextMember;
+        return nextMember;
+      }
+      return m;
+    });
+
+    setVipMembers(updated);
+    saveToStorage({ vipMembers: updated });
+
+    if (renewedTarget) {
+      const targetMember = renewedTarget as VipMember;
+      sendVipRenewalEmailToMember(
+        targetMember,
+        stateRef.current.brand || brand,
+        targetMember.expirationDate
+      ).catch((err) => {
+        console.warn('Erro ao enviar e-mail de renovação VIP:', err);
+      });
+    }
+  };
+
+  const grantVipGracePeriod = (id: string) => {
+    let targetMember: VipMember | null = null;
+    const updated = vipMembers.map((m) => {
+      if (m.id === id) {
+        const expDate = m.expirationDate && /^\d{4}-\d{2}-\d{2}$/.test(m.expirationDate)
+          ? new Date(m.expirationDate)
+          : new Date();
+        expDate.setDate(expDate.getDate() + 2);
+        const newExpStr = expDate.toISOString().slice(0, 10);
+        const next: VipMember = {
+          ...m,
+          expirationDate: newExpStr,
+          status: 'Expirando em Breve' as const,
+          notes: `${m.notes || ''} [Cobrança MP falhou: Tolerância de +2 dias concedida em ${new Date().toLocaleDateString('pt-BR')}]`,
+        };
+        targetMember = next;
+        return next;
+      }
+      return m;
+    });
+    setVipMembers(updated);
+    saveToStorage({ vipMembers: updated });
+
+    if (targetMember) {
+      sendVipPaymentFailedEmailToMember(targetMember as VipMember, stateRef.current.brand || brand).catch(() => {});
+    }
+  };
+
   // Automação de Lembrete 1 Dia Antes do Vencimento para Membros Mensais / Ativos
   const isCheckingRemindersRef = useRef(false);
   useEffect(() => {
@@ -1357,6 +1434,12 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!m || !m.email || !m.expirationDate) return false;
       if (m.status !== 'Ativo' && m.status !== 'Expirando em Breve') return false;
       if (m.expirationDate === 'Vitalício' || m.expirationDate === 'Pendente') return false;
+
+      const isMercadoPago = (m.planType || '').toLowerCase().includes('mercado pago');
+      if (isMercadoPago) {
+        return false; // Mercado Pago não envia lembrete 1 dia antes para o cliente
+      }
+
       return m.expirationDate === tomorrowKey && m.lastReminderSentForExpiration !== tomorrowKey;
     });
 
@@ -2702,6 +2785,8 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateVipMember,
         deleteVipMember,
         approveVipMember,
+        renewVipMember,
+        grantVipGracePeriod,
         importVipMembers,
         downloadModalItem,
         openDownloadGateway,

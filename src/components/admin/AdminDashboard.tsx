@@ -99,6 +99,7 @@ import {
   sendSmtpEmail,
   saveSmtpConfigOnServer,
   buildAlxEmailHtml,
+  sendVipRegistrationEmails,
 } from '../../services/emailService';
 
 const EXISTING_SITE_PAGES = [
@@ -320,6 +321,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     updateVipMember,
     deleteVipMember,
     approveVipMember,
+    renewVipMember,
+    grantVipGracePeriod,
     importVipMembers,
     partners,
     resetToDefaults,
@@ -7219,6 +7222,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </button>
                               )}
 
+                              {/* 1-CLICK RENEW / MERCADO PAGO ACTIONS FOR ACTIVE/EXPIRING/EXPIRED MEMBERS */}
+                              {m.status !== 'Aguardando Aprovação' && (
+                                <>
+                                  {(m.planType || '').toLowerCase().includes('mercado pago') ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        onClick={() => {
+                                          renewVipMember(m.id);
+                                          triggerSuccess(`Assinatura Mercado Pago de "${m.name}" confirmada e renovada! E-mail enviado.`);
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-black shadow-xs cursor-pointer"
+                                        title="Confirmar recebimento na conta do Mercado Pago e renovar por +30 dias"
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
+                                        <span>Confirmar & Renovar (MP)</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => {
+                                          grantVipGracePeriod(m.id);
+                                          triggerSuccess(`Tolerância de 2 dias concedida para "${m.name}" e e-mail de cobrança enviado!`);
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-black shadow-xs cursor-pointer"
+                                        title="Pagamento não efetuado: conceder tolerância de 2 dias e cobrar via e-mail"
+                                      >
+                                        <AlertTriangle className="w-3.5 h-3.5" />
+                                        <span>Cobrar / +2 Dias</span>
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        renewVipMember(m.id);
+                                        triggerSuccess(`Assinatura de "${m.name}" renovada por mais 30 dias! E-mail enviado.`);
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black shadow-xs cursor-pointer"
+                                      title="Renovar automaticamente por mais 30 dias e enviar e-mail de confirmação"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5" />
+                                      <span>Renovar +30d</span>
+                                    </button>
+                                  )}
+                                </>
+                              )}
+
                               {/* Botão de Enviar E-mail de Reativação */}
                               <button
                                 onClick={() => handleOpenReactivationModal(m)}
@@ -7231,6 +7279,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               >
                                 <Mail className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">E-mail</span>
+                              </button>
+
+                              {/* Botão de Reenviar E-mail de Cadastro para o Admin */}
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await sendVipRegistrationEmails({
+                                      name: m.name,
+                                      email: m.email,
+                                      phone: m.phone || '',
+                                      planLabel: m.planType,
+                                      price: '14,90',
+                                      notes: m.notes || 'Reenvio manual solicitado pelo Administrador.',
+                                      brand,
+                                    });
+                                    triggerSuccess(`E-mail de cadastro de "${m.name}" reenviado com sucesso!`);
+                                  } catch (e) {
+                                    triggerSuccess(`Erro ao reenviar e-mail.`);
+                                  }
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-[11px] uppercase transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                                title="Reenviar e-mail de notificação deste cadastro para o administrador"
+                              >
+                                <Send className="w-3 h-3 text-amber-600" />
+                                <span className="hidden md:inline">Reenviar</span>
                               </button>
 
                               <button

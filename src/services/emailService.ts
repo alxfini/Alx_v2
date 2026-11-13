@@ -364,6 +364,109 @@ export async function sendVipApprovalEmailToMember(
 }
 
 /**
+ * 4. Disparo ao Renovar Plano VIP (+30 dias ou Anual)
+ */
+export async function sendVipRenewalEmailToMember(
+  member: VipMember,
+  brand: SiteBrandConfig,
+  newExpirationDate: string
+): Promise<SendEmailResult> {
+  const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://alx.7f.com.br';
+  const expFormatted = /^\d{4}-\d{2}-\d{2}$/.test(newExpirationDate)
+    ? newExpirationDate.split('-').reverse().join('/')
+    : newExpirationDate;
+
+  const subject = `👑 [Alx⁺ VIP] Plano Renovado com Sucesso!`;
+  const text = [
+    `Olá, ${member.name}!`,
+    ``,
+    `Confirmamos a renovação da sua assinatura no Portal Alx⁺ VIP!`,
+    `Seu acesso foi estendido e está ativo até ${expFormatted}.`,
+    ``,
+    `Acesse agora em: ${siteOrigin}/vip`,
+    ``,
+    `Equipe Alx⁺ VIP`,
+  ].join('\n');
+
+  const html = buildAlxEmailHtml({
+    badge: 'PLANO RENOVADO • ALX⁺ VIP',
+    title: `Sua Assinatura VIP foi Renovada!`,
+    subtitle: `Seu acesso ao Portal Alx⁺ VIP foi estendido com sucesso.`,
+    bodyLines: [
+      `Confirmamos a renovação do seu plano <strong>${member.planType}</strong>.`,
+      `Seu acesso exclusivo já está garantido e ativo até <strong>${expFormatted}</strong>!`,
+    ],
+    highlightBox: [
+      { label: 'Status da Conta', value: '✅ ATIVO E RENOVADO' },
+      { label: 'E-mail de Login', value: member.email },
+      { label: 'Nova Validade', value: expFormatted },
+    ],
+    ctaText: 'Acessar Área VIP',
+    ctaUrl: `${siteOrigin}/vip`,
+  });
+
+  return sendSmtpEmail(
+    {
+      to: member.email,
+      subject,
+      html,
+      text,
+      replyTo: getAdminReceiverEmail(brand),
+    },
+    brand
+  );
+}
+
+/**
+ * 5. Disparo de Aviso de Pagamento Pendente / Falha no Cartão (Mercado Pago) com Tolerância de +2 Dias
+ */
+export async function sendVipPaymentFailedEmailToMember(
+  member: VipMember,
+  brand: SiteBrandConfig
+): Promise<SendEmailResult> {
+  const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://alx.7f.com.br';
+  const subject = `⚠️ [Alx⁺ VIP] Falha na Renovação Automática / Pagamento Pendente`;
+  const text = [
+    `Olá, ${member.name}!`,
+    ``,
+    `Notamos que houve uma falha na cobrança automática do seu plano ${member.planType} no Mercado Pago.`,
+    `Concedemos uma tolerância especial de 2 dias para que você possa atualizar seus dados de pagamento ou regularizar a assinatura sem perder o acesso.`,
+    ``,
+    `Regularize em: ${siteOrigin}/vip`,
+    ``,
+    `Equipe Alx⁺ VIP`,
+  ].join('\n');
+
+  const html = buildAlxEmailHtml({
+    badge: 'PAGAMENTO PENDENTE • TOLERÂNCIA DE 2 DIAS',
+    title: `Atenção: Falha no Pagamento do Plano VIP`,
+    subtitle: `Sua assinatura automática no Mercado Pago não pôde ser processada.`,
+    bodyLines: [
+      `Identificamos uma pendência ou falha na cobrança do seu plano <strong>${member.planType}</strong>.`,
+      `Para evitar a desativação do seu acesso, concedemos uma <strong>tolerância de 2 dias</strong>. Por favor, verifique seu cartão ou regularize sua assinatura.`,
+    ],
+    highlightBox: [
+      { label: 'Status', value: '⚠️ PENDENTE / TOLERÂNCIA DE 2 DIAS' },
+      { label: 'E-mail de Acesso', value: member.email },
+      { label: 'Plano', value: member.planType },
+    ],
+    ctaText: 'Regularizar Assinatura VIP',
+    ctaUrl: `${siteOrigin}/vip`,
+  });
+
+  return sendSmtpEmail(
+    {
+      to: member.email,
+      subject,
+      html,
+      text,
+      replyTo: getAdminReceiverEmail(brand),
+    },
+    brand
+  );
+}
+
+/**
  * 3. Lembrete Automático de Vencimento (1 Dia Antes) para Membros Mensais (Envia para o Cliente e para o Admin)
  */
 export async function sendVipExpirationReminderEmails(
