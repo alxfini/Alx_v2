@@ -83,6 +83,7 @@ async function deploy() {
         // Protege configurações e dados do servidor para que o deploy FTP nunca os sobrescreva
     const filesToProtect = [
       path.join(localDist, 'api', 'db-config.php'),
+      path.join(localDist, 'api', 'smtp-config.json'),
       path.join(localDist, 'api', 'site-data.json'),
       path.join(localDist, 'api', 'site-data-backup.json'),
       path.join(localDist, 'site-data.json'),

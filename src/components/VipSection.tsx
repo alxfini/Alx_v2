@@ -10,6 +10,7 @@ import { VipUserSettingsModal } from './vip/VipUserSettingsModal';
 import { VipCardsCarousel } from './vip/VipCardsCarousel';
 import { getMediaPreviewUrl } from '../utils/mediaUrl';
 import { isItemVisibleInVipSection } from '../utils/visibility';
+import { sendSmtpEmail, buildAlxEmailHtml } from '../services/emailService';
 
 function parseDateToTimestamp(dateStr?: string): number {
   if (!dateStr) return 0;
@@ -155,13 +156,14 @@ export const VipSection: React.FC<VipSectionProps> = ({
       console.warn('Erro ao salvar no inbox:', err);
     }
 
-    // 2. Disparo Multi-Gateway de Alta Velocidade (Webhook, Web3Forms e FormSubmit) - Idêntico à página de contato
+    // 2. Disparo Oficial via Servidor SMTP Autenticado
     try {
-      const web3Key = brand.links?.web3formsKey?.trim();
+      const adminTarget =
+        brand.smtpConfig?.adminReceiverEmail?.trim() ||
+        brand.vipPayment?.notificationEmail?.trim() ||
+        primaryTarget;
       const webhookUrl = brand.links?.customWebhookUrl?.trim();
-      let sentSuccessfully = false;
 
-      // Gateway A: Webhook Instantâneo (Zapier / Make / Telegram / Discord)
       if (webhookUrl) {
         fetch(webhookUrl, {
           method: 'POST',
@@ -178,61 +180,34 @@ export const VipSection: React.FC<VipSectionProps> = ({
         }).catch(() => null);
       }
 
-      // Gateway B: Web3Forms (Ultra Rápido)
-      if (web3Key) {
-        try {
-          const w3Res = await fetch('https://api.web3forms.com/submit', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              access_key: web3Key,
-              name: contactName,
-              email: contactEmail,
-              replyto: contactEmail,
-              subject: fullSubject,
-              message: fullBody,
-              from_name: `${brand.brandName || 'Alx⁺'} Website`,
-            }),
-          });
-          const w3Data = await w3Res.json().catch(() => null);
-          if (w3Data?.success || w3Res.ok) {
-            sentSuccessfully = true;
-          }
-        } catch (e) {
-          console.warn('Web3Forms dispatch error:', e);
-        }
-      }
+      const htmlContent = buildAlxEmailHtml({
+        badge: 'SOLICITAÇÃO DE ADESÃO VIP',
+        title: `Pedido de Adesão VIP: ${contactName}`,
+        subtitle: 'Mensagem enviada através do modal de suporte/adesão na Área VIP.',
+        highlightBox: [
+          { label: 'Nome', value: contactName },
+          { label: 'E-mail', value: contactEmail },
+          { label: 'WhatsApp', value: contactPhone },
+          { label: 'Data / Hora', value: new Date().toLocaleString('pt-BR') },
+        ],
+        bodyLines: [
+          `Mensagem / Solicitação:`,
+          contactMessage,
+        ],
+      });
 
-      // Gateway C: FormSubmit (Fallback / Padrão)
-      if (!sentSuccessfully) {
-        const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(primaryTarget)}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            Nome: contactName,
-            Email: contactEmail,
-            WhatsApp: contactPhone,
-            Mensagem: contactMessage,
-            _replyto: contactEmail,
-            _subject: fullSubject,
-            _template: 'box',
-            _captcha: 'false',
-          }),
-        });
-
-        const data = await res.json().catch(() => null);
-        if (data?.success === 'true' || data?.success === true || res.ok) {
-          sentSuccessfully = true;
-        }
-      }
+      await sendSmtpEmail(
+        {
+          to: adminTarget,
+          subject: fullSubject,
+          html: htmlContent,
+          text: fullBody,
+          replyTo: contactEmail,
+        },
+        brand.smtpConfig
+      );
     } catch (err) {
-      console.warn('Erro ao disparar gateways de e-mail:', err);
+      console.warn('Erro ao disparar e-mail via SMTP:', err);
     } finally {
       setIsSubmitting(false);
       setContactSubmitted(true);

@@ -42,6 +42,11 @@ import { applyPageThemeHex, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../util
 import { isItemVip } from '../utils/vip';
 import { normalizeWallpapersList, resolveWallpaperDownloadUrl } from '../utils/wallpaperUrl';
 import { trackDownload, initAdminAnalyticsIgnoreDefault } from '../services/analyticsService';
+import {
+  sendVipApprovalEmailToMember,
+  sendVipExpirationReminderEmails,
+  getTomorrowDateKey,
+} from '../services/emailService';
 
 export interface FullSiteDataPayload {
   brand?: SiteBrandConfig;
@@ -149,6 +154,16 @@ export const initialBrandConfig: SiteBrandConfig = {
     spotify: (initialSiteConfig.links as any)?.spotify || 'https://open.spotify.com/playlist/4fbVvzPirRvxWqkz8m9OTp?si=1f579b7208214433',
     vipStore: initialSiteConfig.links?.vipStore || '#vip',
     email: 'contact@7f.com.br',
+  },
+  smtpConfig: {
+    host: 'smtp.hostinger.com',
+    port: 465,
+    encryption: 'ssl',
+    user: 'contact@7f.com.br',
+    password: '',
+    fromName: 'Alx⁺ Oficial',
+    adminReceiverEmail: 'contact@7f.com.br',
+    autoReminderEnabled: true,
   },
   customSocialLinks: [],
   contactCards: [
@@ -1172,6 +1187,9 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             ...cur.brand, 
             ...overrides.brand, 
             links: { ...(cur.brand?.links || {}), ...(overrides.brand.links || {}) },
+            smtpConfig: overrides.brand.smtpConfig
+              ? { ...(cur.brand?.smtpConfig || {}), ...overrides.brand.smtpConfig }
+              : cur.brand?.smtpConfig,
             contactCards: overrides.brand.contactCards !== undefined ? overrides.brand.contactCards : (cur.brand?.contactCards || []),
           }
         : cur.brand;
@@ -1284,6 +1302,8 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     expDate.setDate(expDate.getDate() + 30);
     const expStr = expDate.toISOString().slice(0, 10);
 
+    let approvedTarget: VipMember | null = null;
+
     const updated = vipMembers.map((m) => {
       if (m.id === id) {
         let finalExpiration = expStr;
@@ -1294,18 +1314,81 @@ export const SiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         } else if (m.period === 'Vitalício') {
           finalExpiration = 'Vitalício';
         }
-        return {
+        const nextMember: VipMember = {
           ...m,
           status: 'Ativo' as const,
           startDate: today,
           expirationDate: finalExpiration,
+          approvalEmailSentAt: new Date().toISOString(),
         };
+        approvedTarget = nextMember;
+        return nextMember;
       }
       return m;
     });
     setVipMembers(updated);
     saveToStorage({ vipMembers: updated });
+
+    // Dispara automaticamente o e-mail de aprovação VIP para o membro via SMTP
+    if (approvedTarget) {
+      const targetMember = approvedTarget as VipMember;
+      sendVipApprovalEmailToMember(
+        targetMember,
+        stateRef.current.brand || brand,
+        targetMember.expirationDate
+      ).catch((err) => {
+        console.warn('Erro ao enviar e-mail de aprovação VIP:', err);
+      });
+    }
   };
+
+  // Automação de Lembrete 1 Dia Antes do Vencimento para Membros Mensais / Ativos
+  const isCheckingRemindersRef = useRef(false);
+  useEffect(() => {
+    if (!hasCloudLoaded.current && !isDataInitializedRef.current) return;
+    if (isCheckingRemindersRef.current) return;
+    const activeBrand = stateRef.current.brand || brand;
+    if (activeBrand?.smtpConfig?.autoReminderEnabled === false) return;
+
+    const tomorrowKey = getTomorrowDateKey();
+    const currentMembers = stateRef.current.vipMembers || vipMembers || [];
+
+    const dueTomorrow = currentMembers.filter((m) => {
+      if (!m || !m.email || !m.expirationDate) return false;
+      if (m.status !== 'Ativo' && m.status !== 'Expirando em Breve') return false;
+      if (m.expirationDate === 'Vitalício' || m.expirationDate === 'Pendente') return false;
+      return m.expirationDate === tomorrowKey && m.lastReminderSentForExpiration !== tomorrowKey;
+    });
+
+    if (dueTomorrow.length === 0) return;
+
+    isCheckingRemindersRef.current = true;
+    (async () => {
+      try {
+        const sentIds = new Set<string>();
+        for (const member of dueTomorrow) {
+          const success = await sendVipExpirationReminderEmails(member, activeBrand);
+          if (success) {
+            sentIds.add(member.id);
+          }
+        }
+        if (sentIds.size > 0) {
+          const latestMembers = stateRef.current.vipMembers || vipMembers;
+          const updatedMembers = latestMembers.map((m) =>
+            sentIds.has(m.id)
+              ? { ...m, lastReminderSentForExpiration: tomorrowKey, status: 'Expirando em Breve' as const }
+              : m
+          );
+          setVipMembers(updatedMembers);
+          await saveToStorage({ vipMembers: updatedMembers });
+        }
+      } catch (e) {
+        console.warn('Erro na verificação automática de vencimento VIP:', e);
+      } finally {
+        isCheckingRemindersRef.current = false;
+      }
+    })();
+  }, [vipMembers, brand]);
 
   const importVipMembers = (membersList: Omit<VipMember, 'id' | 'createdAt'>[]): number => {
     const newMembers: VipMember[] = membersList.map((m, idx) => ({

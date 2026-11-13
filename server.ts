@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import nodemailer from 'nodemailer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1530,6 +1531,153 @@ app.post('/api/mysql-config.php', (req, res) => {
     return res.status(400).json({ success: false, error: 'Ação não reconhecida' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message || 'Erro no servidor' });
+  }
+});
+
+// 1.9 Endpoint /api/send-email.php (Motor SMTP Autenticado com Nodemailer + Persistência)
+const smtpConfigPath = path.join(apiDir, 'smtp-config.json');
+
+function loadStoredSmtpConfig(): any {
+  const defaults = {
+    host: 'smtp.hostinger.com',
+    port: 465,
+    encryption: 'ssl',
+    user: 'contact@7f.com.br',
+    password: '',
+    fromName: 'Alx⁺ Oficial',
+    adminReceiverEmail: 'contact@7f.com.br',
+    autoReminderEnabled: true,
+  };
+
+  try {
+    if (fs.existsSync(smtpConfigPath)) {
+      const parsed = JSON.parse(fs.readFileSync(smtpConfigPath, 'utf8'));
+      if (parsed && typeof parsed === 'object') {
+        Object.assign(defaults, parsed);
+      }
+    }
+  } catch {}
+
+  try {
+    const dataFile = path.join(apiDir, 'site-data.json');
+    if (fs.existsSync(dataFile)) {
+      const siteData = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+      const brandSmtp = siteData?.brand?.smtpConfig;
+      if (brandSmtp && typeof brandSmtp === 'object') {
+        if (brandSmtp.host) defaults.host = brandSmtp.host;
+        if (brandSmtp.port) defaults.port = Number(brandSmtp.port);
+        if (brandSmtp.encryption) defaults.encryption = brandSmtp.encryption;
+        if (brandSmtp.user) defaults.user = brandSmtp.user;
+        if (brandSmtp.password) defaults.password = brandSmtp.password;
+        if (brandSmtp.fromName) defaults.fromName = brandSmtp.fromName;
+        if (brandSmtp.adminReceiverEmail) defaults.adminReceiverEmail = brandSmtp.adminReceiverEmail;
+        if (brandSmtp.autoReminderEnabled !== undefined) defaults.autoReminderEnabled = Boolean(brandSmtp.autoReminderEnabled);
+      }
+    }
+  } catch {}
+
+  return defaults;
+}
+
+app.all(['/api/send-email.php', '/api/send-email'], async (req, res) => {
+  try {
+    const body = req.body || {};
+    const action = body.action || req.query.action || 'send';
+    const currentConfig = loadStoredSmtpConfig();
+
+    if (action === 'get_config') {
+      return res.json({
+        success: true,
+        config: {
+          host: currentConfig.host,
+          port: currentConfig.port,
+          encryption: currentConfig.encryption,
+          user: currentConfig.user,
+          hasPassword: Boolean(currentConfig.password),
+          fromName: currentConfig.fromName,
+          adminReceiverEmail: currentConfig.adminReceiverEmail,
+          autoReminderEnabled: currentConfig.autoReminderEnabled !== false,
+        },
+      });
+    }
+
+    if (body.smtp && typeof body.smtp === 'object') {
+      const s = body.smtp;
+      if (s.host) currentConfig.host = String(s.host).trim();
+      if (s.port) currentConfig.port = Number(s.port);
+      if (s.encryption) currentConfig.encryption = String(s.encryption).trim().toLowerCase();
+      if (s.user) currentConfig.user = String(s.user).trim();
+      if (s.password !== undefined && String(s.password).trim() !== '' && s.password !== '********') {
+        currentConfig.password = String(s.password);
+      }
+      if (s.fromName) currentConfig.fromName = String(s.fromName).trim();
+      if (s.adminReceiverEmail) currentConfig.adminReceiverEmail = String(s.adminReceiverEmail).trim();
+      if (s.autoReminderEnabled !== undefined) currentConfig.autoReminderEnabled = Boolean(s.autoReminderEnabled);
+
+      if (body.saveConfig || action === 'save_config') {
+        fs.writeFileSync(smtpConfigPath, JSON.stringify(currentConfig, null, 2), 'utf8');
+        if (action === 'save_config') {
+          return res.json({
+            success: true,
+            message: 'Configurações SMTP salvas com sucesso no servidor!',
+          });
+        }
+      }
+    }
+
+    const to = String(body.to || currentConfig.adminReceiverEmail || currentConfig.user || '').trim();
+    const subject = String(body.subject || '[Alx⁺] Notificação do Portal').trim();
+    const htmlBody = String(body.html || '').trim();
+    const textBody = String(body.text || body.message || '').trim();
+    const replyTo = String(body.replyTo || '').trim();
+
+    if (!to) {
+      return res.status(400).json({ success: false, error: 'Destinatário (to) não informado.' });
+    }
+
+    if (!currentConfig.host || !currentConfig.user || !currentConfig.password) {
+      return res.status(400).json({
+        success: false,
+        code: 'SMTP_NOT_CONFIGURED',
+        error: 'As credenciais SMTP (Servidor, E-mail e Senha) ainda não foram salvas no Painel Administrativo > aba Mensagens.',
+      });
+    }
+
+    const isSecure = Number(currentConfig.port) === 465 || currentConfig.encryption === 'ssl';
+    const transporter = nodemailer.createTransport({
+      host: currentConfig.host,
+      port: Number(currentConfig.port) || 465,
+      secure: isSecure,
+      auth: {
+        user: currentConfig.user,
+        pass: currentConfig.password,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"${currentConfig.fromName || 'Alx⁺ Oficial'}" <${currentConfig.user}>`,
+      to,
+      replyTo: replyTo || currentConfig.user,
+      subject,
+      text: textBody || htmlBody.replace(/<[^>]+>/g, ''),
+      html: htmlBody || `<div style="font-family:sans-serif;white-space:pre-line;">${textBody}</div>`,
+    });
+
+    return res.json({
+      success: true,
+      method: 'smtp',
+      to,
+      message: `E-mail autenticado enviado com sucesso via SMTP (${currentConfig.host}) para ${to}!`,
+    });
+  } catch (err: any) {
+    console.error('SMTP send error:', err);
+    return res.status(500).json({
+      success: false,
+      error: `Falha no envio SMTP: ${err?.message || 'Verifique usuário, senha e porta do servidor SMTP.'}`,
+    });
   }
 });
 

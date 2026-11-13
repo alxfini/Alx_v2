@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
 import { ContactCardItem } from '../../types';
+import { sendSmtpEmail, buildAlxEmailHtml } from '../../services/emailService';
 
 export const ContactPage: React.FC = () => {
   const { brand, setActivePage, addContactMessage } = useSiteData();
@@ -40,14 +41,15 @@ export const ContactPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const contactEmail = (brand.links?.email && brand.links.email !== 'contato@alxtech.com.br')
-    ? brand.links.email
-    : 'contact@7f.com.br';
+  const contactEmail =
+    brand.smtpConfig?.adminReceiverEmail?.trim() ||
+    (brand.links?.email && brand.links.email !== 'contato@alxtech.com.br'
+      ? brand.links.email
+      : 'contact@7f.com.br');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
@@ -61,14 +63,11 @@ export const ContactPage: React.FC = () => {
       message: formData.message,
     });
 
-    // 2. Disparo Multi-Gateway de Alta Velocidade (Web3Forms, Webhook Instantâneo e FormSubmit)
+    // 2. Disparo Oficial via Servidor SMTP Autenticado
     try {
       const primaryTarget = contactEmail;
-      const web3Key = brand.links?.web3formsKey?.trim();
       const webhookUrl = brand.links?.customWebhookUrl?.trim();
-      let sentSuccessfully = false;
 
-      // Gateway A: Webhook Instantâneo (Zapier / Make / Telegram / Discord)
       if (webhookUrl) {
         fetch(webhookUrl, {
           method: 'POST',
@@ -84,64 +83,38 @@ export const ContactPage: React.FC = () => {
         }).catch(() => null);
       }
 
-      // Gateway B: Web3Forms (Ultra Rápido - 1 a 2 segundos)
-      if (web3Key) {
-        try {
-          const w3Res = await fetch('https://api.web3forms.com/submit', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              access_key: web3Key,
-              name: formData.name,
-              email: formData.email,
-              replyto: formData.email,
-              subject: `[${brandName}] ${formData.subject} - De: ${formData.name}`,
-              message: formData.message,
-              from_name: `${brandName} Website`,
-            }),
-          });
-          const w3Data = await w3Res.json().catch(() => null);
-          if (w3Data?.success || w3Res.ok) {
-            sentSuccessfully = true;
-          }
-        } catch (e) {
-          console.warn('Web3Forms dispatch failed, falling back...', e);
-        }
-      }
+      const fullSubject = `[${brandName}] ${formData.subject} - De: ${formData.name}`;
+      const htmlContent = buildAlxEmailHtml({
+        badge: 'CONTATO DO PORTAL',
+        title: `Nova Mensagem: ${formData.subject}`,
+        subtitle: `Enviada por ${formData.name} através da página Fale Conosco.`,
+        highlightBox: [
+          { label: 'Remetente', value: formData.name },
+          { label: 'E-mail p/ Resposta', value: formData.email },
+          { label: 'Assunto', value: formData.subject },
+          { label: 'Data / Hora', value: new Date().toLocaleString('pt-BR') },
+        ],
+        bodyLines: [
+          'Mensagem enviada pelo visitante:',
+          formData.message,
+        ],
+      });
 
-      // Gateway C: FormSubmit (Fallback / Padrão)
-      if (!sentSuccessfully) {
-        const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(primaryTarget)}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            Nome: formData.name,
-            Email: formData.email,
-            Assunto: formData.subject,
-            Mensagem: formData.message,
-            _replyto: formData.email,
-            _subject: `[${brandName}] ${formData.subject} - De: ${formData.name}`,
-            _template: 'box',
-            _captcha: 'false',
-          }),
-        });
+      const smtpRes = await sendSmtpEmail(
+        {
+          to: primaryTarget,
+          subject: fullSubject,
+          html: htmlContent,
+          text: `Nome: ${formData.name}\nE-mail: ${formData.email}\nAssunto: ${formData.subject}\n\nMensagem:\n${formData.message}`,
+          replyTo: formData.email,
+        },
+        brand.smtpConfig
+      );
 
-        const data = await res.json().catch(() => null);
-        if (data?.success === 'true' || data?.success === true || res.ok) {
-          sentSuccessfully = true;
-        }
-      }
-
-      if (sentSuccessfully) {
+      if (smtpRes.success) {
         setSubmissionFeedback({
           status: 'sent',
-          message: 'Mensagem transmitida instantaneamente para ' + contactEmail,
+          message: 'Mensagem transmitida com sucesso via SMTP para ' + primaryTarget,
         });
       } else {
         setSubmissionFeedback({
@@ -150,7 +123,7 @@ export const ContactPage: React.FC = () => {
         });
       }
     } catch (err) {
-      console.warn('Envio de e-mail via serviço do site:', err);
+      console.warn('Envio de e-mail via serviço SMTP do site:', err);
       setSubmissionFeedback({
         status: 'stored_locally',
         message: 'Mensagem salva com sucesso na central interna do site.',

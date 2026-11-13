@@ -25,6 +25,7 @@ import {
 import { useSiteData } from '../../context/SiteDataContext';
 import { generatePixPayload, getPixQrCodeUrl } from '../../utils/pix';
 import { getPageThemeHex } from '../../utils/pageColors';
+import { sendVipRegistrationEmails } from '../../services/emailService';
 
 interface VipPlansSectionProps {
   onOpenLoginModal?: () => void;
@@ -161,15 +162,10 @@ export const VipPlansSection: React.FC<VipPlansSectionProps> = ({ onOpenLoginMod
       console.warn('Erro ao salvar no inbox:', err);
     }
 
-    // 3. Disparo Multi-Gateway de Notificação ao Administrador (Webhook, Web3Forms e FormSubmit)
+    // 3. Disparo Oficial via Servidor SMTP Autenticado (Admin + Confirmação para o Cliente) e Webhook
     try {
-      const primaryTarget = brand.vipPayment?.notificationEmail?.trim() 
-        || (brand.links?.email && brand.links.email !== 'contato@alxtech.com.br' ? brand.links.email : 'contact@7f.com.br');
-      const web3Key = brand.links?.web3formsKey?.trim();
       const webhookUrl = brand.links?.customWebhookUrl?.trim();
-      let sentSuccessfully = false;
 
-      // Gateway A: Webhook Instantâneo (Zapier / Make / Telegram / Discord)
       if (webhookUrl) {
         fetch(webhookUrl, {
           method: 'POST',
@@ -189,60 +185,17 @@ export const VipPlansSection: React.FC<VipPlansSectionProps> = ({ onOpenLoginMod
         }).catch(() => null);
       }
 
-      // Gateway B: Web3Forms
-      if (web3Key) {
-        try {
-          const w3Res = await fetch('https://api.web3forms.com/submit', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              access_key: web3Key,
-              name: `${name} (Novo Cadastro VIP)`,
-              email: email,
-              replyto: email,
-              subject: fullSubject,
-              message: fullMessage,
-              from_name: `${brand.brandName || 'Alx⁺'} VIP System`,
-            }),
-          });
-          const w3Data = await w3Res.json().catch(() => null);
-          if (w3Data?.success || w3Res.ok) {
-            sentSuccessfully = true;
-          }
-        } catch (e) {
-          console.warn('Web3Forms dispatch failed:', e);
-        }
-      }
-
-      // Gateway C: FormSubmit
-      if (!sentSuccessfully) {
-        try {
-          await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(primaryTarget)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({
-              Nome: name,
-              Email: email,
-              WhatsApp: phone,
-              Plano: planLabel,
-              Valor: `R$ ${selectedPlan === 'mercadopago' ? subPrice : pixPrice}`,
-              Status: 'Aguardando Aprovação',
-              Mensagem: fullMessage,
-              _replyto: email,
-              _subject: fullSubject,
-              _template: 'box',
-              _captcha: 'false',
-            }),
-          });
-        } catch (err) {
-          console.warn('FormSubmit dispatch failed:', err);
-        }
-      }
+      await sendVipRegistrationEmails({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        planLabel,
+        price: selectedPlan === 'mercadopago' ? subPrice : pixPrice,
+        notes: notes.trim(),
+        brand,
+      });
     } catch (e) {
-      console.warn('Erro ao disparar e-mail de notificação:', e);
+      console.warn('Erro ao disparar e-mail de notificação SMTP:', e);
     }
 
     setIsSubmitting(false);

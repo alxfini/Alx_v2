@@ -126,6 +126,19 @@ export interface VipMember {
   status: 'Ativo' | 'Aguardando Aprovação' | 'Expirando em Breve' | 'Expirado' | 'Inativo';
   notes?: string;
   createdAt: string;
+  lastReminderSentForExpiration?: string; // YYYY-MM-DD da validade para a qual o lembrete automático de 1 dia antes já foi enviado
+  approvalEmailSentAt?: string; // ISO timestamp do último envio de e-mail de aprovação
+}
+
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  encryption: 'ssl' | 'tls' | 'none';
+  user: string;
+  password?: string;
+  fromName?: string;
+  adminReceiverEmail?: string;
+  autoReminderEnabled?: boolean;
 }
 
 export interface VipContentItem {
@@ -230,9 +243,9 @@ export interface SiteBrandConfig {
     spotify?: string;
     vipStore: string;
     email: string;
-    web3formsKey?: string;
     customWebhookUrl?: string;
   };
+  smtpConfig?: SmtpConfig;
   customSocialLinks?: CustomSocialLink[];
   footerIconsOrder?: string[];
   adminTabOrder?: string[];

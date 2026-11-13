@@ -89,12 +89,17 @@ import { VipCardsManager } from './VipCardsManager';
 import { getMediaPreviewUrl } from '../../utils/mediaUrl';
 import { resolveWallpaperDownloadUrl } from '../../utils/wallpaperUrl';
 import { EDITABLE_PAGES, getPageThemeHex, DEFAULT_PAGE_COLORS } from '../../utils/pageColors';
-import { ALXApp, NewsArticle, ProductItem, EVModel, OTAUpdate, Tutorial, TutorialVideoItem, YouTubeVideo, CustomPageLink, UnlockServiceItem, WallpaperItem, CustomSocialLink, ContactCardItem, VipMember, IptvAppItem, IptvSimpleLink } from '../../types';
+import { ALXApp, NewsArticle, ProductItem, EVModel, OTAUpdate, Tutorial, TutorialVideoItem, YouTubeVideo, CustomPageLink, UnlockServiceItem, WallpaperItem, CustomSocialLink, ContactCardItem, VipMember, IptvAppItem, IptvSimpleLink, SmtpConfig } from '../../types';
 import { SocialIcon } from '../common/SocialIcon';
 import { getResolvedFooterIcons } from '../../utils/footerIcons';
 import { getResolvedHeaderMenu } from '../../utils/headerMenu';
 import { requestNotificationPermission, sendBrowserNotification } from '../../services/notificationService';
 import { generatePixPayload, getPixQrCodeUrl } from '../../utils/pix';
+import {
+  sendSmtpEmail,
+  saveSmtpConfigOnServer,
+  buildAlxEmailHtml,
+} from '../../services/emailService';
 
 const EXISTING_SITE_PAGES = [
   {
@@ -778,79 +783,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleSendReactivationEmail = async () => {
     if (!targetReactivationMember || !targetReactivationMember.email) {
-      alert('E-mail do membro não encontrado.');
       return;
     }
     setIsSendingReactivationEmail(true);
     setReactivationFeedback(null);
 
-    const recipientEmail = targetReactivationMember.email;
-    const web3Key = brand.links?.web3formsKey?.trim();
-    let sentSuccess = false;
+    const recipientEmail = targetReactivationMember.email.trim();
 
     try {
-      if (web3Key) {
-        try {
-          const w3Res = await fetch('https://api.web3forms.com/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({
-              access_key: web3Key,
-              name: 'Portal Alx⁺ VIP',
-              email: recipientEmail,
-              replyto: brand.links?.email || 'contact@7f.com.br',
-              subject: reactivationSubject,
-              message: reactivationMessage,
-            }),
-          });
-          if (w3Res.ok) sentSuccess = true;
-        } catch (err) {
-          console.warn('Web3Forms reactivation error:', err);
-        }
-      }
+      const htmlContent = buildAlxEmailHtml({
+        badge: 'COMUNICADO VIP ALX⁺',
+        title: reactivationSubject,
+        subtitle: `Olá, ${targetReactivationMember.name}! Confira abaixo o comunicado sobre sua assinatura VIP.`,
+        highlightBox: [
+          { label: 'Membro VIP', value: targetReactivationMember.name },
+          { label: 'E-mail', value: recipientEmail },
+          { label: 'Plano / Ciclo', value: `${targetReactivationMember.planType} (${targetReactivationMember.period})` },
+          { label: 'Validade Registrada', value: targetReactivationMember.expirationDate || 'A consultar' },
+        ],
+        bodyLines: reactivationMessage.split('\n').filter((line) => line.trim().length > 0),
+        ctaText: 'Acessar Área VIP no Portal Alx⁺',
+        ctaUrl: 'https://alx.7f.com.br/#vip',
+      });
 
-      if (!sentSuccess) {
-        try {
-          const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(recipientEmail)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({
-              Membro: targetReactivationMember.name,
-              Email: recipientEmail,
-              Mensagem: reactivationMessage,
-              _replyto: brand.links?.email || 'contact@7f.com.br',
-              _subject: reactivationSubject,
-              _template: 'box',
-              _captcha: 'false',
-            }),
-          });
-          if (res.ok) sentSuccess = true;
-        } catch (err) {
-          console.warn('FormSubmit reactivation error:', err);
-        }
-      }
+      const res = await sendSmtpEmail(
+        {
+          to: recipientEmail,
+          subject: reactivationSubject,
+          html: htmlContent,
+          text: reactivationMessage,
+          replyTo: brand.smtpConfig?.adminReceiverEmail || brand.links?.email || 'contact@7f.com.br',
+        },
+        brand
+      );
 
-      if (sentSuccess) {
+      if (res.success) {
         setReactivationFeedback({
           success: true,
-          message: `E-mail de reativação enviado com sucesso para ${recipientEmail}!`,
+          message: `E-mail enviado com sucesso via SMTP para ${recipientEmail}!`,
         });
-        triggerSuccess(`E-mail de reativação enviado para ${recipientEmail}!`);
+        triggerSuccess(`E-mail enviado via SMTP para ${recipientEmail}!`);
       } else {
-        const mailtoUrl = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(reactivationSubject)}&body=${encodeURIComponent(reactivationMessage)}`;
-        window.open(mailtoUrl, '_blank');
         setReactivationFeedback({
-          success: true,
-          message: `Cliente de e-mail aberto para ${recipientEmail}.`,
+          success: false,
+          message: res.error || `Falha ao enviar via SMTP. Verifique as configurações de servidor, login e senha na aba Mensagens.`,
         });
-        triggerSuccess('Cliente de e-mail aberto com a mensagem!');
       }
     } catch (err: any) {
-      const mailtoUrl = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(reactivationSubject)}&body=${encodeURIComponent(reactivationMessage)}`;
-      window.open(mailtoUrl, '_blank');
       setReactivationFeedback({
-        success: true,
-        message: `Cliente de e-mail aberto para ${recipientEmail}.`,
+        success: false,
+        message: err?.message || `Erro de conexão ao disparar e-mail SMTP.`,
       });
     } finally {
       setIsSendingReactivationEmail(false);
@@ -1079,162 +1061,155 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     isActivationNotice?: boolean;
     message: string;
   } | null>(null);
-  const [destinationEmailInput, setDestinationEmailInput] = useState<string>(brand.links?.email || 'contact@7f.com.br');
-  const [web3KeyInput, setWeb3KeyInput] = useState<string>(brand.links?.web3formsKey || '');
+  const [destinationEmailInput, setDestinationEmailInput] = useState<string>(
+    brand.smtpConfig?.adminReceiverEmail || brand.links?.email || 'contact@7f.com.br'
+  );
+  const [smtpHostInput, setSmtpHostInput] = useState<string>(brand.smtpConfig?.host || 'smtp.hostinger.com');
+  const [smtpPortInput, setSmtpPortInput] = useState<number>(brand.smtpConfig?.port || 465);
+  const [smtpEncryptionInput, setSmtpEncryptionInput] = useState<'ssl' | 'tls' | 'none'>(
+    brand.smtpConfig?.encryption || 'ssl'
+  );
+  const [smtpUserInput, setSmtpUserInput] = useState<string>(
+    brand.smtpConfig?.user || brand.links?.email || 'contact@7f.com.br'
+  );
+  const [smtpPasswordInput, setSmtpPasswordInput] = useState<string>(brand.smtpConfig?.password || '');
+  const [smtpFromNameInput, setSmtpFromNameInput] = useState<string>(brand.smtpConfig?.fromName || 'Alx⁺ Oficial');
+  const [autoReminderEnabledInput, setAutoReminderEnabledInput] = useState<boolean>(
+    brand.smtpConfig?.autoReminderEnabled !== false
+  );
   const [webhookUrlInput, setWebhookUrlInput] = useState<string>(brand.links?.customWebhookUrl || '');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (brand.smtpConfig) {
+      if (brand.smtpConfig.host) setSmtpHostInput(brand.smtpConfig.host);
+      if (brand.smtpConfig.port) setSmtpPortInput(Number(brand.smtpConfig.port));
+      if (brand.smtpConfig.encryption) setSmtpEncryptionInput(brand.smtpConfig.encryption);
+      if (brand.smtpConfig.user) setSmtpUserInput(brand.smtpConfig.user);
+      if (brand.smtpConfig.password) setSmtpPasswordInput(brand.smtpConfig.password);
+      if (brand.smtpConfig.fromName) setSmtpFromNameInput(brand.smtpConfig.fromName);
+      if (brand.smtpConfig.adminReceiverEmail) setDestinationEmailInput(brand.smtpConfig.adminReceiverEmail);
+      if (brand.smtpConfig.autoReminderEnabled !== undefined) {
+        setAutoReminderEnabledInput(Boolean(brand.smtpConfig.autoReminderEnabled));
+      }
+    }
+  }, [brand.smtpConfig]);
+
   const unreadMessagesCount = (contactMessages || []).filter((m) => !m.read).length;
+
+  const buildCurrentSmtpConfigObject = (): SmtpConfig => ({
+    host: smtpHostInput.trim() || 'smtp.hostinger.com',
+    port: Number(smtpPortInput) || 465,
+    encryption: smtpEncryptionInput,
+    user: smtpUserInput.trim() || 'contact@7f.com.br',
+    password: smtpPasswordInput,
+    fromName: smtpFromNameInput.trim() || 'Alx⁺ Oficial',
+    adminReceiverEmail: destinationEmailInput.trim() || smtpUserInput.trim() || 'contact@7f.com.br',
+    autoReminderEnabled: autoReminderEnabledInput,
+  });
 
   const handleSendTestEmail = async () => {
     setIsSendingTestEmail(true);
     setTestEmailFeedback(null);
-    const targetEmail = destinationEmailInput.trim() || brand.links?.email || 'contact@7f.com.br';
-    const web3Key = web3KeyInput.trim() || brand.links?.web3formsKey?.trim();
+
+    const activeSmtp = buildCurrentSmtpConfigObject();
+    const targetEmail = activeSmtp.adminReceiverEmail || activeSmtp.user || 'contact@7f.com.br';
     const webhookUrl = webhookUrlInput.trim() || brand.links?.customWebhookUrl?.trim();
-    let web3Success = false;
-    let webhookSuccess = false;
-    let formsubmitSuccess = false;
 
     try {
-      // 1. Test Webhook if configured
+      // Salva antes de testar para garantir que o servidor tenha as credenciais mais recentes
+      updateBrand({
+        links: {
+          ...brand.links,
+          email: targetEmail,
+          customWebhookUrl: webhookUrl,
+        },
+        smtpConfig: activeSmtp,
+      });
+      await saveSmtpConfigOnServer(activeSmtp);
+
       if (webhookUrl) {
-        try {
-          await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: `🧪 **[Teste de Conexão] Painel Administrativo Alx⁺**\nStatus: Conexão Webhook ativa!\nDestino: ${targetEmail}\nData: ${new Date().toLocaleString('pt-BR')}`,
-              name: 'Painel Administrativo',
-              email: targetEmail,
-              subject: 'Teste de Conexão',
-              message: 'Teste de recebimento via Webhook',
-            }),
-          });
-          webhookSuccess = true;
-        } catch (e) {
-          console.warn('Webhook test error:', e);
-        }
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: `🧪 **[Teste de Conexão SMTP] Painel Administrativo Alx⁺**\nServidor: ${activeSmtp.host}:${activeSmtp.port}\nDestino: ${targetEmail}\nData: ${new Date().toLocaleString('pt-BR')}`,
+            name: 'Painel Administrativo',
+            email: targetEmail,
+            subject: 'Teste de Conexão SMTP',
+            message: 'Teste de recebimento via SMTP + Webhook',
+          }),
+        }).catch(() => null);
       }
 
-      // 2. Test Web3Forms if configured
-      if (web3Key) {
-        try {
-          const w3Res = await fetch('https://api.web3forms.com/submit', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              access_key: web3Key,
-              name: 'Painel Administrativo Alx⁺ (Teste Web3Forms)',
-              email: targetEmail,
-              replyto: targetEmail,
-              subject: `[Teste Web3Forms ⚡] Painel Administrativo`,
-              message: `Teste de disparo ultra-rápido via Web3Forms para ${targetEmail}.\nData/Hora: ${new Date().toLocaleString('pt-BR')}`,
-            }),
-          });
-          const w3Data = await w3Res.json().catch(() => null);
-          if (w3Data?.success || w3Res.ok) {
-            web3Success = true;
-          }
-        } catch (e) {
-          console.warn('Web3Forms test error:', e);
-        }
-      }
+      const testHtml = buildAlxEmailHtml({
+        badge: 'TESTE DE CONEXÃO SMTP OFICIAL',
+        title: 'Conexão SMTP Autenticada Funcionando!',
+        subtitle: 'Este e-mail confirma que seu servidor SMTP está autenticado e enviando mensagens diretamente do Portal Alx⁺.',
+        highlightBox: [
+          { label: 'Servidor SMTP', value: `${activeSmtp.host}:${activeSmtp.port} (${activeSmtp.encryption.toUpperCase()})` },
+          { label: 'Conta Autenticada', value: activeSmtp.user },
+          { label: 'Destinatário do Teste', value: targetEmail },
+          { label: 'Lembrete Automático VIP (1 dia antes)', value: activeSmtp.autoReminderEnabled ? 'Ativo' : 'Desativado' },
+          { label: 'Data / Hora', value: new Date().toLocaleString('pt-BR') },
+        ],
+        bodyLines: [
+          'Todos os formulários de Contato, Cadastros na Área VIP, Aprovações de Membros em 1 Clique e Lembretes Automáticos de Vencimento Mensal estão operando com autenticação direta via SMTP.',
+        ],
+        ctaText: 'Abrir Portal Alx⁺',
+        ctaUrl: 'https://alx.7f.com.br',
+      });
 
-      // 3. Test FormSubmit (apenas se Web3Forms não estiver configurado ou tiver falhado)
-      if (!web3Success) {
-        try {
-          const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(targetEmail)}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-              Nome: 'Painel Administrativo Alx⁺ (Teste de Conexão)',
-              Email: targetEmail,
-              Mensagem: `Olá! Este é um e-mail de teste disparado pelo Painel Administrativo para confirmar que o formulário do site está operando e entregando mensagens no endereço ${targetEmail}.\n\nData e hora: ${new Date().toLocaleString('pt-BR')}`,
-              _replyto: targetEmail,
-              _subject: `[Teste de Verificação] Painel Administrativo Alx⁺`,
-              _template: 'box',
-              _captcha: 'false',
-            }),
-          });
+      const res = await sendSmtpEmail({
+        to: targetEmail,
+        subject: `✅ [Alx⁺ SMTP] Teste de Conexão Oficial - ${new Date().toLocaleTimeString('pt-BR')}`,
+        html: testHtml,
+        text: `Teste de conexão SMTP autenticado com sucesso! Servidor: ${activeSmtp.host}:${activeSmtp.port} | Destino: ${targetEmail}`,
+        replyTo: activeSmtp.user,
+        smtpConfig: activeSmtp,
+      });
 
-          let formSubmitMsg = '';
-          try {
-            const data = await res.json().catch(() => null);
-            if (data) {
-              formSubmitMsg = data.message || '';
-              if (data.success === 'true' || data.success === true || res.ok) {
-                formsubmitSuccess = true;
-              }
-            }
-          } catch {
-            if (res.ok) formsubmitSuccess = true;
-          }
-
-          // Check if FormSubmit returned an activation requirement message
-          if (formSubmitMsg && (formSubmitMsg.toLowerCase().includes('activate') || formSubmitMsg.toLowerCase().includes('confirm') || formSubmitMsg.toLowerCase().includes('activation'))) {
-            setTestEmailFeedback({
-              success: false,
-              isActivationNotice: true,
-              message: `O FormSubmit informou: "${formSubmitMsg}". Para começar a receber nesta caixa postal, acesse o webmail de ${targetEmail} (ex: mail.hostinger.com) e procure na Caixa de Entrada e na pasta SPAM pelo e-mail "Action Required: Activate FormSubmit" e clique em "Activate Form".`,
-            });
-            setIsSendingTestEmail(false);
-            return;
-          }
-        } catch (e: any) {
-          console.warn('FormSubmit test error:', e);
-        }
-      }
-
-      if (web3Success || webhookSuccess || formsubmitSuccess) {
-        const details = [
-          web3Success ? 'Web3Forms (⚡ Ultra Rápido)' : null,
-          webhookSuccess ? 'Webhook Instantâneo' : null,
-          formsubmitSuccess ? 'FormSubmit' : null,
-        ].filter(Boolean).join(', ');
-
+      if (res.success) {
         setTestEmailFeedback({
           success: true,
-          message: `E-mail de teste disparado com sucesso via ${details}! Verifique a caixa de entrada (e a pasta Spam/Lixo Eletrônico) em ${targetEmail}.`,
+          message: `Conexão SMTP autenticada com sucesso em ${activeSmtp.host}:${activeSmtp.port}! O e-mail de teste foi entregue para ${targetEmail}.`,
         });
-        triggerSuccess(`E-mail de teste entregue!`);
+        triggerSuccess(`E-mail de teste enviado via SMTP para ${targetEmail}!`);
       } else {
         setTestEmailFeedback({
           success: false,
-          message: `Não foi possível confirmar o recebimento em ${targetEmail}. Verifique se a caixa postal está ativa, se há bloqueio de spam no provedor (Hostinger) ou configure uma chave gratuita em web3forms.com.`,
+          message:
+            res.error ||
+            `Não foi possível autenticar no servidor SMTP (${activeSmtp.host}:${activeSmtp.port}). Confira o e-mail de login e a senha informados.`,
         });
       }
     } catch (err: any) {
       setTestEmailFeedback({
         success: false,
-        message: 'Falha de conexão com os serviços de e-mail: ' + (err?.message || 'Erro de rede'),
+        message: 'Falha ao conectar com o servidor SMTP: ' + (err?.message || 'Erro de rede'),
       });
     } finally {
       setIsSendingTestEmail(false);
     }
   };
 
-  const handleSaveDestinationEmail = (e?: React.FormEvent) => {
+  const handleSaveDestinationEmail = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const updatedEmail = destinationEmailInput.trim() || 'contact@7f.com.br';
-    const updatedWeb3 = web3KeyInput.trim();
+    const activeSmtp = buildCurrentSmtpConfigObject();
+    const updatedEmail = activeSmtp.adminReceiverEmail || 'contact@7f.com.br';
     const updatedWebhook = webhookUrlInput.trim();
 
     updateBrand({
       links: {
         ...brand.links,
         email: updatedEmail,
-        web3formsKey: updatedWeb3,
         customWebhookUrl: updatedWebhook,
       },
+      smtpConfig: activeSmtp,
     });
-    triggerSuccess(`Configurações de e-mail e gateways salvas com sucesso!`);
+
+    await saveSmtpConfigOnServer(activeSmtp);
+    triggerSuccess(`Configurações de Servidor SMTP e Automação VIP salvas com sucesso!`);
   };
 
   // Drag & drop tab ordering
@@ -2562,174 +2537,263 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                   <div>
                     <h4 className="text-base font-bold text-neutral-900 font-heading">
-                      Destino dos E-mails do Site
+                      Servidor SMTP Oficial & Automação de E-mails VIP
                     </h4>
                     <p className="text-xs text-neutral-600">
-                      Endereço que recebe as mensagens enviadas pelos visitantes no formulário.
+                      Envio autenticado direto pelo seu próprio e-mail (Contato, Cadastro VIP, Aprovação em 1 Clique e Lembrete Automático 1 Dia Antes do Vencimento).
                     </p>
                   </div>
                 </div>
 
-                {/* Email, Web3Forms & Webhook update form */}
-                <div className="space-y-3 w-full sm:w-auto">
-                  <form onSubmit={handleSaveDestinationEmail} className="space-y-2 w-full sm:w-auto">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="email"
-                        value={destinationEmailInput}
-                        onChange={(e) => setDestinationEmailInput(e.target.value)}
-                        placeholder="contact@7f.com.br"
-                        className="w-full sm:w-64 bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2 text-xs text-neutral-900 font-mono font-bold focus:outline-none focus:border-black shadow-xs"
-                      />
-                      <button
-                        type="submit"
-                        className="px-3.5 py-2 rounded-xl bg-black hover:bg-neutral-800 text-[#ebbf01] font-bold text-xs whitespace-nowrap cursor-pointer shadow-xs transition-colors"
-                      >
-                        Salvar Todas
-                      </button>
-                    </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveDestinationEmail()}
+                    className="px-4 py-2.5 rounded-xl bg-black hover:bg-neutral-800 text-[#ebbf01] font-extrabold text-xs uppercase flex items-center gap-2 cursor-pointer shadow-sm transition-colors"
+                  >
+                    <Save className="w-4 h-4 text-[#ebbf01]" />
+                    <span>Salvar Servidor SMTP</span>
+                  </button>
+                </div>
+              </div>
 
-                    {/* Web3Forms Access Key Option */}
+              {/* Formulário Completo de Configuração SMTP */}
+              <form onSubmit={handleSaveDestinationEmail} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-neutral-700 font-mono uppercase">
+                      Servidor / Host SMTP
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpHostInput}
+                      onChange={(e) => setSmtpHostInput(e.target.value)}
+                      placeholder="smtp.hostinger.com"
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2 text-xs text-neutral-900 font-mono font-bold focus:outline-none focus:border-black shadow-xs"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-bold text-neutral-600 font-mono uppercase">
-                        Chave Web3Forms (Opcional - Envio Direto em 2s):
+                      <label className="block text-[10px] font-bold text-neutral-700 font-mono uppercase">
+                        Porta
                       </label>
                       <input
-                        type="text"
-                        value={web3KeyInput}
-                        onChange={(e) => setWeb3KeyInput(e.target.value)}
-                        placeholder="Cole sua Access Key do Web3Forms (ex: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
-                        className="w-full sm:w-80 bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3 py-1.5 text-xs text-neutral-900 font-mono focus:outline-none focus:border-black shadow-xs"
+                        type="number"
+                        value={smtpPortInput}
+                        onChange={(e) => {
+                          const p = Number(e.target.value);
+                          setSmtpPortInput(p);
+                          if (p === 465) setSmtpEncryptionInput('ssl');
+                          if (p === 587) setSmtpEncryptionInput('tls');
+                        }}
+                        placeholder="465"
+                        className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 font-mono font-bold focus:outline-none focus:border-black shadow-xs"
                       />
-                      <div className="text-[10px] text-neutral-500">
-                        Crie uma chave grátis em <a href="https://web3forms.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold underline">web3forms.com</a> em 30s.
-                      </div>
                     </div>
 
-                    {/* Webhook URL Option */}
-                    <div className="space-y-1 pt-1">
-                      <label className="block text-[10px] font-bold text-neutral-600 font-mono uppercase">
-                        URL do Webhook (Notificação Push Instantânea - Zapier/Telegram/Discord):
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-neutral-700 font-mono uppercase">
+                        Segurança
                       </label>
-                      <input
-                        type="url"
-                        value={webhookUrlInput}
-                        onChange={(e) => setWebhookUrlInput(e.target.value)}
-                        placeholder="https://discord.com/api/webhooks/... ou https://hooks.zapier.com/..."
-                        className="w-full sm:w-80 bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3 py-1.5 text-xs text-neutral-900 font-mono focus:outline-none focus:border-black shadow-xs"
-                      />
+                      <select
+                        value={smtpEncryptionInput}
+                        onChange={(e) => {
+                          const enc = e.target.value as 'ssl' | 'tls' | 'none';
+                          setSmtpEncryptionInput(enc);
+                          if (enc === 'ssl') setSmtpPortInput(465);
+                          if (enc === 'tls') setSmtpPortInput(587);
+                        }}
+                        className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-900 font-mono font-bold focus:outline-none focus:border-black shadow-xs"
+                      >
+                        <option value="ssl">SSL (465)</option>
+                        <option value="tls">TLS (587)</option>
+                        <option value="none">Nenhuma</option>
+                      </select>
                     </div>
-                  </form>
+                  </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-neutral-500 font-mono pt-1">
-                    <span>Atalhos de E-mail:</span>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-neutral-700 font-mono uppercase">
+                      Login / E-mail SMTP (Conta de Envio)
+                    </label>
+                    <input
+                      type="email"
+                      value={smtpUserInput}
+                      onChange={(e) => setSmtpUserInput(e.target.value)}
+                      placeholder="contact@7f.com.br"
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2 text-xs text-neutral-900 font-mono font-bold focus:outline-none focus:border-black shadow-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-neutral-700 font-mono uppercase">
+                      Senha do E-mail SMTP
+                    </label>
+                    <input
+                      type="password"
+                      value={smtpPasswordInput}
+                      onChange={(e) => setSmtpPasswordInput(e.target.value)}
+                      placeholder="Digite a senha do seu e-mail..."
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2 text-xs text-neutral-900 font-mono font-bold focus:outline-none focus:border-black shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-neutral-700 font-mono uppercase">
+                      Nome de Exibição do Remetente
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpFromNameInput}
+                      onChange={(e) => setSmtpFromNameInput(e.target.value)}
+                      placeholder="Alx⁺ Oficial"
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2 text-xs text-neutral-900 font-medium focus:outline-none focus:border-black shadow-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-neutral-700 font-mono uppercase">
+                      E-mail Administrador que Recebe os Alertas
+                    </label>
+                    <input
+                      type="email"
+                      value={destinationEmailInput}
+                      onChange={(e) => setDestinationEmailInput(e.target.value)}
+                      placeholder="contact@7f.com.br"
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2 text-xs text-neutral-900 font-mono font-bold focus:outline-none focus:border-black shadow-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-neutral-700 font-mono uppercase">
+                      Webhook Opcional (Discord / Telegram / Zapier)
+                    </label>
+                    <input
+                      type="url"
+                      value={webhookUrlInput}
+                      onChange={(e) => setWebhookUrlInput(e.target.value)}
+                      placeholder="https://discord.com/api/webhooks/..."
+                      className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2 text-xs text-neutral-900 font-mono focus:outline-none focus:border-black shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Automação de Lembrete 1 Dia Antes do Vencimento Mensal */}
+                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 font-bold text-xs text-neutral-900">
+                      <Clock className="w-4 h-4 text-emerald-600" />
+                      <span>Disparo Automático de Lembrete 1 Dia Antes do Vencimento (Membros Mensais)</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-600 leading-relaxed">
+                      Quando ativado, o sistema verifica automaticamente os membros VIP cuja assinatura vence <strong>amanhã</strong> e envia um e-mail de lembrete de renovação para o <strong>Cliente</strong> e um aviso para <strong>Você ({destinationEmailInput || 'Admin'})</strong>, sem precisar enviar manualmente.
+                    </p>
+                  </div>
+
+                  <label className="inline-flex items-center gap-2.5 cursor-pointer shrink-0 select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoReminderEnabledInput}
+                      onChange={(e) => setAutoReminderEnabledInput(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-neutral-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all relative peer-checked:bg-emerald-600" />
+                    <span className="text-xs font-extrabold text-neutral-900">
+                      {autoReminderEnabledInput ? 'Automático Ativo' : 'Desativado'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Resumo dos Fluxos Automáticos Ativos */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1">
+                    <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>1. Cadastro VIP & Contato</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                      Envia notificação imediata para o seu e-mail e confirmação de recebimento para o cliente assim que ele preenche o cadastro.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1">
+                    <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+                      <Crown className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>2. Botão "Aprovar VIP"</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                      Ao clicar em <strong>Aprovar VIP</strong> na aba Membros VIP, o cliente recebe na hora o e-mail oficial informando que seu acesso foi liberado.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1">
+                    <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+                      <Bell className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>3. Aviso 1 Dia Antes (Mensal)</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                      1 dia antes de vencer o ciclo mensal, tanto o cliente quanto você recebem automaticamente o lembrete de renovação por e-mail.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Test Email Button & Live Feedback */}
+                <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setDestinationEmailInput('contact@7f.com.br');
-                        updateBrand({ links: { ...brand.links, email: 'contact@7f.com.br' } });
-                        triggerSuccess('E-mail alterado para contact@7f.com.br');
-                      }}
-                      className="text-neutral-700 hover:text-black font-bold underline cursor-pointer"
+                      onClick={handleSendTestEmail}
+                      disabled={isSendingTestEmail}
+                      className="px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-[#ebbf01] font-extrabold text-xs uppercase flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50 transition-all"
                     >
-                      contact@7f.com.br
+                      {isSendingTestEmail ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-[#ebbf01]" />
+                          <span>Autenticando no SMTP e Enviando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 text-[#ebbf01]" />
+                          <span>Testar Conexão SMTP e Enviar E-mail para {destinationEmailInput}</span>
+                        </>
+                      )}
                     </button>
-                    <span>•</span>
+
                     <button
-                      type="button"
-                      onClick={() => {
-                        setDestinationEmailInput('alxrdrgo@gmail.com');
-                        updateBrand({ links: { ...brand.links, email: 'alxrdrgo@gmail.com' } });
-                        triggerSuccess('E-mail alterado para alxrdrgo@gmail.com');
-                      }}
-                      className="text-neutral-700 hover:text-black font-bold underline cursor-pointer"
+                      type="submit"
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
                     >
-                      alxrdrgo@gmail.com
+                      <Check className="w-4 h-4" />
+                      <span>Salvar Tudo</span>
                     </button>
                   </div>
+
+                  <span className="text-[11px] text-neutral-500 font-mono">
+                    Motor Nativo: SMTP Autenticado ({smtpHostInput}:{smtpPortInput})
+                  </span>
                 </div>
-              </div>
-
-              {/* Explicações Claras de Entrega & Por Que o E-mail Pode Não Ter Chegado */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-2">
-                  <div className="font-bold text-neutral-900 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Armazenamento Garantido no Painel</span>
-                  </div>
-                  <p className="text-neutral-600 leading-relaxed">
-                    Toda mensagem enviada pelo formulário é <strong>registrada imediatamente aqui nesta tela</strong>. Você nunca perderá nenhuma solicitação, mesmo se houver instabilidade ou atraso no provedor de e-mail.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-2">
-                  <div className="font-bold text-amber-900 flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-700" />
-                    <span>Como receber em contact@7f.com.br:</span>
-                  </div>
-                  <ul className="text-neutral-700 space-y-1 list-disc list-inside leading-relaxed text-[11px]">
-                    <li>
-                      <strong>Caixa Postal Hostinger:</strong> Acesse o Webmail em <a href="https://mail.hostinger.com" target="_blank" rel="noopener noreferrer" className="text-blue-700 font-bold underline">mail.hostinger.com</a> com o login <strong>contact@7f.com.br</strong> e verifique a pasta <strong>Spam / Lixo Eletrônico</strong>.
-                    </li>
-                    <li>
-                      <strong>Ativação FormSubmit:</strong> Abra a mensagem com assunto <em>"Action Required: Activate FormSubmit"</em> e clique em <em>"Activate Form"</em>.
-                    </li>
-                    <li>
-                      <strong>Dica Prática:</strong> Você também pode alternar para o seu Gmail (<em>alxrdrgo@gmail.com</em>) acima para receber direto sem bloqueios, ou criar no Hostinger um Encaminhamento (Redirecionamento) de contact@7f.com.br para seu Gmail!
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Test Email Button & Live Feedback */}
-              <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={handleSendTestEmail}
-                  disabled={isSendingTestEmail}
-                  className="px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-[#ebbf01] font-extrabold text-xs uppercase flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50 transition-all"
-                >
-                  {isSendingTestEmail ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-[#ebbf01]" />
-                      <span>Disparando E-mail de Teste...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 text-[#ebbf01]" />
-                      <span>Enviar E-mail de Teste para {destinationEmailInput}</span>
-                    </>
-                  )}
-                </button>
-
-                <span className="text-[11px] text-neutral-500 font-mono">
-                  Gateway: FormSubmit AJAX • Sem captura de senhas
-                </span>
-              </div>
+              </form>
 
               {/* Live Test Feedback Banner */}
               {testEmailFeedback && (
                 <div className={`p-4 rounded-2xl border text-xs leading-relaxed animate-in fade-in duration-200 ${
                   testEmailFeedback.success
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                    : testEmailFeedback.isActivationNotice
-                    ? 'bg-amber-50 border-amber-300 text-amber-900'
                     : 'bg-red-50 border-red-300 text-red-900'
                 }`}>
                   <div className="font-bold flex items-center gap-2 mb-1">
                     {testEmailFeedback.success ? (
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    ) : testEmailFeedback.isActivationNotice ? (
-                      <AlertTriangle className="w-4 h-4 text-amber-700" />
                     ) : (
                       <ShieldAlert className="w-4 h-4 text-red-600" />
                     )}
                     <span>
                       {testEmailFeedback.success
-                        ? 'E-mail de Teste Disparado com Sucesso!'
-                        : testEmailFeedback.isActivationNotice
-                        ? 'Atenção: E-mail de Ativação Pendente de Confirmação'
-                        : 'Aviso do Servidor de E-mail'}
+                        ? 'Servidor SMTP Autenticado e E-mail Entregue!'
+                        : 'Falha na Autenticação SMTP'}
                     </span>
                   </div>
                   <p className="text-[12px]">{testEmailFeedback.message}</p>
@@ -7145,10 +7209,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <button
                                   onClick={() => {
                                     approveVipMember(m.id);
-                                    triggerSuccess(`Membro "${m.name}" aprovado e ativado por 30 dias!`);
+                                    triggerSuccess(`Membro "${m.name}" aprovado! E-mail de confirmação enviado automaticamente para ${m.email}.`);
                                   }}
                                   className="px-3.5 py-1.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black shadow-md shadow-emerald-500/20 cursor-pointer"
-                                  title="Aprovar pagamento e ativar membro VIP no sistema por +30 dias"
+                                  title="Aprovar pagamento, ativar membro VIP e disparar e-mail automático de aprovação"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
                                   <span>Aprovar VIP</span>
