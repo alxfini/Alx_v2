@@ -46,18 +46,18 @@ export function buildAlxEmailHtml(params: {
   const paragraphsHtml = bodyLines
     .map(
       (line) =>
-        `<p style="margin: 0 0 12px 0; color: #d4d4d8; font-size: 14px; line-height: 1.6;">${line}</p>`
+        `<p style="margin: 0 0 12px 0; color: #3f3f46; font-size: 14px; line-height: 1.6;">${line}</p>`
     )
     .join('');
 
   const highlightsHtml =
     highlightBox && highlightBox.length > 0
-      ? `<div style="background: #14141c; border: 1px solid #27272a; border-radius: 12px; padding: 16px; margin: 20px 0;">
+      ? `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 20px 0;">
           ${highlightBox
             .map(
               (item) =>
-                `<div style="margin-bottom: 8px; font-size: 13px; color: #e4e4e7;">
-                  <strong style="color: #ebbf01;">${item.label}:</strong> ${item.value}
+                `<div style="margin-bottom: 8px; font-size: 13px; color: #334155;">
+                  <strong style="color: #b45309;">${item.label}:</strong> ${item.value}
                 </div>`
             )
             .join('')}
@@ -67,7 +67,7 @@ export function buildAlxEmailHtml(params: {
   const ctaHtml =
     ctaText && ctaUrl
       ? `<div style="margin: 26px 0 10px 0; text-align: center;">
-          <a href="${ctaUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #ebbf01; color: #000000; font-weight: 800; font-size: 13px; text-decoration: none; padding: 14px 28px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+          <a href="${ctaUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #2563eb; color: #ffffff; font-weight: 800; font-size: 13px; text-decoration: none; padding: 14px 28px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
             ${ctaText}
           </a>
         </div>`
@@ -78,26 +78,26 @@ export function buildAlxEmailHtml(params: {
 <head>
   <meta charset="UTF-8" />
 </head>
-<body style="margin: 0; padding: 24px 12px; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #111116; border: 1px solid #27272a; border-radius: 18px; overflow: hidden;">
-    <div style="height: 4px; background: linear-gradient(90deg, #ebbf01, #f59e0b, #ebbf01);"></div>
+<body style="margin: 0; padding: 24px 12px; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 18px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+    <div style="height: 4px; background: linear-gradient(90deg, #2563eb, #3b82f6, #2563eb);"></div>
     <div style="padding: 28px 24px;">
-      <div style="display: inline-block; padding: 4px 10px; border-radius: 6px; background: rgba(235, 191, 1, 0.15); border: 1px solid rgba(235, 191, 1, 0.35); color: #ebbf01; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px;">
+      <div style="display: inline-block; padding: 4px 10px; border-radius: 6px; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.25); color: #1d4ed8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px;">
         ${badge}
       </div>
-      <h1 style="margin: 0 0 8px 0; color: #ffffff; font-size: 22px; font-weight: 800;">
+      <h1 style="margin: 0 0 8px 0; color: #09090b; font-size: 22px; font-weight: 800;">
         ${title}
       </h1>
       ${
         subtitle
-          ? `<p style="margin: 0 0 20px 0; color: #a1a1aa; font-size: 13px;">${subtitle}</p>`
+          ? `<p style="margin: 0 0 20px 0; color: #52525b; font-size: 13px;">${subtitle}</p>`
           : '<div style="margin-bottom: 16px;"></div>'
       }
       ${paragraphsHtml}
       ${highlightsHtml}
       ${ctaHtml}
     </div>
-    <div style="padding: 16px 24px; background-color: #0c0c10; border-top: 1px solid #1f1f26; text-align: center;">
+    <div style="padding: 16px 24px; background-color: #fafafa; border-top: 1px solid #f4f4f5; text-align: center;">
       <p style="margin: 0; color: #71717a; font-size: 11px;">
         ${footerNote}
       </p>
