@@ -175,7 +175,8 @@ function detectClientCountry(langStr?: string): string {
 }
 
 /**
- * Detecta se a conexão vem do APK (Carro/Celular), Redes Sociais, Google, etc.
+ * Detecta se a conexão vem da Central Multimídia do Carro (DiLink / Android Automotivo), Celular ou Computador,
+ * além de identificar a origem do tráfego (Redes Sociais, Google, APKs, Acesso Direto).
  */
 function getSourceAndDeviceFromContext() {
   if (typeof window === 'undefined') {
@@ -183,57 +184,119 @@ function getSourceAndDeviceFromContext() {
   }
 
   const searchParams = new URLSearchParams(window.location.search);
-  const rawSource = (searchParams.get('source') || searchParams.get('ref') || searchParams.get('utm_source') || '').toLowerCase();
+  const rawSource = (
+    searchParams.get('source') ||
+    searchParams.get('ref') ||
+    searchParams.get('utm_source') ||
+    ''
+  ).toLowerCase();
+  const rawDevice = (searchParams.get('device') || searchParams.get('dispositivo') || '').toLowerCase();
   const ua = (navigator.userAgent || '').toLowerCase();
+  const platform = ((navigator as any).platform || '').toLowerCase();
   const referrer = (document.referrer || '').toLowerCase();
+  const maxTouch = typeof navigator !== 'undefined' ? navigator.maxTouchPoints || 0 : 0;
+
+  const screenW = typeof window.screen !== 'undefined' ? window.screen.width : window.innerWidth;
+  const screenH = typeof window.screen !== 'undefined' ? window.screen.height : window.innerHeight;
+  const maxDim = Math.max(screenW, screenH);
+  const minDim = Math.min(screenW, screenH);
+  const isLandscape = window.innerWidth > window.innerHeight || screenW > screenH;
 
   let source = '';
   let device = '';
 
-  // 1. Detecção do APK de Multimídia Automotiva / Carro
-  if (
+  // Heurísticas para identificar Central Multimídia Automotiva (BYD DiLink, Android Auto/Head Units)
+  const hasExplicitCarParam =
     rawSource.includes('apk_car') ||
     rawSource.includes('apk_carro') ||
+    rawSource.includes('carro') ||
     rawSource.includes('dilink') ||
     rawSource.includes('byd') ||
+    rawDevice.includes('car') ||
+    rawDevice.includes('carro') ||
+    rawDevice.includes('multimidia') ||
+    rawDevice.includes('dilink');
+
+  const hasCarUserAgent =
     ua.includes('dilink') ||
+    ua.includes('byd') ||
     ua.includes('carmultimedia') ||
-    ua.includes('alx-car-app')
-  ) {
-    source = '🚗 APK Multimídia (Carro)';
+    ua.includes('alx-car-app') ||
+    ua.includes('automotive') ||
+    ua.includes('headunit') ||
+    ua.includes('qcm6125') ||
+    ua.includes('sm6225') ||
+    ua.includes('uis7862') ||
+    ua.includes('8227l') ||
+    ua.includes('ts10') ||
+    ua.includes('ts18') ||
+    ua.includes('fyt');
+
+  // Centrais BYD DiLink / Android Automotivo rodam Android sem token "Mobile" (perfil tablet/automotive)
+  // ou navegador em modo Desktop (Linux ARM + tela Touch horizontal)
+  const isAndroidNonMobile = ua.includes('android') && !ua.includes('mobile');
+  const isAndroidLandscapeCarScreen =
+    ua.includes('android') && isLandscape && maxDim >= 800 && minDim >= 480;
+  const isLinuxArmTouchCarScreen =
+    !ua.includes('windows') &&
+    !ua.includes('macintosh') &&
+    !ua.includes('iphone') &&
+    !ua.includes('ipad') &&
+    (ua.includes('linux') || ua.includes('x11')) &&
+    maxTouch > 0 &&
+    (platform.includes('aarch64') || platform.includes('arm') || (isLandscape && maxDim >= 800));
+
+  const isCarMultimedia =
+    hasExplicitCarParam ||
+    hasCarUserAgent ||
+    isAndroidNonMobile ||
+    isAndroidLandscapeCarScreen ||
+    isLinuxArmTouchCarScreen;
+
+  // 1. Detecção de Carro (Multimídia)
+  if (isCarMultimedia) {
     device = '🚗 Multimídia Carro';
+    if (hasExplicitCarParam || hasCarUserAgent) {
+      source = '🚗 Multimídia (Carro)';
+    }
   }
-  // 2. Detecção do APK do Celular Android
+  // 2. Detecção explícita de APK/Link de Celular
   else if (
     rawSource.includes('apk_celular') ||
     rawSource.includes('apk_mobile') ||
+    rawSource.includes('celular') ||
     rawSource.includes('alx_apk') ||
+    rawDevice.includes('celular') ||
+    rawDevice.includes('mobile') ||
     ua.includes('alx-mobile-app')
   ) {
-    source = '📱 APK Mobile (Celular)';
+    source = '📱 Acesso Mobile (Celular)';
     device = '📱 Celular';
   }
-  // 3. Fontes de Tráfego Web via URL ou Referrer externo
-  else if (rawSource.includes('google') || referrer.includes('google.')) {
-    source = '🔍 Google (Busca)';
-  } else if (rawSource.includes('youtube') || referrer.includes('youtube.') || referrer.includes('youtu.be')) {
-    source = '▶️ YouTube';
-  } else if (rawSource.includes('telegram') || referrer.includes('t.me') || referrer.includes('telegram')) {
-    source = '✈️ Telegram';
-  } else if (rawSource.includes('instagram') || referrer.includes('instagram.')) {
-    source = '📸 Instagram';
-  } else if (rawSource.includes('whatsapp') || referrer.includes('wa.me') || referrer.includes('whatsapp')) {
-    source = '💬 WhatsApp';
-  } else if (referrer) {
-    try {
-      const refUrl = new URL(referrer);
-      const currentHost = window.location.hostname.replace('www.', '').toLowerCase();
-      const refHost = refUrl.hostname.replace('www.', '').toLowerCase();
-      // Ignora auto-referência do próprio domínio
-      if (refHost && refHost !== currentHost && !refHost.includes('run.app') && !refHost.includes('localhost')) {
-        source = `🔗 ${refHost}`;
-      }
-    } catch {}
+
+  // 3. Fontes de Tráfego Web via URL ou Referrer externo (caso ainda não definida)
+  if (!source) {
+    if (rawSource.includes('google') || referrer.includes('google.')) {
+      source = '🔍 Google (Busca)';
+    } else if (rawSource.includes('youtube') || referrer.includes('youtube.') || referrer.includes('youtu.be')) {
+      source = '▶️ YouTube';
+    } else if (rawSource.includes('telegram') || referrer.includes('t.me') || referrer.includes('telegram')) {
+      source = '✈️ Telegram';
+    } else if (rawSource.includes('instagram') || referrer.includes('instagram.')) {
+      source = '📸 Instagram';
+    } else if (rawSource.includes('whatsapp') || referrer.includes('wa.me') || referrer.includes('whatsapp')) {
+      source = '💬 WhatsApp';
+    } else if (referrer) {
+      try {
+        const refUrl = new URL(referrer);
+        const currentHost = window.location.hostname.replace('www.', '').toLowerCase();
+        const refHost = refUrl.hostname.replace('www.', '').toLowerCase();
+        // Ignora auto-referência do próprio domínio
+        if (refHost && refHost !== currentHost && !refHost.includes('run.app') && !refHost.includes('localhost')) {
+          source = `🔗 ${refHost}`;
+        }
+      } catch {}
+    }
   }
 
   // Preserva a fonte de entrada da sessão para navegações internas
@@ -251,13 +314,16 @@ function getSourceAndDeviceFromContext() {
   }
 
   if (!source) {
-    source = '🌐 Acesso Direto';
+    source = isCarMultimedia ? '🚗 Multimídia (Carro)' : '🌐 Acesso Direto';
   }
 
-  // Se o dispositivo ainda não tiver sido classificado como Multimídia
+  // Se o dispositivo ainda não tiver sido classificado como Multimídia Carro
   if (!device) {
-    const isMobile = window.innerWidth < 768 || /android|iphone|ipad|ipod|mobile/i.test(ua);
-    device = isMobile ? '📱 Celular' : '💻 Computador';
+    const isPhone =
+      /iphone|ipod|windows phone|blackberry|iemobile|opera mini/i.test(ua) ||
+      (/android|mobile/i.test(ua) && !isCarMultimedia) ||
+      (maxTouch > 0 && minDim < 550);
+    device = isPhone ? '📱 Celular' : '💻 Computador';
   }
 
   return { source, device };

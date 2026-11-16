@@ -1232,7 +1232,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     'tutorials',
     'unlock',
     'wallpapers',
-    'iptv',
     'parceiros',
     'pages',
     'vipMembers',
@@ -1358,7 +1357,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const navTabs = [
-    { id: 'analytics', label: 'Analytics & Estatísticas', icon: BarChart3, count: null },
+    { id: 'analytics', label: 'Estatísticas', icon: BarChart3, count: null },
     { id: 'brand', label: 'Imagens', icon: ImageIcon, count: null },
     { id: 'messages', label: 'Mensagens & Contatos (Caixa de Entrada)', icon: Mail, count: unreadMessagesCount },
     { id: 'notifications', label: 'Notificações & Sininho', icon: Bell, count: notifications.length },
@@ -1373,7 +1372,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'tutorials', label: 'Tutoriais', icon: BookOpen, count: tutorials.length },
     { id: 'unlock', label: 'Desbloqueios & Serviços', icon: KeyRound, count: (unlockServices || []).length },
     { id: 'wallpapers', label: 'Wallpapers & Wallpapers Animados', icon: Layers, count: (wallpapers || []).length },
-    { id: 'iptv', label: 'IPTV & Streaming', icon: Tv, count: (iptvConfig?.apps || []).length },
     { id: 'parceiros', label: 'Parceiros & Parcerias', icon: Handshake, count: (partners || []).length },
     { id: 'pages', label: 'Páginas & Links do Menu', icon: Globe, count: customPageLinks.length },
     { id: 'vipMembers', label: 'Gestão de Membros VIP', icon: Users, count: (vipMembers || []).length },

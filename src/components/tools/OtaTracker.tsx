@@ -500,6 +500,15 @@ export const OtaTracker: React.FC = () => {
                         loading="lazy"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#111115] via-transparent to-black/30" />
+
+                      {/* Download Count Badge (igual aos Aplicativos) */}
+                      {(ota.downloadsCount !== undefined && ota.downloadsCount !== null) && (
+                        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/80 backdrop-blur-md text-[10px] font-mono text-neutral-300 px-2.5 py-1 rounded-lg border border-white/[0.08]">
+                          <span className="text-[#ebbf01] font-bold">
+                            {formatOtaDownloads(ota.downloadsCount)}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Card Main Information */}
