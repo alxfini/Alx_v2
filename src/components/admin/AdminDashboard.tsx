@@ -100,6 +100,8 @@ import {
   saveSmtpConfigOnServer,
   buildAlxEmailHtml,
   sendVipRegistrationEmails,
+  getVipCardDeclinedMessageText,
+  sendVipCardDeclinedEmail,
 } from '../../services/emailService';
 
 const EXISTING_SITE_PAGES = [
@@ -784,29 +786,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setShowReactivationModal(true);
   };
 
+  const handleOpenCardDeclinedModal = (member?: VipMember) => {
+    const defaultMember: VipMember = member || {
+      id: 'avulso-card-declined',
+      name: '',
+      email: '',
+      phone: '',
+      planType: 'Assinatura Mensal (Mercado Pago)',
+      period: 'Mensal',
+      startDate: new Date().toISOString().slice(0, 10),
+      expirationDate: '',
+      status: 'Aguardando Aprovação',
+      createdAt: new Date().toISOString(),
+    };
+    setTargetReactivationMember(defaultMember);
+    setReactivationFeedback(null);
+    setReactivationSubject(`💳 [Alx⁺ VIP] Dicas para concluir sua assinatura VIP (ou liberação imediata via Pix)`);
+    setReactivationMessage(getVipCardDeclinedMessageText());
+    setShowReactivationModal(true);
+  };
+
   const handleSendReactivationEmail = async () => {
-    if (!targetReactivationMember || !targetReactivationMember.email) {
+    if (!targetReactivationMember || !targetReactivationMember.email?.trim()) {
+      setReactivationFeedback({
+        success: false,
+        message: 'Por favor, informe o endereço de e-mail do destinatário.',
+      });
       return;
     }
     setIsSendingReactivationEmail(true);
     setReactivationFeedback(null);
 
     const recipientEmail = targetReactivationMember.email.trim();
+    const isCardDeclinedTemplate =
+      reactivationSubject.toLowerCase().includes('cartão') ||
+      reactivationSubject.toLowerCase().includes('dicas para concluir') ||
+      reactivationMessage.includes('pequena instabilidade com o seu cartão');
 
     try {
+      const bodyLinesFormatted = reactivationMessage
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((line) =>
+          line.replace(
+            'https://alx.7f.com.br/vip',
+            '<a href="https://alx.7f.com.br/vip" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 700; text-decoration: underline;">https://alx.7f.com.br/vip</a>'
+          )
+        );
+
       const htmlContent = buildAlxEmailHtml({
-        badge: 'COMUNICADO VIP ALX⁺',
-        title: reactivationSubject,
-        subtitle: `Olá, ${targetReactivationMember.name}! Confira abaixo o comunicado sobre sua assinatura VIP.`,
-        highlightBox: [
-          { label: 'Membro VIP', value: targetReactivationMember.name },
-          { label: 'E-mail', value: recipientEmail },
-          { label: 'Plano / Ciclo', value: `${targetReactivationMember.planType} (${targetReactivationMember.period})` },
-          { label: 'Validade Registrada', value: targetReactivationMember.expirationDate || 'A consultar' },
-        ],
-        bodyLines: reactivationMessage.split('\n').filter((line) => line.trim().length > 0),
-        ctaText: 'Acessar Área VIP no Portal Alx⁺',
-        ctaUrl: 'https://alx.7f.com.br/#vip',
+        badge: isCardDeclinedTemplate ? 'SUPORTE ASSINATURA • ALX⁺ VIP' : 'COMUNICADO VIP ALX⁺',
+        title: isCardDeclinedTemplate ? 'Ajuda com a sua Assinatura Alx⁺ VIP' : reactivationSubject,
+        subtitle: isCardDeclinedTemplate
+          ? 'Confira como concluir sua adesão com tranquilidade ou liberar agora mesmo via Pix Avulso.'
+          : `Olá${targetReactivationMember.name ? `, ${targetReactivationMember.name}` : ''}! Confira abaixo o comunicado sobre sua assinatura VIP.`,
+        highlightBox: isCardDeclinedTemplate
+          ? undefined
+          : [
+              { label: 'Membro VIP', value: targetReactivationMember.name || 'Cliente VIP' },
+              { label: 'E-mail', value: recipientEmail },
+              { label: 'Plano / Ciclo', value: `${targetReactivationMember.planType} (${targetReactivationMember.period})` },
+              { label: 'Validade Registrada', value: targetReactivationMember.expirationDate || 'A consultar' },
+            ],
+        bodyLines: bodyLinesFormatted,
+        ctaText: isCardDeclinedTemplate ? 'Acessar https://alx.7f.com.br/vip (Opção Avulso)' : 'Acessar Área VIP no Portal Alx⁺',
+        ctaUrl: 'https://alx.7f.com.br/vip',
       });
 
       const res = await sendSmtpEmail(
@@ -6782,6 +6827,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
 
                 <button
+                  onClick={() => handleOpenCardDeclinedModal()}
+                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs uppercase transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+                  title="Enviar e-mail com dicas de aprovação quando o cartão da pessoa for recusado (ou link para Pix Avulso)"
+                >
+                  <CreditCard className="w-4 h-4 text-white" />
+                  <span>E-mail: Cartão Recusado</span>
+                </button>
+
+                <button
                   onClick={handleOpenAddVipMember}
                   className="px-5 py-2.5 rounded-xl bg-[#ebbf01] text-black font-extrabold text-xs uppercase hover:bg-[#f5cc14] transition-all flex items-center gap-2 shadow-md shadow-[#ebbf01]/20 cursor-pointer"
                 >
@@ -7152,13 +7206,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </td>
 
                           <td className="py-4 px-4">
-                            <div className="space-y-1">
-                              <span className="inline-block px-2.5 py-1 rounded-lg bg-black text-[#ebbf01] font-mono text-[10px] font-extrabold uppercase">
+                            <div className="space-y-1.5">
+                              <span className={`inline-block px-2.5 py-1 rounded-lg font-mono text-[10px] font-extrabold uppercase ${
+                                (m.planType || '').toLowerCase().includes('pix') || (m.planType || '').toLowerCase().includes('avulso')
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-black text-[#ebbf01]'
+                              }`}>
                                 {m.planType}
                               </span>
                               <span className="text-neutral-600 block text-[11px] font-semibold">
                                 Plano: {m.period}
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const isCurrentlyAvulso =
+                                    (m.planType || '').toLowerCase().includes('pix') ||
+                                    (m.planType || '').toLowerCase().includes('avulso') ||
+                                    (m.period || '').toLowerCase().includes('30 dias') ||
+                                    (m.period || '').toLowerCase().includes('avulso');
+                                  const nextPlanType = isCurrentlyAvulso
+                                    ? 'Assinatura Mensal (Mercado Pago)'
+                                    : 'Pagamento Avulso (Pix)';
+                                  const nextPeriod = isCurrentlyAvulso ? 'Mensal' : '30 dias';
+                                  updateVipMember(m.id, {
+                                    planType: nextPlanType,
+                                    period: nextPeriod,
+                                  });
+                                  triggerSuccess(
+                                    `Plano de ${m.name} alterado para ${nextPlanType}!`
+                                  );
+                                }}
+                                title="Alternar entre Assinatura Mensal (Mercado Pago) e Pagamento Avulso (Pix)"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-neutral-100 hover:bg-neutral-900 text-neutral-700 hover:text-white border border-neutral-300 text-[10px] font-bold transition-all cursor-pointer"
+                              >
+                                <RefreshCw className="w-2.5 h-2.5" />
+                                {(m.planType || '').toLowerCase().includes('pix') ||
+                                (m.planType || '').toLowerCase().includes('avulso')
+                                  ? 'Mudar p/ Mensal (Cartão)'
+                                  : 'Mudar p/ Avulso (Pix)'}
+                              </button>
                             </div>
                           </td>
 
@@ -7265,7 +7352,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </>
                               )}
 
-                              {/* Botão de Enviar E-mail de Reativação */}
+                              {/* Botão 1-Click: Cartão Recusado (Dispara o e-mail de orientação imediatamente para o membro) */}
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await sendVipCardDeclinedEmail({
+                                      toEmail: m.email,
+                                      brand,
+                                    });
+                                    if (res.success) {
+                                      triggerSuccess(`E-mail de ajuda (Cartão Recusado) enviado para ${m.email}!`);
+                                    } else {
+                                      handleOpenCardDeclinedModal(m);
+                                    }
+                                  } catch {
+                                    handleOpenCardDeclinedModal(m);
+                                  }
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold text-[10px] uppercase tracking-wider transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+                                title="Disparar e-mail de ajuda para Cartão Recusado (dicas antifraude + opção Pix Avulso)"
+                              >
+                                <CreditCard className="w-3.5 h-3.5 text-rose-600" />
+                                <span className="hidden sm:inline">Cartão Recusado</span>
+                              </button>
+
+                              {/* Botão de Enviar E-mail de Reativação / Personalizado */}
                               <button
                                 onClick={() => handleOpenReactivationModal(m)}
                                 className={`px-3 py-1.5 rounded-xl font-extrabold text-[11px] uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-xs cursor-pointer ${
@@ -7273,7 +7384,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     ? 'bg-[#ebbf01] hover:bg-[#f5cc14] text-black ring-2 ring-black/10'
                                     : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800'
                                 }`}
-                                title="Enviar e-mail de reativação / lembrete de renovação"
+                                title="Abrir editor de e-mail para este membro (Reativação ou Cartão Recusado)"
                               >
                                 <Mail className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">E-mail</span>
@@ -12960,15 +13071,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   />
                 </div>
 
+                <div className="sm:col-span-2 bg-neutral-50 border border-neutral-200 rounded-xl p-3 space-y-2">
+                  <span className="block text-[11px] text-neutral-800 font-mono font-bold uppercase tracking-wider">
+                    Troca Rápida de Modalidade de Pagamento
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVipFormPlanType('Pagamento Avulso (Pix)');
+                        setVipFormPeriod('30 dias');
+                      }}
+                      className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                        vipFormPlanType === 'Pagamento Avulso (Pix)'
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                          : 'bg-white hover:bg-emerald-50 text-neutral-800 border-neutral-300'
+                      }`}
+                    >
+                      💠 Pagamento Avulso (Pix - 30 dias)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVipFormPlanType('Assinatura Mensal (Mercado Pago)');
+                        setVipFormPeriod('Mensal');
+                      }}
+                      className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                        vipFormPlanType === 'Assinatura Mensal (Mercado Pago)'
+                          ? 'bg-black text-[#ebbf01] border-black shadow-sm'
+                          : 'bg-white hover:bg-neutral-100 text-neutral-800 border-neutral-300'
+                      }`}
+                    >
+                      💳 Assinatura Mensal (Mercado Pago)
+                    </button>
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-xs text-neutral-900 font-mono font-bold uppercase tracking-wider">
                     Tipo de Assinatura
                   </label>
                   <select
                     value={vipFormPlanType}
-                    onChange={(e) => setVipFormPlanType(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setVipFormPlanType(val);
+                      if (val === 'Pagamento Avulso (Pix)') {
+                        setVipFormPeriod('30 dias');
+                      } else if (val === 'Assinatura Mensal (Mercado Pago)') {
+                        setVipFormPeriod('Mensal');
+                      }
+                    }}
                     className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 font-medium focus:outline-none focus:border-black shadow-xs cursor-pointer"
                   >
+                    <option value="Pagamento Avulso (Pix)">Pagamento Avulso (Pix)</option>
+                    <option value="Assinatura Mensal (Mercado Pago)">Assinatura Mensal (Mercado Pago)</option>
                     <option value="Assinante VIP">Assinante VIP</option>
                     <option value="Apoiador WhatsApp">Apoiador WhatsApp</option>
                     <option value="Membro YouTube">Membro YouTube</option>
@@ -12987,7 +13144,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     onChange={(e) => setVipFormPeriod(e.target.value)}
                     className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 font-medium focus:outline-none focus:border-black shadow-xs cursor-pointer"
                   >
-                    <option value="Mensal">Mensal</option>
+                    <option value="30 dias">30 dias (Avulso / Pix)</option>
+                    <option value="Mensal">Mensal (Recorrente)</option>
                     <option value="Trimestral">Trimestral</option>
                     <option value="Semestral">Semestral</option>
                     <option value="Anual">Anual</option>
@@ -13005,6 +13163,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 font-medium focus:outline-none focus:border-black shadow-xs cursor-pointer"
                   >
                     <option value="Ativo">Ativo</option>
+                    <option value="Aguardando Aprovação">Aguardando Aprovação</option>
                     <option value="Expirando em Breve">Expirando em Breve</option>
                     <option value="Expirado">Expirado</option>
                     <option value="Inativo">Inativo</option>
@@ -13248,32 +13407,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
 
-            {/* Target Member Summary Box */}
-            <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-2xl space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <span className="font-extrabold text-neutral-900 text-sm block">{targetReactivationMember.name}</span>
-                  <span className="text-neutral-600 font-mono text-xs block">{targetReactivationMember.email}</span>
+            {/* Target Member Summary / Editable Email Box */}
+            <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-2xl space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-mono font-bold text-neutral-600 uppercase">
+                    E-mail do Destinatário *
+                  </label>
+                  <input
+                    type="email"
+                    value={targetReactivationMember.email}
+                    onChange={(e) =>
+                      setTargetReactivationMember({
+                        ...targetReactivationMember,
+                        email: e.target.value,
+                      })
+                    }
+                    placeholder="cliente@email.com"
+                    className="w-full bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:border-black"
+                  />
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-lg bg-black text-[#ebbf01] font-mono text-[10px] font-extrabold uppercase">
-                    {targetReactivationMember.planType} ({targetReactivationMember.period})
-                  </span>
-                  <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
-                    targetReactivationMember.status === 'Ativo'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : targetReactivationMember.status === 'Expirando em Breve'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {targetReactivationMember.status}
-                  </span>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-mono font-bold text-neutral-600 uppercase">
+                    Nome do Cliente (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={targetReactivationMember.name}
+                    onChange={(e) =>
+                      setTargetReactivationMember({
+                        ...targetReactivationMember,
+                        name: e.target.value,
+                      })
+                    }
+                    placeholder="Nome do cliente"
+                    className="w-full bg-white border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-black"
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-neutral-600 pt-2 border-t border-neutral-200">
-                <div><span>Validade:</span> <strong className="text-neutral-900">{targetReactivationMember.expirationDate || 'N/I'}</strong></div>
-                <div><span>Tempo Ativo:</span> <strong className="text-neutral-900">{calculateActiveDuration(targetReactivationMember.startDate)}</strong></div>
+              {/* Botões rápidos para alternar modelo de mensagem */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-200">
+                <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase">Modelos prontos:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReactivationSubject(`💳 [Alx⁺ VIP] Dicas para concluir sua assinatura VIP (ou liberação imediata via Pix)`);
+                    setReactivationMessage(getVipCardDeclinedMessageText());
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-300 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-rose-700" />
+                  <span>Usar Texto: Cartão Recusado</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const name = targetReactivationMember.name || 'Cliente';
+                    setReactivationSubject(`[Alx⁺] Lembrete de Reativação da Assinatura VIP - ${name}`);
+                    setReactivationMessage(
+                      `Olá, ${name}!\n\nSeu plano VIP (${targetReactivationMember.planType} - ${targetReactivationMember.period}) no Portal Alx⁺ possui validade até ${targetReactivationMember.expirationDate || 'hoje'}.\n\nPara continuar com acesso aos APKs, atualizações de firmware e suporte exclusivo sem interrupções, renove sua adesão diretamente no site ou entre em contato conosco.\n\nAtenciosamente,\nEquipe Alx⁺ VIP`
+                    );
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Usar Texto: Lembrete de Renovação</span>
+                </button>
               </div>
             </div>
 
@@ -13305,10 +13507,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   Mensagem / Corpo do E-mail
                 </label>
                 <textarea
-                  rows={7}
+                  rows={12}
                   value={reactivationMessage}
                   onChange={(e) => setReactivationMessage(e.target.value)}
-                  className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-2xl p-3.5 text-xs font-sans text-neutral-900 focus:outline-none focus:border-black shadow-xs"
+                  className="w-full bg-neutral-50 hover:bg-white focus:bg-white border border-neutral-300 rounded-2xl p-3.5 text-xs font-sans text-neutral-900 focus:outline-none focus:border-black shadow-xs leading-relaxed"
                 />
               </div>
             </div>

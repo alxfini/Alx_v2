@@ -467,6 +467,80 @@ export async function sendVipPaymentFailedEmailToMember(
 }
 
 /**
+ * Texto oficial de orientação quando o pagamento via cartão de crédito da assinatura mensal é recusado
+ */
+export function getVipCardDeclinedMessageText(customerName?: string): string {
+  const greeting = customerName && customerName.trim() ? `Olá, ${customerName.trim()},` : 'Olá,';
+  return [
+    greeting,
+    '',
+    'Agradecemos muito pela sua iniciativa em fazer parte do nosso plano! Notamos que houve uma pequena instabilidade com o seu cartão. Isso é bem comum na primeira cobrança de assinaturas, pois os sistemas antifraude do banco e do Mercado Pago costumam ser super cuidadosos para a sua própria segurança.',
+    '',
+    'Para ajudar você a concluir o processo com tranquilidade, preparamos algumas dicas simples:',
+    '',
+    '1. Dê uma olhadinha no aplicativo do seu banco para ver se há alguma liberação de segurança pendente.',
+    '2. Dê preferência ao cartão físico ou a um cartão virtual recorrente (os temporários acabam não funcionando bem para assinaturas).',
+    '3. Confira se o cartão pertence ao mesmo CPF cadastrado em nossa plataforma.',
+    '',
+    'Como foram feitas algumas tentativas seguidas, o sistema pode ter colocado uma breve pausa de segurança. Você pode tentar com outro cartão agora mesmo ou aguardar 24 horinhas para usar o anterior novamente.',
+    '',
+    'Ah, e se você não quiser esperar nem mais um minutinho para liberar o seu acesso, pode fazer o pagamento via Pix por este link:',
+    '',
+    'https://alx.7f.com.br/vip (Basta selecionar a opção "Avulso")',
+    '',
+    'Estamos totalmente à disposição para o que precisar. Vai ser um prazer ter você com a gente!',
+  ].join('\n');
+}
+
+/**
+ * 6. Disparo Manual de Ajuda quando o Cartão é Recusado na Assinatura Mensal (Mercado Pago)
+ */
+export async function sendVipCardDeclinedEmail(params: {
+  toEmail: string;
+  customerName?: string;
+  customSubject?: string;
+  customText?: string;
+  brand: SiteBrandConfig;
+}): Promise<SendEmailResult> {
+  const { toEmail, customerName, customSubject, customText, brand } = params;
+  const subject =
+    customSubject?.trim() ||
+    `💳 [Alx⁺ VIP] Dicas para concluir sua assinatura VIP (ou liberação imediata via Pix)`;
+  const text = customText?.trim() || getVipCardDeclinedMessageText(customerName);
+
+  const bodyLines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) =>
+      line.replace(
+        'https://alx.7f.com.br/vip',
+        '<a href="https://alx.7f.com.br/vip" target="_blank" rel="noopener noreferrer" style="color: #2563eb; font-weight: 700; text-decoration: underline;">https://alx.7f.com.br/vip</a>'
+      )
+    );
+
+  const html = buildAlxEmailHtml({
+    badge: 'SUPORTE ASSINATURA • ALX⁺ VIP',
+    title: 'Ajuda com a sua Assinatura Alx⁺ VIP',
+    subtitle: 'Confira como concluir sua adesão com tranquilidade ou liberar agora mesmo via Pix Avulso.',
+    bodyLines,
+    ctaText: 'Acessar https://alx.7f.com.br/vip (Opção Avulso)',
+    ctaUrl: 'https://alx.7f.com.br/vip',
+  });
+
+  return sendSmtpEmail(
+    {
+      to: toEmail.trim(),
+      subject,
+      html,
+      text,
+      replyTo: getAdminReceiverEmail(brand),
+    },
+    brand
+  );
+}
+
+/**
  * 3. Lembrete Automático de Vencimento (1 Dia Antes) para Membros Mensais (Envia para o Cliente e para o Admin)
  */
 export async function sendVipExpirationReminderEmails(
