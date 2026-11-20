@@ -3,17 +3,12 @@ import {
   Copy,
   Check,
   KeyRound,
-  ShieldCheck,
   HelpCircle,
-  X,
 } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
 
-const GENERATOR_URL = 'https://ahmada3mar.github.io/BYD/';
-
 export const ImeiGeneratorPage: React.FC = () => {
   const { brand } = useSiteData();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [dialCodeCopied, setDialCodeCopied] = useState(false);
 
   const DIAL_CODE = '*#91532547#*';
@@ -31,15 +26,6 @@ export const ImeiGeneratorPage: React.FC = () => {
       }
     }
   }, []);
-
-  useEffect(() => {
-    if (!isModalOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsModalOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen]);
 
   const handleCopyDialCode = async () => {
     try {
@@ -127,30 +113,34 @@ export const ImeiGeneratorPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Passo 2: Abrir Gerador Oficial */}
+        {/* Passo 2: Gerador Integrado Direto na Página */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#161622] border border-white/10 space-y-4 relative z-10">
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--color-brand)] uppercase">
             <span className="w-5 h-5 rounded-full bg-[var(--color-brand)]/20 border border-[var(--color-brand)]/40 flex items-center justify-center text-[11px] text-[var(--color-brand)]">
               2
             </span>
-            <span>Passo 2 • Gerar Senha com os 6 Dígitos do IMEI</span>
+            <span>Passo 2 • Digitar 6 Dígitos do IMEI</span>
           </div>
 
           <p className="text-sm text-neutral-300 leading-relaxed">
             A tela do carro abrirá uma janela mostrando o <strong>IMEI</strong>{' '}
             e um campo de senha. <strong>Deixe essa janela aberta</strong>,
-            clique no botão abaixo e digite os <strong>últimos 6 dígitos</strong>{' '}
-            do IMEI para gerar os códigos de liberação:
+            digite abaixo os <strong>últimos 6 dígitos</strong> do IMEI e clique
+            em <strong>Submit</strong>:
           </p>
 
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="w-full p-4 bg-[var(--color-brand)] hover:brightness-110 active:scale-[0.98] text-black font-extrabold rounded-xl text-base sm:text-lg uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-[var(--color-brand)]/20 font-heading"
-          >
-            <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
-            <span>Gerar Senha</span>
-          </button>
+          <div className="w-full rounded-2xl overflow-hidden border border-white/10 bg-[#0b0f17]">
+            <iframe
+              src="/gerador-byd.html"
+              title="Gerador Senha IMEI BYD"
+              style={{
+                width: '100%',
+                height: '460px',
+                border: 'none',
+                display: 'block',
+              }}
+            />
+          </div>
         </div>
 
         {/* Dica de Ajuda */}
@@ -167,63 +157,6 @@ export const ImeiGeneratorPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Modal Dark Mode Alx⁺ com Botão Amarelo (#FFEA00) */}
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
-          onClick={() => setIsModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-[#12121a] border border-white/15 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Topo do Modal */}
-            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 bg-[#161622] border-b border-white/10">
-              <div className="flex items-center gap-2 min-w-0">
-                <KeyRound className="w-4 h-4 text-[var(--color-brand)] shrink-0" />
-                <span className="text-xs sm:text-sm font-bold text-white truncate">
-                  Gerador de Senha • Últimos 6 dígitos do IMEI
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                aria-label="Fechar"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Aviso Rápido */}
-            <div className="px-4 py-2 bg-[var(--color-brand)]/10 border-b border-[var(--color-brand)]/20 text-[11px] text-neutral-200 text-center">
-              Digite os <strong>6 últimos dígitos do IMEI</strong> abaixo,
-              clique em <strong>Submit</strong> e insira o código gerado no
-              carro.
-            </div>
-
-            {/* Iframe com fundo escuro e rotação de matiz para amarelo #FFEA00 */}
-            <div
-              style={{ height: '440px', backgroundColor: '#141414' }}
-              className="w-full"
-            >
-              <iframe
-                src={GENERATOR_URL}
-                title="Gerador de Senha BYD IMEI"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  filter: 'invert(0.92) hue-rotate(32deg) brightness(1.08)',
-                }}
-                loading="eager"
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
