@@ -187,7 +187,7 @@ export const initialBrandConfig: SiteBrandConfig = {
       subtitle: 'Atendimento Direto',
       description: 'Mensagens diretas de atendimento via WhatsApp.',
       type: 'whatsapp',
-      value: '5511999999999',
+      value: '5519991415000',
       buttonText: 'Chamar no WhatsApp 💬',
       iconName: 'whatsapp',
       colorScheme: 'emerald',
