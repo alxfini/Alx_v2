@@ -37,7 +37,7 @@ A **EV Garage Custom** é uma oficina técnica e centro de estética automotiva 
     contactTitle: 'Atendimento & Contato Direto',
     contactSubtitle: 'Tire suas dúvidas técnicas, consulte horários disponíveis e solicite seu orçamento com a equipe especializada.',
     contactButtonText: 'Falar com Atendimento',
-    contactUrl: 'https://wa.me/5511999999999?text=Ol%C3%A1!%20Vim%20pela%20parceria%20no%20portal%20Alx%E2%81%BA%20e%20gostaria%20de%20agendar%20um%20servi%C3%A7o.',
+    contactUrl: 'https://wa.me/5519991415000?text=Ol%C3%A1!%20Vim%20pela%20parceria%20no%20portal%20Alx%E2%81%BA%20e%20gostaria%20de%20agendar%20um%20servi%C3%A7o.',
     contactType: 'whatsapp',
   },
   {

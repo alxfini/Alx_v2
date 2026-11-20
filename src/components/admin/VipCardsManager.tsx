@@ -59,7 +59,7 @@ export const VipCardsManager: React.FC<VipCardsManagerProps> = ({
       return brand.vipCards;
     }
 
-    const defaultWa = brand.links?.whatsapp || 'https://wa.me/5551999999999';
+    const defaultWa = brand.links?.whatsapp || 'https://wa.me/5519991415000';
     const whatsappUrl = brand.vipWhatsappGroupUrl?.trim() || defaultWa;
 
     return [

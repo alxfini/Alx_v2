@@ -1013,7 +1013,7 @@ Descreva aqui os detalhes da parceria, vantagens para os clientes da Alx⁺ e di
                       type="text"
                       value={editingPartner.contactUrl || ''}
                       onChange={(e) => setEditingPartner({ ...editingPartner, contactUrl: e.target.value })}
-                      placeholder="Ex: https://wa.me/5511999999999 ou https://siteparceiro.com.br ou instagram.com/..."
+                      placeholder="Ex: https://wa.me/5519991415000 ou https://siteparceiro.com.br ou instagram.com/..."
                       className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 bg-white text-xs font-medium text-neutral-900 focus:outline-none focus:border-cyan-500"
                     />
                   </div>

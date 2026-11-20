@@ -6,9 +6,9 @@ export const siteConfig = {
   // Social & Community Links (Easily configurable by the user)
   links: {
     youtube: 'https://www.youtube.com/@alx-garage',
-    telegram: 'https://t.me/ALX_Comunidade', // Placeholder - insira o link do Telegram aqui
-    whatsapp: 'https://wa.me/5551999999999',
-    instagram: 'https://instagram.com/alx.autotech', // Placeholder
+    telegram: 'https://t.me/alx_apk', // Placeholder - insira o link do Telegram aqui
+    whatsapp: 'https://wa.me/5519991415000',
+    instagram: 'https://instagram.com/alexfini', // Placeholder
     spotify: 'https://open.spotify.com/playlist/4fbVvzPirRvxWqkz8m9OTp?si=1f579b7208214433',
     vipStore: '#vip',
     email: 'contact@7f.com.br',

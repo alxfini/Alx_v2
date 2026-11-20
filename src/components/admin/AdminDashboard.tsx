@@ -6177,7 +6177,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     type="text"
                     value={brand.contactWhatsapp || ''}
                     onChange={(e) => updateBrand({ contactWhatsapp: e.target.value })}
-                    placeholder="Ex: 5511999999999"
+                    placeholder="Ex: 5519991415000"
                     className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 font-mono font-medium focus:outline-none focus:border-black"
                   />
                 </div>
@@ -6332,7 +6332,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           type="text"
                           value={editingContactCard.value}
                           onChange={(e) => setEditingContactCard({ ...editingContactCard, value: e.target.value })}
-                          placeholder="Ex: https://t.me/seugrupo ou suporte@empresa.com ou 5511999999999"
+                          placeholder="Ex: https://t.me/seugrupo ou suporte@empresa.com ou 5519991415000"
                           className="w-full bg-[#16161D] border border-neutral-700 rounded-xl px-3 py-2 text-xs font-medium text-white focus:outline-none focus:border-[#ebbf01] font-mono"
                         />
                       </div>
@@ -6450,7 +6450,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 subtitle: 'Atendimento Direto',
                                 description: 'Mensagens diretas de atendimento via WhatsApp.',
                                 type: 'whatsapp',
-                                value: brand.contactWhatsapp || '5511999999999',
+                                value: brand.contactWhatsapp || '5519991415000',
                                 buttonText: 'Chamar no WhatsApp 💬',
                                 iconName: 'whatsapp',
                                 colorScheme: 'brand',
@@ -6462,7 +6462,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 subtitle: 'Grupo Oficial Telegram',
                                 description: 'Participe do grupo com milhares de proprietários.',
                                 type: 'telegram',
-                                value: brand.links?.telegram || 'https://t.me/ALX_Comunidade',
+                                value: brand.links?.telegram || 'https://t.me/alx_apk',
                                 buttonText: 'Entrar ↗',
                                 iconName: 'telegram',
                                 colorScheme: 'brand',
@@ -6513,7 +6513,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       subtitle: 'Atendimento Direto',
                       description: 'Mensagens diretas de atendimento via WhatsApp.',
                       type: 'whatsapp',
-                      value: brand.contactWhatsapp || '5511999999999',
+                      value: brand.contactWhatsapp || '5519991415000',
                       buttonText: 'Chamar no WhatsApp 💬',
                       iconName: 'whatsapp',
                       colorScheme: 'brand',
@@ -6525,7 +6525,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       subtitle: 'Grupo Oficial Telegram',
                       description: 'Participe do grupo com milhares de proprietários.',
                       type: 'telegram',
-                      value: brand.links?.telegram || 'https://t.me/ALX_Comunidade',
+                      value: brand.links?.telegram || 'https://t.me/alx_apk',
                       buttonText: 'Entrar ↗',
                       iconName: 'telegram',
                       colorScheme: 'brand',

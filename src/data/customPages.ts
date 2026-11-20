@@ -29,7 +29,7 @@ export const initialCustomPageLinks: CustomPageLink[] = [
     id: 'link-whatsapp-vip',
     title: 'Comunidade WhatsApp VIP',
     description: 'Grupo exclusivo no WhatsApp para discussões, dúvidas e arquivos diretos',
-    url: 'https://wa.me/5551999999999',
+    url: 'https://wa.me/5519991415000',
     icon: 'MessageSquare',
     badge: 'Oficial',
     category: 'Comunidade',

@@ -114,7 +114,7 @@ Nas configurações do player escolhido:
       id: 'suporte-telegram',
       title: 'Grupo de Suporte no Telegram',
       description: 'Tire dúvidas sobre listas, DNS e aplicativos com a comunidade ALX no Telegram.',
-      url: 'https://t.me/ALX_Comunidade',
+      url: 'https://t.me/alx_apk',
       badge: 'Comunidade',
       isExternal: true,
     },

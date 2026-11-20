@@ -358,7 +358,7 @@ export const VipSection: React.FC<VipSectionProps> = ({
   ].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
 
   // Link do grupo VIP do WhatsApp com fallback inteligente
-  const defaultWa = brand.links?.whatsapp || 'https://wa.me/5551999999999';
+  const defaultWa = brand.links?.whatsapp || 'https://wa.me/5519991415000';
   const whatsappGroupLink = brand.vipWhatsappGroupUrl?.trim()
     ? brand.vipWhatsappGroupUrl.trim()
     : (defaultWa.includes('chat.whatsapp.com')
